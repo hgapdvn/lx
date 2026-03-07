@@ -1380,3 +1380,92 @@ func TestFutureJoin8_Error(t *testing.T) {
 }
 
 // ========================================
+// FutureAny Tests
+// ========================================
+
+func TestFutureAny_SuccessEarly(t *testing.T) {
+	f1 := FutureDo(func() (int, error) {
+		// slow success
+		time.Sleep(50 * time.Millisecond)
+		return 1, nil
+	})
+	f2 := FutureDo(func() (int, error) {
+		// fast success
+		return 2, nil
+	})
+	f3 := FutureDo(func() (int, error) {
+		// error
+		return 0, errors.New("failed")
+	})
+
+	any := FutureAny(f1, f2, f3)
+	ctx := context.Background()
+	start := time.Now()
+	val, err := any.Get(ctx)
+	dur := time.Since(start)
+
+	if err != nil {
+		t.Fatalf("Get() returned unexpected error: %v", err)
+	}
+	if val != 2 {
+		t.Fatalf("Get() = %v, want 2", val)
+	}
+	// Should return quickly because f2 completes immediately
+	if dur > 20*time.Millisecond {
+		t.Fatalf("FutureAny took too long: %v", dur)
+	}
+}
+
+func TestFutureAny_SuccessLater(t *testing.T) {
+	f1 := FutureDo(func() (int, error) {
+		return 0, errors.New("err1")
+	})
+	f2 := FutureDo(func() (int, error) {
+		time.Sleep(30 * time.Millisecond)
+		return 0, errors.New("err2")
+	})
+	f3 := FutureDo(func() (int, error) {
+		time.Sleep(50 * time.Millisecond)
+		return 3, nil
+	})
+
+	any := FutureAny(f1, f2, f3)
+	ctx := context.Background()
+	val, err := any.Get(ctx)
+
+	if err != nil {
+		t.Fatalf("Get() returned unexpected error: %v", err)
+	}
+	if val != 3 {
+		t.Fatalf("Get() = %v, want 3", val)
+	}
+}
+
+func TestFutureAny_AllError(t *testing.T) {
+	err1 := errors.New("e1")
+	err2 := errors.New("e2")
+
+	f1 := FutureDo(func() (int, error) { return 0, err1 })
+	f2 := FutureDo(func() (int, error) { return 0, err2 })
+
+	any := FutureAny(f1, f2)
+	ctx := context.Background()
+	_, err := any.Get(ctx)
+
+	if err == nil {
+		t.Fatalf("Get() expected error, got nil")
+	}
+	// Expect one of the provided errors (first encountered)
+	if err != err1 && err != err2 {
+		t.Fatalf("Get() error = %v, want %v or %v", err, err1, err2)
+	}
+}
+
+func TestFutureAny_Empty(t *testing.T) {
+	any := FutureAny[int]()
+	ctx := context.Background()
+	_, err := any.Get(ctx)
+	if err == nil {
+		t.Fatalf("Get() expected error for empty futures, got nil")
+	}
+}

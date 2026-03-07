@@ -2,6 +2,7 @@ package lxtypes
 
 import (
 	"context"
+	"errors"
 	"sync"
 )
 
@@ -86,7 +87,7 @@ func (f *future[T]) exec() {
 	})
 }
 
-// Then creates a new Future that runs after the current Future successfully
+// FutureThen Then creates a new Future that runs after the current Future successfully
 // completes, transforming the result from type T to type U.
 //
 // This is a standalone function (not a method) because Go interfaces cannot
@@ -217,9 +218,9 @@ func FutureError[T any](err error) Future[T] {
 //	results, err := allData.Get(ctx) // []Data{data1, data2, data3}
 //
 //	// Transform combined results
-//	response := Then(allData, func(data []Data) (Response, error) {
-//	    return combineData(data), nil
-//	})
+//	//response := Then(allData, func(data []Data) (Response, error) {
+//	//    return combineData(data), nil
+//	//})
 func FutureAll[T any](futures ...Future[T]) Future[[]T] {
 	// Cast all futures to access their done channels
 	futureImpls := make([]*future[T], len(futures))
@@ -253,6 +254,69 @@ func FutureAll[T any](futures ...Future[T]) Future[[]T] {
 		}
 
 		return results, nil
+	})
+}
+
+type anyResult[T any] struct {
+	idx   int
+	value T
+	err   error
+}
+
+// FutureAny returns a Future that completes with the first successfully
+// completed child's value (the first child whose error is nil). If all
+// provided futures fail, FutureAny returns the first encountered error
+// according to the input order of futures.
+//
+// If no futures are provided, FutureAny returns a failed future immediately.
+//
+// The returned future respects context cancellation when Get(ctx) is called.
+// Child futures are not cancelled; they continue running in the background.
+func FutureAny[T any](futures ...Future[T]) Future[T] {
+	if len(futures) == 0 {
+		return FutureError[T](errors.New("lxtypes: no futures provided"))
+	}
+
+	futureImpls := make([]*future[T], len(futures))
+	for i, f := range futures {
+		futureImpls[i] = f.(*future[T])
+	}
+
+	return FutureDo(func() (T, error) {
+		// Buffered channel to avoid blocking sends if we return early
+		ch := make(chan anyResult[T], len(futureImpls))
+
+		for i, fut := range futureImpls {
+			// capture index for deterministic error ordering
+			go func(index int, ff *future[T]) {
+				<-ff.done
+				ch <- anyResult[T]{idx: index, value: ff.value, err: ff.err}
+			}(i, fut)
+		}
+
+		// Store errors by input index so that if all fail we return the first
+		// error according to the original input order.
+		errs := make([]error, len(futureImpls))
+
+		for i := 0; i < len(futureImpls); i++ {
+			r := <-ch
+			if r.err == nil {
+				return r.value, nil
+			}
+			errs[r.idx] = r.err
+		}
+
+		// All failed - return first non-nil error by input order
+		for _, e := range errs {
+			if e != nil {
+				var zero T
+				return zero, e
+			}
+		}
+
+		// Should not happen, but return generic error
+		var zero T
+		return zero, errors.New("lxtypes: unknown error in FutureAny")
 	})
 }
 

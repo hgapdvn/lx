@@ -1268,6 +1268,58 @@ result, err := combined.Get(ctx)
 // Access: result.V1 through result.V8
 ```
 
+##### FutureAny - First successful result
+
+Execute multiple futures in parallel and return the first successfully completed
+result (the first child whose error is nil). This is useful when you have
+multiple sources or fallbacks and you only care about the first successful
+response (similar to JavaScript's Promise.any semantics).
+
+Example:
+
+```go
+// Try three sources in parallel and take the first successful value
+f1 := lxtypes.FutureDo(func() (string, error) {
+    time.Sleep(50 * time.Millisecond)
+    return "slow", nil
+})
+
+f2 := lxtypes.FutureDo(func() (string, error) {
+    // Fast success
+    return "fast", nil
+})
+
+f3 := lxtypes.FutureDo(func() (string, error) {
+    return "", errors.New("failed")
+})
+
+any := lxtypes.FutureAny(f1, f2, f3)
+ctx := context.Background()
+val, err := any.Get(ctx)
+if err != nil {
+    // All sources failed
+}
+fmt.Println(val) // "fast"
+```
+
+Behavior & semantics:
+
+- Returns as soon as a child future completes successfully (err == nil).
+- If all child futures complete with non-nil errors, `FutureAny` returns the
+  first encountered error.
+- If no futures are provided, `FutureAny` returns a failed future immediately
+  (error: "lxtypes: no futures provided").
+- Child futures are not cancelled when `FutureAny` returns; they continue
+  running in the background. The returned future's `Get(ctx)` respects the
+  provided context (cancellation and timeouts) for that call only.
+
+Error handling:
+
+- `FutureAny` returns the first successful value; when no success occurs it
+  returns the first error observed (consistent with the project's `FutureAll`
+  behavior of returning a first error). If you prefer aggregated errors or
+  different empty-input semantics we can provide variants.
+
 ##### Which One to Use?
 
 | Scenario | Function | Return Type | Example |

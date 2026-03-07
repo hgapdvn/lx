@@ -30,6 +30,7 @@
 // 5. Async Operations:
 //
 //   - Future[T] - Asynchronous computation with type-safe composition and context support
+//   - FutureAny[T] - Return the first successful result from many futures (first err==nil)
 //
 // Quick Examples:
 //
@@ -100,6 +101,12 @@
 //	f2 := lxtypes.FutureDo(func() (int, error) { return fetchData2() })
 //	allData := lxtypes.FutureAll(f1, f2)
 //	results, _ := allData.Get(context.Background())  // [data1, data2]
+//
+//	// Async operations - FutureAny (first successful result)
+//	fast := lxtypes.FutureDo(func() (string, error) { return "fast", nil })
+//	slow := lxtypes.FutureDo(func() (string, error) { time.Sleep(50 * time.Millisecond); return "slow", nil })
+//	any := lxtypes.FutureAny(fast, slow)
+//	val, _ := any.Get(context.Background()) // "fast"
 //
 //	// Async operations - sequential with type transformation
 //	future := lxtypes.FutureDo(func() (int, error) { return getUserId() })
