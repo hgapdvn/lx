@@ -6,11 +6,11 @@ func Unique[T comparable](slice []T) []T {
 	if slice == nil {
 		return nil
 	}
-	seen := make(map[T]bool)
+	seen := make(map[T]struct{})
 	result := make([]T, 0, len(slice))
 	for _, e := range slice {
-		if !seen[e] {
-			seen[e] = true
+		if _, ok := seen[e]; !ok {
+			seen[e] = struct{}{}
 			result = append(result, e)
 		}
 	}
