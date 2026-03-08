@@ -63,32 +63,6 @@ func Flatten[T any](slices [][]T) []T
 
 ---
 
-### 5. **Take/Drop Operations** (MEDIUM PRIORITY)
-
-```go
-// Take returns first n elements (or all if n > len)
-func Take[T any](slice []T, n int) []T
-
-// TakeLast returns last n elements (or all if n > len)
-func TakeLast[T any](slice []T, n int) []T
-
-// TakeWhile returns elements from start while predicate is true
-func TakeWhile[T any](slice []T, predicate func(T) bool) []T
-
-// Drop returns slice without first n elements
-func Drop[T any](slice []T, n int) []T
-
-// DropLast returns slice without last n elements
-func DropLast[T any](slice []T, n int) []T
-
-// DropWhile returns slice after skipping elements while predicate is true
-func DropWhile[T any](slice []T, predicate func(T) bool) []T
-```
-
-**Why**: Very common patterns in functional programming, cleaner than manual slicing.
-
----
-
 ### 6. **Repetition & Generation** (LOW-MEDIUM PRIORITY)
 
 ```go
