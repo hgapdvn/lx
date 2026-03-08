@@ -18,19 +18,18 @@ import (
 //
 // Example (Deferred):
 //
-//     expensive := lxtypes.LazyDeferred(func() (int, error) {
-//         // Expensive computation
-//         time.Sleep(time.Second)
-//         return 42, nil
-//     })
-//     value, _ := expensive.Get() // Computed here
-//     value2, _ := expensive.Get() // Returns cached value
+//	expensive := lxtypes.LazyDeferred(func() (int, error) {
+//	    // Expensive computation
+//	    time.Sleep(time.Second)
+//	    return 42, nil
+//	})
+//	value, _ := expensive.Get() // Computed here
+//	value2, _ := expensive.Get() // Returns cached value
 //
 // Example (Eager):
 //
-//     immediate := lxtypes.LazyEager(42)
-//     value, _ := immediate.Get() // Returns immediately
-//
+//	immediate := lxtypes.LazyEager(42)
+//	value, _ := immediate.Get() // Returns immediately
 type Lazy[T any] interface {
 	// Get returns the value, computing it if necessary.
 	// For eager values, returns immediately. For deferred values,
@@ -51,9 +50,8 @@ type Lazy[T any] interface {
 //
 // Example:
 //
-//     immediate := lxtypes.LazyEager(42)
-//     value, _ := immediate.Get() // Returns 42 immediately
-//
+//	immediate := lxtypes.LazyEager(42)
+//	value, _ := immediate.Get() // Returns 42 immediately
 func LazyEager[T any](value T) Lazy[T] {
 	return eagerLazy[T]{value: value}
 }
@@ -63,10 +61,9 @@ func LazyEager[T any](value T) Lazy[T] {
 //
 // Example:
 //
-//     result, err := someFunction()
-//     lazy := lxtypes.LazyEagerOrError(result, err)
-//     value, err := lazy.Get() // Returns result and err immediately
-//
+//	result, err := someFunction()
+//	lazy := lxtypes.LazyEagerOrError(result, err)
+//	value, err := lazy.Get() // Returns result and err immediately
 func LazyEagerOrError[T any](value T, err error) Lazy[T] {
 	return eagerLazy[T]{value: value, err: err}
 }
@@ -76,13 +73,12 @@ func LazyEagerOrError[T any](value T, err error) Lazy[T] {
 //
 // Example:
 //
-//     expensive := lxtypes.LazyDeferred(func() (int, error) {
-//         // Expensive computation
-//         return 42, nil
-//     })
-//     value, _ := expensive.Get() // Computed here
-//     value2, _ := expensive.Get() // Returns cached value
-//
+//	expensive := lxtypes.LazyDeferred(func() (int, error) {
+//	    // Expensive computation
+//	    return 42, nil
+//	})
+//	value, _ := expensive.Get() // Computed here
+//	value2, _ := expensive.Get() // Returns cached value
 func LazyDeferred[T any](fn func() (T, error)) Lazy[T] {
 	return &deferredLazy[T]{fn: fn}
 }
@@ -114,13 +110,13 @@ type deferredLazy[T any] struct {
 	once      sync.Once
 	cache     T
 	err       error
-	evaluated atomic.Bool
+	evaluated int32 // 0 for false, 1 for true
 }
 
 func (d *deferredLazy[T]) Get() (T, error) {
 	d.once.Do(func() {
 		d.cache, d.err = d.fn()
-		d.evaluated.Store(true)
+		atomic.StoreInt32(&d.evaluated, 1)
 	})
 	return d.cache, d.err
 }
@@ -134,5 +130,5 @@ func (d *deferredLazy[T]) MustGet() T {
 }
 
 func (d *deferredLazy[T]) IsEvaluated() bool {
-	return d.evaluated.Load()
+	return atomic.LoadInt32(&d.evaluated) == 1
 }
