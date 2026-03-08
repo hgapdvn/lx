@@ -7,7 +7,8 @@
 // 1. Transformation (transform.go)
 //   - Map, FlatMap - Transform slice elements
 //   - ForEach, ForEachIndexed - Iterate over elements for side effects
-//   - GroupBy, UniqueGroupBy - Group elements by a key
+//   - GroupBy - Group elements by a key
+//   - AssociateBy - Create a strict map from elements using a key builder
 //   - Reverse - Reverses a slice in-place
 //   - Concat - Joins multiple slices
 //   - Zip, Unzip - Combine and split paired slices

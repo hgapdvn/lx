@@ -1,6 +1,7 @@
 package lxslices_test
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -594,70 +595,134 @@ func TestGroupBy(t *testing.T) {
 	})
 }
 
-func TestUniqueGroups(t *testing.T) {
-	t.Run("user group by id", func(t *testing.T) {
-		type User struct {
-			ID   int
-			Name string
-			Age  int
-		}
-		slice := []User{
-			{1, "Alice", 25},
-			{2, "Bob", 30},
-			{3, "Charlie", 35},
-		}
-		expected := map[int]User{
-			1: {1, "Alice", 25},
-			2: {2, "Bob", 30},
-			3: {3, "Charlie", 35},
-		}
-		result, err := lxslices.UniqueGroupBy(slice, func(u User) int {
-			return u.ID
-		})
-		if err != nil {
-			t.Errorf("UniqueGroupBy() error = %v", err)
-		}
-		if !reflect.DeepEqual(result, expected) {
-			t.Errorf("UniqueGroupBy() = %v; want %v", result, expected)
-		}
-	})
+func TestAssociateBy_Struct(t *testing.T) {
+	type User struct {
+		ID   int
+		Name string
+		Age  int
+	}
+	tests := []struct {
+		name      string
+		slice     []User
+		fn        func(User) int
+		expected  map[int]User
+		expectErr bool
+	}{
+		{
+			name: "user group by id",
+			slice: []User{
+				{1, "Alice", 25},
+				{2, "Bob", 30},
+				{3, "Charlie", 35},
+			},
+			fn: func(u User) int { return u.ID },
+			expected: map[int]User{
+				1: {1, "Alice", 25},
+				2: {2, "Bob", 30},
+				3: {3, "Charlie", 35},
+			},
+			expectErr: false,
+		},
+		{
+			name: "duplicate keys error",
+			slice: []User{
+				{1, "Alice", 25},
+				{1, "Bob", 30},
+			},
+			fn:        func(u User) int { return u.ID },
+			expected:  nil,
+			expectErr: true,
+		},
+		{
+			name:      "empty slice",
+			slice:     []User{},
+			fn:        func(u User) int { return u.ID },
+			expected:  map[int]User{},
+			expectErr: false,
+		},
+		{
+			name:      "nil slice",
+			slice:     nil,
+			fn:        func(u User) int { return u.ID },
+			expected:  map[int]User{},
+			expectErr: false,
+		},
+	}
 
-	t.Run("duplicate keys", func(t *testing.T) {
-		slice := []int{1, 2, 3, 4, 5}
-		_, err := lxslices.UniqueGroupBy(slice, func(n int) string {
-			return "even"
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := lxslices.AssociateBy(tt.slice, tt.fn)
+			if tt.expectErr {
+				if err == nil {
+					t.Errorf("AssociateBy() error = nil; want error")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("AssociateBy() unexpected error = %v", err)
+				}
+				if !reflect.DeepEqual(result, tt.expected) {
+					t.Errorf("AssociateBy() = %v; want %v", result, tt.expected)
+				}
+			}
 		})
-		if err == nil {
-			t.Errorf("UniqueGroupBy() error = %v; want error", err)
-		}
-	})
+	}
+}
 
-	t.Run("nil slice", func(t *testing.T) {
-		var slice []int
-		result, err := lxslices.UniqueGroupBy(slice, func(n int) string {
-			return "even"
+func TestAssociateBy_Int(t *testing.T) {
+	tests := []struct {
+		name      string
+		slice     []int
+		fn        func(int) string
+		expected  map[string]int
+		expectErr bool
+	}{
+		{
+			name:      "duplicate keys",
+			slice:     []int{1, 2, 3, 4, 5},
+			fn:        func(n int) string { return "even" },
+			expected:  nil,
+			expectErr: true,
+		},
+		{
+			name:      "unique keys",
+			slice:     []int{1, 2, 3},
+			fn:        func(n int) string { return fmt.Sprintf("key-%d", n) },
+			expected:  map[string]int{"key-1": 1, "key-2": 2, "key-3": 3},
+			expectErr: false,
+		},
+		{
+			name:      "nil slice",
+			slice:     nil,
+			fn:        func(n int) string { return "even" },
+			expected:  map[string]int{},
+			expectErr: false,
+		},
+		{
+			name:      "empty slice",
+			slice:     []int{},
+			fn:        func(n int) string { return "even" },
+			expected:  map[string]int{},
+			expectErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := lxslices.AssociateBy(tt.slice, tt.fn)
+			if tt.expectErr {
+				if err == nil {
+					t.Errorf("AssociateBy() error = nil; want error")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("AssociateBy() unexpected error = %v", err)
+				}
+				if !reflect.DeepEqual(result, tt.expected) {
+					t.Errorf("AssociateBy() = %v; want %v", result, tt.expected)
+				}
+			}
 		})
-		if err != nil {
-			t.Errorf("UniqueGroupBy() error = %v; want nil", err)
-		}
-		if len(result) != 0 {
-			t.Errorf("UniqueGroupBy() = %v; want empty map", result)
-		}
-	})
-
-	t.Run("empty slice", func(t *testing.T) {
-		var slice []int
-		result, err := lxslices.UniqueGroupBy(slice, func(n int) string {
-			return "even"
-		})
-		if err != nil {
-			t.Errorf("UniqueGroupBy() error = %v; want nil", err)
-		}
-		if len(result) != 0 {
-			t.Errorf("UniqueGroupBy() = %v; want empty map", result)
-		}
-	})
-
+	}
 }
 
 func TestConcat_Int(t *testing.T) {

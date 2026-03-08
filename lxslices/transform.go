@@ -60,9 +60,9 @@ func GroupBy[T any, K comparable](slice []T, fn func(T) K) map[K][]T {
 	return result
 }
 
-// UniqueGroupBy groups the elements of the slice by the given function and returns a map with only unique keys.
-// It returns an error if the function returns duplicate keys.
-func UniqueGroupBy[T any, K comparable](slice []T, fn func(T) K) (map[K]T, error) {
+// AssociateBy creates a map from the elements of the slice using the given key-selector function.
+// It returns an error if the function produces duplicate keys, acting as a strict map builder.
+func AssociateBy[T any, K comparable](slice []T, fn func(T) K) (map[K]T, error) {
 	result := make(map[K]T)
 	for _, e := range slice {
 		key := fn(e)
