@@ -76,10 +76,10 @@ func TestSortBy_Int(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := lxslices.SortBy(tt.input, tt.less)
+			lxslices.SortBy(tt.input, tt.less)
 
-			if !reflect.DeepEqual(result, tt.expected) {
-				t.Errorf("expected %v, got %v", tt.expected, result)
+			if !reflect.DeepEqual(tt.input, tt.expected) {
+				t.Errorf("expected %v, got %v", tt.expected, tt.input)
 			}
 		})
 	}
@@ -153,10 +153,10 @@ func TestSortBy_String(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := lxslices.SortBy(tt.input, tt.less)
+			lxslices.SortBy(tt.input, tt.less)
 
-			if !reflect.DeepEqual(result, tt.expected) {
-				t.Errorf("expected %v, got %v", tt.expected, result)
+			if !reflect.DeepEqual(tt.input, tt.expected) {
+				t.Errorf("expected %v, got %v", tt.expected, tt.input)
 			}
 		})
 	}
@@ -233,10 +233,10 @@ func TestSortBy_Struct(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := lxslices.SortBy(tt.input, tt.less)
+			lxslices.SortBy(tt.input, tt.less)
 
-			if !reflect.DeepEqual(result, tt.expected) {
-				t.Errorf("expected %v, got %v", tt.expected, result)
+			if !reflect.DeepEqual(tt.input, tt.expected) {
+				t.Errorf("expected %v, got %v", tt.expected, tt.input)
 			}
 		})
 	}
@@ -334,10 +334,10 @@ func TestStableSortBy(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := lxslices.StableSortBy(tt.input, tt.less)
+			lxslices.StableSortBy(tt.input, tt.less)
 
-			if !reflect.DeepEqual(result, tt.expected) {
-				t.Errorf("expected %v, got %v", tt.expected, result)
+			if !reflect.DeepEqual(tt.input, tt.expected) {
+				t.Errorf("expected %v, got %v", tt.expected, tt.input)
 			}
 		})
 	}
@@ -387,10 +387,10 @@ func TestSortAsc_Int(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := lxslices.SortAsc(tt.input)
+			lxslices.SortAsc(tt.input)
 
-			if !reflect.DeepEqual(result, tt.expected) {
-				t.Errorf("expected %v, got %v", tt.expected, result)
+			if !reflect.DeepEqual(tt.input, tt.expected) {
+				t.Errorf("expected %v, got %v", tt.expected, tt.input)
 			}
 		})
 	}
@@ -440,9 +440,9 @@ func TestSortAsc_String(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := lxslices.SortAsc(tt.input)
-			if !reflect.DeepEqual(result, tt.expected) {
-				t.Errorf("expected %v, got %v", tt.expected, result)
+			lxslices.SortAsc(tt.input)
+			if !reflect.DeepEqual(tt.input, tt.expected) {
+				t.Errorf("expected %v, got %v", tt.expected, tt.input)
 			}
 		})
 	}
@@ -492,9 +492,9 @@ func TestSortDesc_Int(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := lxslices.SortDesc(tt.input)
-			if !reflect.DeepEqual(result, tt.expected) {
-				t.Errorf("expected %v, got %v", tt.expected, result)
+			lxslices.SortDesc(tt.input)
+			if !reflect.DeepEqual(tt.input, tt.expected) {
+				t.Errorf("expected %v, got %v", tt.expected, tt.input)
 			}
 		})
 	}
@@ -544,9 +544,9 @@ func TestSortDesc_String(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := lxslices.SortDesc(tt.input)
-			if !reflect.DeepEqual(result, tt.expected) {
-				t.Errorf("expected %v, got %v", tt.expected, result)
+			lxslices.SortDesc(tt.input)
+			if !reflect.DeepEqual(tt.input, tt.expected) {
+				t.Errorf("expected %v, got %v", tt.expected, tt.input)
 			}
 		})
 	}

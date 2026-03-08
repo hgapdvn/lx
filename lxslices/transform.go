@@ -7,7 +7,7 @@ import (
 )
 
 // Map applies the given function to each element of the slice and returns a new slice with the results.
-// The order of the elements in the returned slice is the same as in the original slice.
+// The original slice is not modified.
 func Map[T, U any](slice []T, fn func(T) U) []U {
 	result := make([]U, len(slice))
 	for i, e := range slice {

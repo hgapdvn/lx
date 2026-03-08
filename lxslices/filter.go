@@ -24,8 +24,8 @@ func FindLast[T any](slice []T, predicate func(T) bool) (T, bool) {
 	return zero, false
 }
 
-// Filter returns a new slice containing only the elements of the original slice that satisfy the predicate.
-// The order of the elements in the returned slice is the same as in the original slice.
+// Filter returns a new slice containing only the elements that satisfy the predicate.
+// The original slice is not modified.
 func Filter[T any](slice []T, predicate func(T) bool) []T {
 	var result []T
 	for _, e := range slice {
