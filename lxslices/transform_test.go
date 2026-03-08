@@ -1383,3 +1383,213 @@ func TestChunk_Struct(t *testing.T) {
 		})
 	}
 }
+
+func TestSplitAt_Int(t *testing.T) {
+	tests := []struct {
+		name      string
+		slice     []int
+		index     int
+		expected1 []int
+		expected2 []int
+	}{
+		{
+			name:      "split in middle",
+			slice:     []int{1, 2, 3, 4},
+			index:     2,
+			expected1: []int{1, 2},
+			expected2: []int{3, 4},
+		},
+		{
+			name:      "split at 0",
+			slice:     []int{1, 2, 3, 4},
+			index:     0,
+			expected1: nil,
+			expected2: []int{1, 2, 3, 4},
+		},
+		{
+			name:      "split at negative index",
+			slice:     []int{1, 2, 3, 4},
+			index:     -1,
+			expected1: nil,
+			expected2: []int{1, 2, 3, 4},
+		},
+		{
+			name:      "split at end",
+			slice:     []int{1, 2, 3, 4},
+			index:     4,
+			expected1: []int{1, 2, 3, 4},
+			expected2: nil,
+		},
+		{
+			name:      "split beyond end",
+			slice:     []int{1, 2, 3, 4},
+			index:     5,
+			expected1: []int{1, 2, 3, 4},
+			expected2: nil,
+		},
+		{
+			name:      "empty slice",
+			slice:     []int{},
+			index:     0,
+			expected1: nil,
+			expected2: []int{},
+		},
+		{
+			name:      "nil slice",
+			slice:     nil,
+			index:     2,
+			expected1: nil,
+			expected2: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result1, result2 := lxslices.SplitAt(tt.slice, tt.index)
+			if !reflect.DeepEqual(result1, tt.expected1) {
+				t.Errorf("SplitAt() result1 = %v; want %v", result1, tt.expected1)
+			}
+			if !reflect.DeepEqual(result2, tt.expected2) {
+				t.Errorf("SplitAt() result2 = %v; want %v", result2, tt.expected2)
+			}
+		})
+	}
+}
+
+func TestSplitAt_String(t *testing.T) {
+	tests := []struct {
+		name      string
+		slice     []string
+		index     int
+		expected1 []string
+		expected2 []string
+	}{
+		{
+			name:      "split at 0",
+			slice:     []string{"a", "b", "c"},
+			index:     0,
+			expected1: nil,
+			expected2: []string{"a", "b", "c"},
+		},
+		{
+			name:      "split at negative index",
+			slice:     []string{"a", "b", "c"},
+			index:     -1,
+			expected1: nil,
+			expected2: []string{"a", "b", "c"},
+		},
+		{
+			name:      "split at end",
+			slice:     []string{"a", "b", "c"},
+			index:     3,
+			expected1: []string{"a", "b", "c"},
+			expected2: nil,
+		},
+		{
+			name:      "split beyond end",
+			slice:     []string{"a", "b", "c"},
+			index:     4,
+			expected1: []string{"a", "b", "c"},
+			expected2: nil,
+		},
+		{
+			name:      "empty slice",
+			slice:     []string{},
+			index:     0,
+			expected1: nil,
+			expected2: []string{},
+		},
+		{
+			name:      "nil slice",
+			slice:     nil,
+			index:     1,
+			expected1: nil,
+			expected2: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result1, result2 := lxslices.SplitAt(tt.slice, tt.index)
+			if !reflect.DeepEqual(result1, tt.expected1) {
+				t.Errorf("SplitAt() result1 = %v; want %v", result1, tt.expected1)
+			}
+			if !reflect.DeepEqual(result2, tt.expected2) {
+				t.Errorf("SplitAt() result2 = %v; want %v", result2, tt.expected2)
+			}
+		})
+	}
+}
+
+func TestSplitAt_Struct(t *testing.T) {
+	type Item struct{ ID int }
+	tests := []struct {
+		name      string
+		slice     []Item
+		index     int
+		expected1 []Item
+		expected2 []Item
+	}{
+		{
+			name:      "split in middle",
+			slice:     []Item{{1}, {2}, {3}, {4}},
+			index:     3,
+			expected1: []Item{{1}, {2}, {3}},
+			expected2: []Item{{4}},
+		},
+		{
+			name:      "split at 0",
+			slice:     []Item{{1}, {2}},
+			index:     0,
+			expected1: nil,
+			expected2: []Item{{1}, {2}},
+		},
+		{
+			name:      "split at negative index",
+			slice:     []Item{{1}, {2}},
+			index:     -1,
+			expected1: nil,
+			expected2: []Item{{1}, {2}},
+		},
+		{
+			name:      "split at end",
+			slice:     []Item{{1}, {2}},
+			index:     2,
+			expected1: []Item{{1}, {2}},
+			expected2: nil,
+		},
+		{
+			name:      "split beyond end",
+			slice:     []Item{{1}},
+			index:     2,
+			expected1: []Item{{1}},
+			expected2: nil,
+		},
+		{
+			name:      "empty slice",
+			slice:     []Item{},
+			index:     0,
+			expected1: nil,
+			expected2: []Item{},
+		},
+		{
+			name:      "nil slice",
+			slice:     nil,
+			index:     1,
+			expected1: nil,
+			expected2: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result1, result2 := lxslices.SplitAt(tt.slice, tt.index)
+			if !reflect.DeepEqual(result1, tt.expected1) {
+				t.Errorf("SplitAt() result1 = %v; want %v", result1, tt.expected1)
+			}
+			if !reflect.DeepEqual(result2, tt.expected2) {
+				t.Errorf("SplitAt() result2 = %v; want %v", result2, tt.expected2)
+			}
+		})
+	}
+}

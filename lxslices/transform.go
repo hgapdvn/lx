@@ -148,6 +148,24 @@ func PartitionN[T any](slice []T, n int) [][]T {
 	return chunks
 }
 
+// SplitAt splits a slice at the given index and returns two new slices.
+// Returns (slice[:index], slice[index:]).
+// If index is <= 0, returns (nil, slice).
+// If index >= len(slice), returns (slice, nil).
+// If the input slice is nil, it returns (nil, nil).
+func SplitAt[T any](slice []T, index int) ([]T, []T) {
+	if slice == nil {
+		return nil, nil
+	}
+	if index <= 0 {
+		return nil, slice
+	}
+	if index >= len(slice) {
+		return slice, nil
+	}
+	return slice[:index], slice[index:]
+}
+
 // Concat concatenates multiple slices into a single slice.
 // Behavior:
 // - If no slices are provided, returns nil.
