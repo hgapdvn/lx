@@ -13,7 +13,7 @@ The `lxslices` package is well-structured with comprehensive functionality acros
 - `Contains`, `ContainsAny`, `ContainsAll`, `ContainsFunc`
 
 **Filter** (`filter.go`):
-- `Find`, `FindLast`, `Filter`, `Any`, `All`, `None`, `Count`
+- `Find`, `FindLast`, `Filter`, `Partition`, `Any`, `All`, `None`, `Count`
 
 **Index** (`index.go`):
 - `Index`, `IndexFunc`, `LastIndex`, `LastIndexFunc`
@@ -36,7 +36,7 @@ The `lxslices` package is well-structured with comprehensive functionality acros
 **Transform** (`transform.go`):
 - `Map`, `FlatMap`, `Reverse`
 - `GroupBy`, `UniqueGroupBy`
-- `Concat`, `Zip`, `Unzip`
+- `Chunk`, `Concat`, `Zip`, `Unzip`
 - `Copy`, `Clone`
 
 **Sampling** (`sampling.go`):
@@ -49,16 +49,8 @@ The `lxslices` package is well-structured with comprehensive functionality acros
 ### 1. **Partitioning Functions** (HIGH PRIORITY)
 
 ```go
-// Partition splits a slice into two based on a predicate
-// Returns (matching, notMatching)
-func Partition[T any](slice []T, predicate func(T) bool) ([]T, []T)
-
 // PartitionN splits a slice into N chunks of approximately equal size
 func PartitionN[T any](slice []T, n int) [][]T
-
-// Chunk splits a slice into chunks of specified size
-// Last chunk may be smaller if len(slice) is not divisible by size
-func Chunk[T any](slice []T, size int) [][]T
 
 // SplitAt splits a slice at the given index
 // Returns (slice[:index], slice[index:])
@@ -317,11 +309,10 @@ func ZipAll[T, U any](a []T, b []U) []lxtuples.Pair[T, U]
 ## 📊 Priority Ranking
 
 ### Must-Have (High Priority):
-1. **Partition** - extremely common use case
-2. **Chunk** - pagination, batch processing
-3. **Window/Sliding** - time series, analytics
-4. **Take/Drop** family - cleaner API than manual slicing
-5. **BinarySearch** - fundamental algorithm
+1. **PartitionN/SplitAt** - highly requested partitioning variations
+2. **Window/Sliding** - time series, analytics
+3. **Take/Drop** family - cleaner API than manual slicing
+4. **BinarySearch** - fundamental algorithm
 
 ### Should-Have (Medium Priority):
 6. **Equal/EqualFunc** - testing, comparison
@@ -337,7 +328,7 @@ func ZipAll[T, U any](a []T, b []U) []lxtuples.Pair[T, U]
 
 ## 🚀 Recommended Next Steps
 
-1. **Start with Top 5** - Implement Partition, Chunk, Window, Take/Drop, BinarySearch
+1. **Start with Top Must-Haves** - Implement PartitionN/SplitAt, Window, Take/Drop, BinarySearch
 2. **Add tests** - Ensure comprehensive test coverage
 3. **Update README** - Document the new functions
 4. **Consider benchmarks** - For performance-critical functions
