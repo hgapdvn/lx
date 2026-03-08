@@ -2,7 +2,13 @@ package lxslices
 
 import (
 	"math/rand"
+	"time"
 )
+
+// rng is a package-level random source, seeded at init time.
+// This ensures proper randomness on Go <1.20 where the global
+// math/rand source is deterministic by default.
+var rng = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 // Sample returns a random element from the slice.
 // Returns the zero value of T if the slice is empty or nil.
@@ -11,7 +17,7 @@ func Sample[T any](slice []T) T {
 		var zero T
 		return zero
 	}
-	return slice[rand.Intn(len(slice))]
+	return slice[rng.Intn(len(slice))]
 }
 
 // SampleN returns n random elements from the slice.
@@ -27,7 +33,7 @@ func SampleN[T any](slice []T, n int) []T {
 		// Return shuffled copy of entire slice
 		result := make([]T, len(slice))
 		copy(result, slice)
-		rand.Shuffle(len(result), func(i, j int) {
+		rng.Shuffle(len(result), func(i, j int) {
 			result[i], result[j] = result[j], result[i]
 		})
 		return result
@@ -35,7 +41,7 @@ func SampleN[T any](slice []T, n int) []T {
 
 	// Sample n elements without replacement
 	result := make([]T, n)
-	indices := rand.Perm(len(slice))
+	indices := rng.Perm(len(slice))
 	for i := 0; i < n; i++ {
 		result[i] = slice[indices[i]]
 	}
