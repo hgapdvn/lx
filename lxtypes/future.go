@@ -114,24 +114,21 @@ func (f *future[T]) exec() {
 //	})
 //	card, err := cardFuture.Get(ctx)
 func FutureThen[T, U any](parent Future[T], fn func(T) (U, error)) Future[U] {
-	// Cast to access internal done channel for efficient waiting
-	// This avoids blocking on context.Background() in Get()
-	parentImpl := parent.(*future[T])
-
 	next := &future[U]{
 		fn: func() (U, error) {
-			// Wait for parent's done channel directly
-			// This makes the child future's Get() context-cancellable
-			<-parentImpl.done
+			// Wait for parent to complete via the interface method.
+			// context.Background() is used here because context cancellation
+			// is handled at the outer Get() level, not here.
+			parentValue, parentErr := parent.Get(context.Background())
 
 			// If parent failed, propagate error
-			if parentImpl.err != nil {
+			if parentErr != nil {
 				var zero U
-				return zero, parentImpl.err
+				return zero, parentErr
 			}
 
 			// Transform T -> U
-			return fn(parentImpl.value)
+			return fn(parentValue)
 		},
 		done: make(chan struct{}),
 	}
@@ -222,25 +219,16 @@ func FutureError[T any](err error) Future[T] {
 //	//    return combineData(data), nil
 //	//})
 func FutureAll[T any](futures ...Future[T]) Future[[]T] {
-	// Cast all futures to access their done channels
-	futureImpls := make([]*future[T], len(futures))
-	for i, f := range futures {
-		futureImpls[i] = f.(*future[T])
-	}
-
 	return FutureDo(func() ([]T, error) {
 		results := make([]T, len(futures))
 		errs := make([]error, len(futures))
 		var wg sync.WaitGroup
 
-		for i, f := range futureImpls {
+		for i, f := range futures {
 			wg.Add(1)
-			go func(index int, future *future[T]) {
+			go func(index int, fut Future[T]) {
 				defer wg.Done()
-				// Wait on done channel directly (context-cancellable via outer Get)
-				<-future.done
-				results[index] = future.value
-				errs[index] = future.err
+				results[index], errs[index] = fut.Get(context.Background())
 			}(i, f)
 		}
 
@@ -277,28 +265,23 @@ func FutureAny[T any](futures ...Future[T]) Future[T] {
 		return FutureError[T](errors.New("lxtypes: no futures provided"))
 	}
 
-	futureImpls := make([]*future[T], len(futures))
-	for i, f := range futures {
-		futureImpls[i] = f.(*future[T])
-	}
-
 	return FutureDo(func() (T, error) {
 		// Buffered channel to avoid blocking sends if we return early
-		ch := make(chan anyResult[T], len(futureImpls))
+		ch := make(chan anyResult[T], len(futures))
 
-		for i, fut := range futureImpls {
+		for i, fut := range futures {
 			// capture index for deterministic error ordering
-			go func(index int, ff *future[T]) {
-				<-ff.done
-				ch <- anyResult[T]{idx: index, value: ff.value, err: ff.err}
+			go func(index int, f Future[T]) {
+				value, err := f.Get(context.Background())
+				ch <- anyResult[T]{idx: index, value: value, err: err}
 			}(i, fut)
 		}
 
 		// Store errors by input index so that if all fail we return the first
 		// error according to the original input order.
-		errs := make([]error, len(futureImpls))
+		errs := make([]error, len(futures))
 
-		for i := 0; i < len(futureImpls); i++ {
+		for i := 0; i < len(futures); i++ {
 			r := <-ch
 			if r.err == nil {
 				return r.value, nil
@@ -339,32 +322,34 @@ func FutureAny[T any](futures ...Future[T]) Future[T] {
 //	    return buildResponse(pair.First, pair.Second), nil
 //	})
 func FutureJoin2[T, U any](f1 Future[T], f2 Future[U]) Future[Pair[T, U]] {
-	// Cast to access done channels
-	f1Impl := f1.(*future[T])
-	f2Impl := f2.(*future[U])
-
 	return FutureDo(func() (Pair[T, U], error) {
-		var wg sync.WaitGroup
+		var (
+			v1 T
+			e1 error
+			v2 U
+			e2 error
+			wg sync.WaitGroup
+		)
 
 		wg.Add(2)
 		go func() {
 			defer wg.Done()
-			<-f1Impl.done
+			v1, e1 = f1.Get(context.Background())
 		}()
 		go func() {
 			defer wg.Done()
-			<-f2Impl.done
+			v2, e2 = f2.Get(context.Background())
 		}()
 		wg.Wait()
 
-		if f1Impl.err != nil {
-			return Pair[T, U]{}, f1Impl.err
+		if e1 != nil {
+			return Pair[T, U]{}, e1
 		}
-		if f2Impl.err != nil {
-			return Pair[T, U]{}, f2Impl.err
+		if e2 != nil {
+			return Pair[T, U]{}, e2
 		}
 
-		return NewPair(f1Impl.value, f2Impl.value), nil
+		return NewPair(v1, v2), nil
 	})
 }
 
@@ -383,40 +368,43 @@ func FutureJoin2[T, U any](f1 Future[T], f2 Future[U]) Future[Pair[T, U]] {
 //	result, err := combined.Get(ctx)
 //	// result.First = User, result.Second = Config, result.Third = Stats
 func FutureJoin3[T, U, V any](f1 Future[T], f2 Future[U], f3 Future[V]) Future[Triple[T, U, V]] {
-	// Cast to access done channels
-	f1Impl := f1.(*future[T])
-	f2Impl := f2.(*future[U])
-	f3Impl := f3.(*future[V])
-
 	return FutureDo(func() (Triple[T, U, V], error) {
-		var wg sync.WaitGroup
+		var (
+			v1 T
+			e1 error
+			v2 U
+			e2 error
+			v3 V
+			e3 error
+			wg sync.WaitGroup
+		)
 
 		wg.Add(3)
 		go func() {
 			defer wg.Done()
-			<-f1Impl.done
+			v1, e1 = f1.Get(context.Background())
 		}()
 		go func() {
 			defer wg.Done()
-			<-f2Impl.done
+			v2, e2 = f2.Get(context.Background())
 		}()
 		go func() {
 			defer wg.Done()
-			<-f3Impl.done
+			v3, e3 = f3.Get(context.Background())
 		}()
 		wg.Wait()
 
-		if f1Impl.err != nil {
-			return Triple[T, U, V]{}, f1Impl.err
+		if e1 != nil {
+			return Triple[T, U, V]{}, e1
 		}
-		if f2Impl.err != nil {
-			return Triple[T, U, V]{}, f2Impl.err
+		if e2 != nil {
+			return Triple[T, U, V]{}, e2
 		}
-		if f3Impl.err != nil {
-			return Triple[T, U, V]{}, f3Impl.err
+		if e3 != nil {
+			return Triple[T, U, V]{}, e3
 		}
 
-		return NewTriple(f1Impl.value, f2Impl.value, f3Impl.value), nil
+		return NewTriple(v1, v2, v3), nil
 	})
 }
 
@@ -425,48 +413,52 @@ func FutureJoin3[T, U, V any](f1 Future[T], f2 Future[U], f3 Future[V]) Future[T
 //
 // The returned future respects context cancellation when Get(ctx) is called.
 func FutureJoin4[T, U, V, W any](f1 Future[T], f2 Future[U], f3 Future[V], f4 Future[W]) Future[Quad[T, U, V, W]] {
-	// Cast to access done channels
-	f1Impl := f1.(*future[T])
-	f2Impl := f2.(*future[U])
-	f3Impl := f3.(*future[V])
-	f4Impl := f4.(*future[W])
-
 	return FutureDo(func() (Quad[T, U, V, W], error) {
-		var wg sync.WaitGroup
+		var (
+			v1 T
+			e1 error
+			v2 U
+			e2 error
+			v3 V
+			e3 error
+			v4 W
+			e4 error
+			wg sync.WaitGroup
+		)
 
 		wg.Add(4)
 		go func() {
 			defer wg.Done()
-			<-f1Impl.done
+			v1, e1 = f1.Get(context.Background())
 		}()
 		go func() {
 			defer wg.Done()
-			<-f2Impl.done
+			v2, e2 = f2.Get(context.Background())
 		}()
 		go func() {
 			defer wg.Done()
-			<-f3Impl.done
+			v3, e3 = f3.Get(context.Background())
 		}()
 		go func() {
 			defer wg.Done()
-			<-f4Impl.done
+			v4, e4 = f4.Get(context.Background())
 		}()
 		wg.Wait()
 
-		if f1Impl.err != nil {
-			return Quad[T, U, V, W]{}, f1Impl.err
+		if e1 != nil {
+			return Quad[T, U, V, W]{}, e1
 		}
-		if f2Impl.err != nil {
-			return Quad[T, U, V, W]{}, f2Impl.err
+		if e2 != nil {
+			return Quad[T, U, V, W]{}, e2
 		}
-		if f3Impl.err != nil {
-			return Quad[T, U, V, W]{}, f3Impl.err
+		if e3 != nil {
+			return Quad[T, U, V, W]{}, e3
 		}
-		if f4Impl.err != nil {
-			return Quad[T, U, V, W]{}, f4Impl.err
+		if e4 != nil {
+			return Quad[T, U, V, W]{}, e4
 		}
 
-		return NewQuad(f1Impl.value, f2Impl.value, f3Impl.value, f4Impl.value), nil
+		return NewQuad(v1, v2, v3, v4), nil
 	})
 }
 
@@ -487,41 +479,47 @@ func FutureJoin4[T, U, V, W any](f1 Future[T], f2 Future[U], f3 Future[V], f4 Fu
 //	result, err := combined.Get(ctx)
 //	// Access: result.V1, result.V2, result.V3, result.V4, result.V5
 func FutureJoin5[T1, T2, T3, T4, T5 any](f1 Future[T1], f2 Future[T2], f3 Future[T3], f4 Future[T4], f5 Future[T5]) Future[Tuple5[T1, T2, T3, T4, T5]] {
-	impl1 := f1.(*future[T1])
-	impl2 := f2.(*future[T2])
-	impl3 := f3.(*future[T3])
-	impl4 := f4.(*future[T4])
-	impl5 := f5.(*future[T5])
-
 	return FutureDo(func() (Tuple5[T1, T2, T3, T4, T5], error) {
-		var wg sync.WaitGroup
-		wg.Add(5)
+		var (
+			v1 T1
+			e1 error
+			v2 T2
+			e2 error
+			v3 T3
+			e3 error
+			v4 T4
+			e4 error
+			v5 T5
+			e5 error
+			wg sync.WaitGroup
+		)
 
-		go func() { defer wg.Done(); <-impl1.done }()
-		go func() { defer wg.Done(); <-impl2.done }()
-		go func() { defer wg.Done(); <-impl3.done }()
-		go func() { defer wg.Done(); <-impl4.done }()
-		go func() { defer wg.Done(); <-impl5.done }()
+		wg.Add(5)
+		go func() { defer wg.Done(); v1, e1 = f1.Get(context.Background()) }()
+		go func() { defer wg.Done(); v2, e2 = f2.Get(context.Background()) }()
+		go func() { defer wg.Done(); v3, e3 = f3.Get(context.Background()) }()
+		go func() { defer wg.Done(); v4, e4 = f4.Get(context.Background()) }()
+		go func() { defer wg.Done(); v5, e5 = f5.Get(context.Background()) }()
 
 		wg.Wait()
 
-		if impl1.err != nil {
-			return Tuple5[T1, T2, T3, T4, T5]{}, impl1.err
+		if e1 != nil {
+			return Tuple5[T1, T2, T3, T4, T5]{}, e1
 		}
-		if impl2.err != nil {
-			return Tuple5[T1, T2, T3, T4, T5]{}, impl2.err
+		if e2 != nil {
+			return Tuple5[T1, T2, T3, T4, T5]{}, e2
 		}
-		if impl3.err != nil {
-			return Tuple5[T1, T2, T3, T4, T5]{}, impl3.err
+		if e3 != nil {
+			return Tuple5[T1, T2, T3, T4, T5]{}, e3
 		}
-		if impl4.err != nil {
-			return Tuple5[T1, T2, T3, T4, T5]{}, impl4.err
+		if e4 != nil {
+			return Tuple5[T1, T2, T3, T4, T5]{}, e4
 		}
-		if impl5.err != nil {
-			return Tuple5[T1, T2, T3, T4, T5]{}, impl5.err
+		if e5 != nil {
+			return Tuple5[T1, T2, T3, T4, T5]{}, e5
 		}
 
-		return NewTuple5(impl1.value, impl2.value, impl3.value, impl4.value, impl5.value), nil
+		return NewTuple5(v1, v2, v3, v4, v5), nil
 	})
 }
 
@@ -542,46 +540,53 @@ func FutureJoin5[T1, T2, T3, T4, T5 any](f1 Future[T1], f2 Future[T2], f3 Future
 //	combined := FutureJoin6(f1, f2, f3, f4, f5, f6)
 //	result, err := combined.Get(ctx)
 func FutureJoin6[T1, T2, T3, T4, T5, T6 any](f1 Future[T1], f2 Future[T2], f3 Future[T3], f4 Future[T4], f5 Future[T5], f6 Future[T6]) Future[Tuple6[T1, T2, T3, T4, T5, T6]] {
-	impl1 := f1.(*future[T1])
-	impl2 := f2.(*future[T2])
-	impl3 := f3.(*future[T3])
-	impl4 := f4.(*future[T4])
-	impl5 := f5.(*future[T5])
-	impl6 := f6.(*future[T6])
-
 	return FutureDo(func() (Tuple6[T1, T2, T3, T4, T5, T6], error) {
-		var wg sync.WaitGroup
-		wg.Add(6)
+		var (
+			v1 T1
+			e1 error
+			v2 T2
+			e2 error
+			v3 T3
+			e3 error
+			v4 T4
+			e4 error
+			v5 T5
+			e5 error
+			v6 T6
+			e6 error
+			wg sync.WaitGroup
+		)
 
-		go func() { defer wg.Done(); <-impl1.done }()
-		go func() { defer wg.Done(); <-impl2.done }()
-		go func() { defer wg.Done(); <-impl3.done }()
-		go func() { defer wg.Done(); <-impl4.done }()
-		go func() { defer wg.Done(); <-impl5.done }()
-		go func() { defer wg.Done(); <-impl6.done }()
+		wg.Add(6)
+		go func() { defer wg.Done(); v1, e1 = f1.Get(context.Background()) }()
+		go func() { defer wg.Done(); v2, e2 = f2.Get(context.Background()) }()
+		go func() { defer wg.Done(); v3, e3 = f3.Get(context.Background()) }()
+		go func() { defer wg.Done(); v4, e4 = f4.Get(context.Background()) }()
+		go func() { defer wg.Done(); v5, e5 = f5.Get(context.Background()) }()
+		go func() { defer wg.Done(); v6, e6 = f6.Get(context.Background()) }()
 
 		wg.Wait()
 
-		if impl1.err != nil {
-			return Tuple6[T1, T2, T3, T4, T5, T6]{}, impl1.err
+		if e1 != nil {
+			return Tuple6[T1, T2, T3, T4, T5, T6]{}, e1
 		}
-		if impl2.err != nil {
-			return Tuple6[T1, T2, T3, T4, T5, T6]{}, impl2.err
+		if e2 != nil {
+			return Tuple6[T1, T2, T3, T4, T5, T6]{}, e2
 		}
-		if impl3.err != nil {
-			return Tuple6[T1, T2, T3, T4, T5, T6]{}, impl3.err
+		if e3 != nil {
+			return Tuple6[T1, T2, T3, T4, T5, T6]{}, e3
 		}
-		if impl4.err != nil {
-			return Tuple6[T1, T2, T3, T4, T5, T6]{}, impl4.err
+		if e4 != nil {
+			return Tuple6[T1, T2, T3, T4, T5, T6]{}, e4
 		}
-		if impl5.err != nil {
-			return Tuple6[T1, T2, T3, T4, T5, T6]{}, impl5.err
+		if e5 != nil {
+			return Tuple6[T1, T2, T3, T4, T5, T6]{}, e5
 		}
-		if impl6.err != nil {
-			return Tuple6[T1, T2, T3, T4, T5, T6]{}, impl6.err
+		if e6 != nil {
+			return Tuple6[T1, T2, T3, T4, T5, T6]{}, e6
 		}
 
-		return NewTuple6(impl1.value, impl2.value, impl3.value, impl4.value, impl5.value, impl6.value), nil
+		return NewTuple6(v1, v2, v3, v4, v5, v6), nil
 	})
 }
 
@@ -590,51 +595,59 @@ func FutureJoin6[T1, T2, T3, T4, T5, T6 any](f1 Future[T1], f2 Future[T2], f3 Fu
 //
 // The returned future respects context cancellation when Get(ctx) is called.
 func FutureJoin7[T1, T2, T3, T4, T5, T6, T7 any](f1 Future[T1], f2 Future[T2], f3 Future[T3], f4 Future[T4], f5 Future[T5], f6 Future[T6], f7 Future[T7]) Future[Tuple7[T1, T2, T3, T4, T5, T6, T7]] {
-	impl1 := f1.(*future[T1])
-	impl2 := f2.(*future[T2])
-	impl3 := f3.(*future[T3])
-	impl4 := f4.(*future[T4])
-	impl5 := f5.(*future[T5])
-	impl6 := f6.(*future[T6])
-	impl7 := f7.(*future[T7])
-
 	return FutureDo(func() (Tuple7[T1, T2, T3, T4, T5, T6, T7], error) {
-		var wg sync.WaitGroup
-		wg.Add(7)
+		var (
+			v1 T1
+			e1 error
+			v2 T2
+			e2 error
+			v3 T3
+			e3 error
+			v4 T4
+			e4 error
+			v5 T5
+			e5 error
+			v6 T6
+			e6 error
+			v7 T7
+			e7 error
+			wg sync.WaitGroup
+		)
 
-		go func() { defer wg.Done(); <-impl1.done }()
-		go func() { defer wg.Done(); <-impl2.done }()
-		go func() { defer wg.Done(); <-impl3.done }()
-		go func() { defer wg.Done(); <-impl4.done }()
-		go func() { defer wg.Done(); <-impl5.done }()
-		go func() { defer wg.Done(); <-impl6.done }()
-		go func() { defer wg.Done(); <-impl7.done }()
+		wg.Add(7)
+		go func() { defer wg.Done(); v1, e1 = f1.Get(context.Background()) }()
+		go func() { defer wg.Done(); v2, e2 = f2.Get(context.Background()) }()
+		go func() { defer wg.Done(); v3, e3 = f3.Get(context.Background()) }()
+		go func() { defer wg.Done(); v4, e4 = f4.Get(context.Background()) }()
+		go func() { defer wg.Done(); v5, e5 = f5.Get(context.Background()) }()
+		go func() { defer wg.Done(); v6, e6 = f6.Get(context.Background()) }()
+		go func() { defer wg.Done(); v7, e7 = f7.Get(context.Background()) }()
 
 		wg.Wait()
 
-		if impl1.err != nil {
-			return Tuple7[T1, T2, T3, T4, T5, T6, T7]{}, impl1.err
+		if e1 != nil {
+			return Tuple7[T1, T2, T3, T4, T5, T6, T7]{}, e1
 		}
-		if impl2.err != nil {
-			return Tuple7[T1, T2, T3, T4, T5, T6, T7]{}, impl2.err
+		if e2 != nil {
+			return Tuple7[T1, T2, T3, T4, T5, T6, T7]{}, e2
 		}
-		if impl3.err != nil {
-			return Tuple7[T1, T2, T3, T4, T5, T6, T7]{}, impl3.err
+		if e3 != nil {
+			return Tuple7[T1, T2, T3, T4, T5, T6, T7]{}, e3
 		}
-		if impl4.err != nil {
-			return Tuple7[T1, T2, T3, T4, T5, T6, T7]{}, impl4.err
+		if e4 != nil {
+			return Tuple7[T1, T2, T3, T4, T5, T6, T7]{}, e4
 		}
-		if impl5.err != nil {
-			return Tuple7[T1, T2, T3, T4, T5, T6, T7]{}, impl5.err
+		if e5 != nil {
+			return Tuple7[T1, T2, T3, T4, T5, T6, T7]{}, e5
 		}
-		if impl6.err != nil {
-			return Tuple7[T1, T2, T3, T4, T5, T6, T7]{}, impl6.err
+		if e6 != nil {
+			return Tuple7[T1, T2, T3, T4, T5, T6, T7]{}, e6
 		}
-		if impl7.err != nil {
-			return Tuple7[T1, T2, T3, T4, T5, T6, T7]{}, impl7.err
+		if e7 != nil {
+			return Tuple7[T1, T2, T3, T4, T5, T6, T7]{}, e7
 		}
 
-		return NewTuple7(impl1.value, impl2.value, impl3.value, impl4.value, impl5.value, impl6.value, impl7.value), nil
+		return NewTuple7(v1, v2, v3, v4, v5, v6, v7), nil
 	})
 }
 
@@ -643,55 +656,64 @@ func FutureJoin7[T1, T2, T3, T4, T5, T6, T7 any](f1 Future[T1], f2 Future[T2], f
 //
 // The returned future respects context cancellation when Get(ctx) is called.
 func FutureJoin8[T1, T2, T3, T4, T5, T6, T7, T8 any](f1 Future[T1], f2 Future[T2], f3 Future[T3], f4 Future[T4], f5 Future[T5], f6 Future[T6], f7 Future[T7], f8 Future[T8]) Future[Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]] {
-	impl1 := f1.(*future[T1])
-	impl2 := f2.(*future[T2])
-	impl3 := f3.(*future[T3])
-	impl4 := f4.(*future[T4])
-	impl5 := f5.(*future[T5])
-	impl6 := f6.(*future[T6])
-	impl7 := f7.(*future[T7])
-	impl8 := f8.(*future[T8])
-
 	return FutureDo(func() (Tuple8[T1, T2, T3, T4, T5, T6, T7, T8], error) {
-		var wg sync.WaitGroup
-		wg.Add(8)
+		var (
+			v1 T1
+			e1 error
+			v2 T2
+			e2 error
+			v3 T3
+			e3 error
+			v4 T4
+			e4 error
+			v5 T5
+			e5 error
+			v6 T6
+			e6 error
+			v7 T7
+			e7 error
+			v8 T8
+			e8 error
+			wg sync.WaitGroup
+		)
 
-		go func() { defer wg.Done(); <-impl1.done }()
-		go func() { defer wg.Done(); <-impl2.done }()
-		go func() { defer wg.Done(); <-impl3.done }()
-		go func() { defer wg.Done(); <-impl4.done }()
-		go func() { defer wg.Done(); <-impl5.done }()
-		go func() { defer wg.Done(); <-impl6.done }()
-		go func() { defer wg.Done(); <-impl7.done }()
-		go func() { defer wg.Done(); <-impl8.done }()
+		wg.Add(8)
+		go func() { defer wg.Done(); v1, e1 = f1.Get(context.Background()) }()
+		go func() { defer wg.Done(); v2, e2 = f2.Get(context.Background()) }()
+		go func() { defer wg.Done(); v3, e3 = f3.Get(context.Background()) }()
+		go func() { defer wg.Done(); v4, e4 = f4.Get(context.Background()) }()
+		go func() { defer wg.Done(); v5, e5 = f5.Get(context.Background()) }()
+		go func() { defer wg.Done(); v6, e6 = f6.Get(context.Background()) }()
+		go func() { defer wg.Done(); v7, e7 = f7.Get(context.Background()) }()
+		go func() { defer wg.Done(); v8, e8 = f8.Get(context.Background()) }()
 
 		wg.Wait()
 
-		if impl1.err != nil {
-			return Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]{}, impl1.err
+		if e1 != nil {
+			return Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]{}, e1
 		}
-		if impl2.err != nil {
-			return Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]{}, impl2.err
+		if e2 != nil {
+			return Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]{}, e2
 		}
-		if impl3.err != nil {
-			return Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]{}, impl3.err
+		if e3 != nil {
+			return Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]{}, e3
 		}
-		if impl4.err != nil {
-			return Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]{}, impl4.err
+		if e4 != nil {
+			return Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]{}, e4
 		}
-		if impl5.err != nil {
-			return Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]{}, impl5.err
+		if e5 != nil {
+			return Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]{}, e5
 		}
-		if impl6.err != nil {
-			return Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]{}, impl6.err
+		if e6 != nil {
+			return Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]{}, e6
 		}
-		if impl7.err != nil {
-			return Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]{}, impl7.err
+		if e7 != nil {
+			return Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]{}, e7
 		}
-		if impl8.err != nil {
-			return Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]{}, impl8.err
+		if e8 != nil {
+			return Tuple8[T1, T2, T3, T4, T5, T6, T7, T8]{}, e8
 		}
 
-		return NewTuple8(impl1.value, impl2.value, impl3.value, impl4.value, impl5.value, impl6.value, impl7.value, impl8.value), nil
+		return NewTuple8(v1, v2, v3, v4, v5, v6, v7, v8), nil
 	})
 }
