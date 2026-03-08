@@ -10,6 +10,7 @@
 //   - GroupBy - Group elements by a key
 //   - AssociateBy - Create a strict map from elements using a key builder
 //   - Chunk - Split a slice into smaller appropriately sized batches
+//   - Window, WindowFunc - Sliding window operations
 //   - Reverse - Reverses a slice in-place
 //   - Concat - Joins multiple slices
 //   - Zip, Unzip - Combine and split paired slices

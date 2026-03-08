@@ -76,18 +76,23 @@ func AssociateBy[T any, K comparable](slice []T, fn func(T) K) (map[K]T, error) 
 
 // Chunk splits a slice into a slice of consecutive smaller slices (chunks) of the specified size.
 // The last chunk may be smaller than the given size if the slice length is not perfectly divisible.
-// If size is <= 0, it panics.
-// If the input slice is nil, it returns nil.
-// If the input slice is empty, it returns an empty slice of slices.
-func Chunk[T any](slice []T, size int) [][]T {
+// Returns ErrInvalidSize if size <= 0.
+// Returns nil if the input slice is nil.
+// Returns an empty slice of slices if the input slice is empty.
+//
+// Example:
+//
+//	chunks, err := Chunk([]int{1, 2, 3, 4, 5}, 2)
+//	// chunks: [[1, 2], [3, 4], [5]], err: nil
+func Chunk[T any](slice []T, size int) ([][]T, error) {
 	if size <= 0 {
-		panic("lxslices.Chunk: size must be greater than 0")
+		return nil, ErrInvalidSize
 	}
 	if slice == nil {
-		return nil
+		return nil, nil
 	}
 	if len(slice) == 0 {
-		return [][]T{}
+		return [][]T{}, nil
 	}
 
 	chunks := make([][]T, 0, (len(slice)+size-1)/size)
@@ -98,28 +103,33 @@ func Chunk[T any](slice []T, size int) [][]T {
 		}
 		chunks = append(chunks, slice[i:end])
 	}
-	return chunks
+	return chunks, nil
 }
 
 // PartitionN splits a slice into N chunks of approximately equal size.
 // The earlier chunks will be larger if the slice cannot be split evenly.
-// If n <= 0, it panics.
-// If the input slice is nil, it returns nil.
-// If the input slice is empty, it returns an empty slice of slices.
-func PartitionN[T any](slice []T, n int) [][]T {
+// Returns ErrInvalidSize if n <= 0.
+// Returns nil if the input slice is nil.
+// Returns an empty slice of slices if the input slice is empty.
+//
+// Example:
+//
+//	parts, err := PartitionN([]int{1, 2, 3, 4, 5}, 2)
+//	// parts: [[1, 2, 3], [4, 5]], err: nil
+func PartitionN[T any](slice []T, n int) ([][]T, error) {
 	if n <= 0 {
-		return [][]T{}
-	}
-	if n == 1 {
-		return [][]T{slice}
+		return nil, ErrInvalidSize
 	}
 	if slice == nil {
-		return nil
+		return nil, nil
+	}
+	if n == 1 {
+		return [][]T{slice}, nil
 	}
 
 	length := len(slice)
 	if length == 0 {
-		return [][]T{}
+		return [][]T{}, nil
 	}
 
 	chunks := make([][]T, 0, n)
@@ -145,7 +155,7 @@ func PartitionN[T any](slice []T, n int) [][]T {
 		}
 		start = end
 	}
-	return chunks
+	return chunks, nil
 }
 
 // SplitAt splits a slice at the given index and returns two new slices.

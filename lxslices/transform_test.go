@@ -1,6 +1,7 @@
 package lxslices_test
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -12,10 +13,11 @@ import (
 
 func TestPartitionN_Int(t *testing.T) {
 	tests := []struct {
-		name     string
-		slice    []int
-		n        int
-		expected [][]int
+		name      string
+		slice     []int
+		n         int
+		expected  [][]int
+		expectErr bool
 	}{
 		{
 			name:     "evenly divided",
@@ -66,22 +68,32 @@ func TestPartitionN_Int(t *testing.T) {
 			expected: nil,
 		},
 		{
-			name:     "n <= 0",
-			slice:    []int{1, 2, 3},
-			n:        0,
-			expected: [][]int{},
+			name:      "n <= 0",
+			slice:     []int{1, 2, 3},
+			n:         0,
+			expectErr: true,
 		},
 		{
-			name:     "n is negative",
-			slice:    []int{1, 2, 3},
-			n:        -1,
-			expected: [][]int{},
+			name:      "n is negative",
+			slice:     []int{1, 2, 3},
+			n:         -1,
+			expectErr: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := lxslices.PartitionN(tt.slice, tt.n)
+			result, err := lxslices.PartitionN(tt.slice, tt.n)
+			if tt.expectErr {
+				if !errors.Is(err, lxslices.ErrInvalidSize) {
+					t.Errorf("PartitionN(%v, %d) error = %v; want ErrInvalidSize", tt.slice, tt.n, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Errorf("PartitionN(%v, %d) unexpected error = %v", tt.slice, tt.n, err)
+				return
+			}
 			if !reflect.DeepEqual(result, tt.expected) {
 				t.Errorf("PartitionN(%v, %d) = %v; want %v", tt.slice, tt.n, result, tt.expected)
 			}
@@ -91,10 +103,11 @@ func TestPartitionN_Int(t *testing.T) {
 
 func TestPartitionN_String(t *testing.T) {
 	tests := []struct {
-		name     string
-		slice    []string
-		n        int
-		expected [][]string
+		name      string
+		slice     []string
+		n         int
+		expected  [][]string
+		expectErr bool
 	}{
 		{
 			name:     "evenly divided strings",
@@ -133,16 +146,26 @@ func TestPartitionN_String(t *testing.T) {
 			expected: nil,
 		},
 		{
-			name:     "n <= 0",
-			slice:    []string{"a", "b", "c"},
-			n:        0,
-			expected: [][]string{},
+			name:      "n <= 0",
+			slice:     []string{"a", "b", "c"},
+			n:         0,
+			expectErr: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := lxslices.PartitionN(tt.slice, tt.n)
+			result, err := lxslices.PartitionN(tt.slice, tt.n)
+			if tt.expectErr {
+				if !errors.Is(err, lxslices.ErrInvalidSize) {
+					t.Errorf("PartitionN(%v, %d) error = %v; want ErrInvalidSize", tt.slice, tt.n, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Errorf("PartitionN(%v, %d) unexpected error = %v", tt.slice, tt.n, err)
+				return
+			}
 			if !reflect.DeepEqual(result, tt.expected) {
 				t.Errorf("PartitionN(%v, %d) = %v; want %v", tt.slice, tt.n, result, tt.expected)
 			}
@@ -153,10 +176,11 @@ func TestPartitionN_String(t *testing.T) {
 func TestPartitionN_Struct(t *testing.T) {
 	type Item struct{ ID int }
 	tests := []struct {
-		name     string
-		slice    []Item
-		n        int
-		expected [][]Item
+		name      string
+		slice     []Item
+		n         int
+		expected  [][]Item
+		expectErr bool
 	}{
 		{
 			name:     "evenly divided structs",
@@ -195,16 +219,26 @@ func TestPartitionN_Struct(t *testing.T) {
 			expected: nil,
 		},
 		{
-			name:     "n <= 0",
-			slice:    []Item{{1}},
-			n:        0,
-			expected: [][]Item{},
+			name:      "n <= 0",
+			slice:     []Item{{1}},
+			n:         0,
+			expectErr: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := lxslices.PartitionN(tt.slice, tt.n)
+			result, err := lxslices.PartitionN(tt.slice, tt.n)
+			if tt.expectErr {
+				if !errors.Is(err, lxslices.ErrInvalidSize) {
+					t.Errorf("PartitionN(%v, %d) error = %v; want ErrInvalidSize", tt.slice, tt.n, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Errorf("PartitionN(%v, %d) unexpected error = %v", tt.slice, tt.n, err)
+				return
+			}
 			if !reflect.DeepEqual(result, tt.expected) {
 				t.Errorf("PartitionN(%v, %d) = %v; want %v", tt.slice, tt.n, result, tt.expected)
 			}
@@ -1304,7 +1338,11 @@ func TestChunk_Int(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := lxslices.Chunk(tt.slice, tt.size)
+			result, err := lxslices.Chunk(tt.slice, tt.size)
+			if err != nil {
+				t.Errorf("Chunk() unexpected error = %v", err)
+				return
+			}
 			if !reflect.DeepEqual(result, tt.expected) {
 				t.Errorf("Chunk() = %v; want %v", result, tt.expected)
 			}
@@ -1312,13 +1350,23 @@ func TestChunk_Int(t *testing.T) {
 	}
 }
 
-func TestChunk_PanicNegativeZero(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("Chunk did not panic on zero size")
-		}
-	}()
-	lxslices.Chunk([]int{1, 2, 3}, 0)
+func TestChunk_InvalidSize(t *testing.T) {
+	tests := []struct {
+		name string
+		size int
+	}{
+		{name: "zero size", size: 0},
+		{name: "negative size", size: -1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := lxslices.Chunk([]int{1, 2, 3}, tt.size)
+			if !errors.Is(err, lxslices.ErrInvalidSize) {
+				t.Errorf("Chunk() error = %v; want ErrInvalidSize", err)
+			}
+		})
+	}
 }
 
 func TestChunk_String(t *testing.T) {
@@ -1344,7 +1392,11 @@ func TestChunk_String(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := lxslices.Chunk(tt.slice, tt.size)
+			result, err := lxslices.Chunk(tt.slice, tt.size)
+			if err != nil {
+				t.Errorf("Chunk() unexpected error = %v", err)
+				return
+			}
 			if !reflect.DeepEqual(result, tt.expected) {
 				t.Errorf("Chunk() = %v; want %v", result, tt.expected)
 			}
@@ -1376,7 +1428,11 @@ func TestChunk_Struct(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := lxslices.Chunk(tt.slice, tt.size)
+			result, err := lxslices.Chunk(tt.slice, tt.size)
+			if err != nil {
+				t.Errorf("Chunk() unexpected error = %v", err)
+				return
+			}
 			if !reflect.DeepEqual(result, tt.expected) {
 				t.Errorf("Chunk() = %v; want %v", result, tt.expected)
 			}
