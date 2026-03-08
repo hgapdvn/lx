@@ -26,6 +26,22 @@ func FlatMap[T, U any](slice []T, fn func(T) []U) []U {
 	return result
 }
 
+// ForEach applies the given function to each element of the slice.
+// It is primarily used for side effects.
+func ForEach[T any](slice []T, fn func(T)) {
+	for _, e := range slice {
+		fn(e)
+	}
+}
+
+// ForEachIndexed applies the given function to each element of the slice along with its index.
+// It is primarily used for side effects when the index is needed.
+func ForEachIndexed[T any](slice []T, fn func(int, T)) {
+	for i, e := range slice {
+		fn(i, e)
+	}
+}
+
 // Reverse reverses the elements of the slice in-place and returns it.
 func Reverse[T any](slice []T) []T {
 	for i, j := 0, len(slice)-1; i < j; i, j = i+1, j-1 {

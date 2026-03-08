@@ -343,6 +343,64 @@ func TestFlatMap(t *testing.T) {
 	})
 }
 
+func TestForEach(t *testing.T) {
+	t.Run("integers", func(t *testing.T) {
+		slice := []int{1, 2, 3}
+		var sum int
+		lxslices.ForEach(slice, func(n int) { sum += n })
+		if sum != 6 {
+			t.Errorf("ForEach() sum = %d; want 6", sum)
+		}
+	})
+
+	t.Run("empty slice", func(t *testing.T) {
+		slice := []int{}
+		called := false
+		lxslices.ForEach(slice, func(n int) { called = true })
+		if called {
+			t.Errorf("ForEach() should not have been called on empty slice")
+		}
+	})
+
+	t.Run("nil slice", func(t *testing.T) {
+		var slice []int
+		called := false
+		lxslices.ForEach(slice, func(n int) { called = true })
+		if called {
+			t.Errorf("ForEach() should not have been called on nil slice")
+		}
+	})
+}
+
+func TestForEachIndexed(t *testing.T) {
+	t.Run("strings", func(t *testing.T) {
+		slice := []string{"a", "b", "c"}
+		indices := []int{}
+		values := []string{}
+
+		lxslices.ForEachIndexed(slice, func(i int, s string) {
+			indices = append(indices, i)
+			values = append(values, s)
+		})
+
+		if !reflect.DeepEqual(indices, []int{0, 1, 2}) {
+			t.Errorf("ForEachIndexed() indices = %v; want [0 1 2]", indices)
+		}
+		if !reflect.DeepEqual(values, []string{"a", "b", "c"}) {
+			t.Errorf("ForEachIndexed() values = %v; want [a b c]", values)
+		}
+	})
+
+	t.Run("empty slice", func(t *testing.T) {
+		slice := []int{}
+		called := false
+		lxslices.ForEachIndexed(slice, func(i int, n int) { called = true })
+		if called {
+			t.Errorf("ForEachIndexed() should not have been called on empty slice")
+		}
+	})
+}
+
 func TestReverse(t *testing.T) {
 	t.Run("integers", func(t *testing.T) {
 		slice := []int{1, 2, 3, 4, 5}
