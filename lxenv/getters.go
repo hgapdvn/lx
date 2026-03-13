@@ -3,6 +3,7 @@ package lxenv
 import (
 	"os"
 	"strconv"
+	"time"
 )
 
 // Get retrieves the value of an environment variable.
@@ -143,6 +144,42 @@ func GetBool(key string) (bool, bool) {
 //	// debug: false if DEBUG is not set or invalid
 func GetBoolOr(key string, defaultValue bool) bool {
 	if value, ok := GetBool(key); ok {
+		return value
+	}
+	return defaultValue
+}
+
+// GetDuration retrieves an environment variable as a duration.
+// Supports standard Go duration strings and extended units: d (days), w (weeks), y (years).
+// Returns (value, true) if the variable is set and can be parsed as a duration.
+// Returns (0, false) if the variable is not set or cannot be parsed.
+//
+// Example:
+//
+//	if timeout, ok := lxenv.GetDuration("TIMEOUT"); ok {
+//	    // Use timeout as time.Duration
+//	}
+func GetDuration(key string) (time.Duration, bool) {
+	value := os.Getenv(key)
+	if value == "" {
+		return 0, false
+	}
+	parsed, err := parseDuration(value)
+	if err != nil {
+		return 0, false
+	}
+	return parsed, true
+}
+
+// GetDurationOr retrieves an environment variable as a duration or returns a default value.
+// Returns the parsed duration if the variable is set and valid, otherwise returns defaultValue.
+//
+// Example:
+//
+//	timeout := lxenv.GetDurationOr("TIMEOUT", 30*time.Second)
+//	// timeout: 30s if TIMEOUT is not set or invalid
+func GetDurationOr(key string, defaultValue time.Duration) time.Duration {
+	if value, ok := GetDuration(key); ok {
 		return value
 	}
 	return defaultValue

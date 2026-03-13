@@ -1,0 +1,36 @@
+# -----------------------------------------------
+# override.yml — local overrides
+# -----------------------------------------------
+
+app:
+  env: local
+  debug: false
+
+server:
+  port: 9090
+  ssl:
+    enabled: true
+    key-store-password: localpassword
+
+database:
+  host: 127.0.0.1
+  name: lxdb_local
+  username: dev
+  password: devpassword
+  pool:
+    max-size: 5
+
+cache:
+  host: 127.0.0.1
+  ttl: 300
+
+logging:
+  level: DEBUG
+
+security:
+  jwt:
+    expiration: 3600
+    refresh:
+      expiration: 7200
+  cors:
+    allowed-origins: "*"

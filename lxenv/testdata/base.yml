@@ -1,0 +1,77 @@
+# -----------------------------------------------
+# base.yml — generic application configuration
+# rich nested YAML structure (unlimited depth)
+# -----------------------------------------------
+
+app:
+  name: lx
+  version: 1.0.0
+  env: development
+  debug: true
+  description: "this is a lx application"
+  greeting: "hello world"
+  secret: p@ssw0rd!
+  token: "abc#123"   # hash inside quotes must be preserved
+  empty:
+  stripped: value    # this inline comment should be removed
+
+server:
+  host: localhost
+  port: 8080
+  context-path: /api
+  ssl:
+    enabled: false
+    key-store: classpath:keystore.p12
+    key-store-password: changeit
+
+database:
+  host: localhost
+  port: 5432
+  name: lxdb
+  username: admin
+  password: secret
+  driver: org.postgresql.Driver
+  pool:
+    min-size: 2
+    max-size: 10
+    timeout: 30000
+    idle-timeout: 600000
+    connection-test-query: SELECT 1
+
+cache:
+  type: redis
+  host: localhost
+  port: 6379
+  password:
+  ttl: 3600
+  pool:
+    max-active: 8
+    max-idle: 8
+    min-idle: 0
+
+mail:
+  host: smtp.gmail.com
+  port: 587
+  username: no-reply@lx.dev
+  auth: true
+  tls:
+    enabled: true
+    required: true
+
+logging:
+  level: INFO
+  file: logs/app.log
+  pattern:
+    console: "%d{yyyy-MM-dd} [%thread] %-5level %logger - %msg%n"
+    file: "%d{yyyy-MM-dd} [%thread] %-5level %logger - %msg%n"
+
+security:
+  jwt:
+    secret: my-jwt-secret
+    expiration: 86400
+    refresh:
+      secret: my-refresh-secret
+      expiration: 604800
+  cors:
+    allowed-origins: "http://localhost:3000"
+    allowed-methods: "GET,POST,PUT,DELETE"
