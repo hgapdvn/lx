@@ -7,48 +7,16 @@ import (
 	"strings"
 )
 
-// loadOptions holds internal configuration for Load functions.
-type loadOptions struct {
-	overwrite bool
-}
-
-// LoadOption is a functional option for configuring Load behavior.
-type LoadOption func(*loadOptions)
-
-// WithOverwrite sets whether existing environment variables should be overwritten.
-// Default behavior is to overwrite (Overwrite=true).
-//
-// Example:
-//
-//	lxenv.Load([]string{".env"}, lxenv.WithOverwrite(false))
-func WithOverwrite(overwrite bool) LoadOption {
-	return func(o *loadOptions) {
-		o.overwrite = overwrite
-	}
-}
-
-// resolveOptions applies all provided options on top of the defaults.
-func resolveOptions(opts []LoadOption) loadOptions {
-	o := loadOptions{overwrite: true} // default: overwrite=true
-	for _, opt := range opts {
-		opt(&o)
-	}
-	return o
-}
-
 // Load reads one or more .env files and sets environment variables from them.
-// Files are loaded in order — later files override earlier ones by default.
-// Optionally pass functional options to customize behavior.
+// Files are loaded in order — later files override earlier ones.
 //
 // Example:
 //
-//	lxenv.Load([]string{".env"})
-//	lxenv.Load([]string{".env", ".env.local"})
-//	lxenv.Load([]string{".env"}, lxenv.WithOverwrite(false))
-func Load(paths []string, opts ...LoadOption) error {
-	o := resolveOptions(opts)
+//	lxenv.Load(".env")
+//	lxenv.Load(".env", ".env.local")
+func Load(paths ...string) error {
 	for _, p := range paths {
-		if err := loadEnvFile(p, o); err != nil {
+		if err := loadEnvFile(p); err != nil {
 			return err
 		}
 	}
@@ -56,18 +24,15 @@ func Load(paths []string, opts ...LoadOption) error {
 }
 
 // LoadProperties reads one or more .properties files and sets environment variables from them.
-// Files are loaded in order — later files override earlier ones by default.
-// Optionally pass functional options to customize behavior.
+// Files are loaded in order — later files override earlier ones.
 //
 // Example:
 //
-//	lxenv.LoadProperties([]string{"app.properties"})
-//	lxenv.LoadProperties([]string{"app.properties", "app.local.properties"})
-//	lxenv.LoadProperties([]string{"app.properties"}, lxenv.WithOverwrite(false))
-func LoadProperties(paths []string, opts ...LoadOption) error {
-	o := resolveOptions(opts)
+//	lxenv.LoadProperties("app.properties")
+//	lxenv.LoadProperties("app.properties", "app.local.properties")
+func LoadProperties(paths ...string) error {
 	for _, p := range paths {
-		if err := loadEnvFile(p, o); err != nil {
+		if err := loadEnvFile(p); err != nil {
 			return err
 		}
 	}
@@ -81,25 +46,22 @@ func LoadProperties(paths []string, opts ...LoadOption) error {
 //	  pool:
 //	    size: 10   →  database.pool.size=10
 //
-// Files are loaded in order — later files override earlier ones by default.
-// Optionally pass functional options to customize behavior.
+// Files are loaded in order — later files override earlier ones.
 //
 // Example:
 //
-//	lxenv.LoadYML([]string{"config.yml"})
-//	lxenv.LoadYML([]string{"config.yml", "config.local.yml"})
-//	lxenv.LoadYML([]string{"config.yml"}, lxenv.WithOverwrite(false))
-func LoadYML(paths []string, opts ...LoadOption) error {
-	o := resolveOptions(opts)
+//	lxenv.LoadYML("config.yml")
+//	lxenv.LoadYML("config.yml", "config.local.yml")
+func LoadYML(paths ...string) error {
 	for _, p := range paths {
-		if err := loadYAMLFile(p, o); err != nil {
+		if err := loadYAMLFile(p); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func loadEnvFile(filename string, opts loadOptions) error {
+func loadEnvFile(filename string) error {
 	f, err := os.Open(filename)
 	if err != nil {
 		return fmt.Errorf("lxenv: cannot open file %q: %w", filename, err)
@@ -111,10 +73,10 @@ func loadEnvFile(filename string, opts loadOptions) error {
 		return fmt.Errorf("lxenv: failed to parse %q: %w", filename, err)
 	}
 
-	return applyPairs(pairs, opts)
+	return applyPairs(pairs)
 }
 
-func loadYAMLFile(filename string, opts loadOptions) error {
+func loadYAMLFile(filename string) error {
 	f, err := os.Open(filename)
 	if err != nil {
 		return fmt.Errorf("lxenv: cannot open file %q: %w", filename, err)
@@ -126,16 +88,11 @@ func loadYAMLFile(filename string, opts loadOptions) error {
 		return fmt.Errorf("lxenv: failed to parse %q: %w", filename, err)
 	}
 
-	return applyPairs(pairs, opts)
+	return applyPairs(pairs)
 }
 
-func applyPairs(pairs map[string]string, opts loadOptions) error {
+func applyPairs(pairs map[string]string) error {
 	for k, v := range pairs {
-		if !opts.overwrite {
-			if _, exists := os.LookupEnv(k); exists {
-				continue
-			}
-		}
 		if err := os.Setenv(k, v); err != nil {
 			return fmt.Errorf("lxenv: failed to set %q: %w", k, err)
 		}

@@ -71,7 +71,7 @@ func cleanupKeys(t *testing.T, keys []string) {
 func TestLoad_Base(t *testing.T) {
 	cleanupKeys(t, allBaseEnvKeys)
 
-	if err := lxenv.Load([]string{baseEnv}); err != nil {
+	if err := lxenv.Load(baseEnv); err != nil {
 		t.Fatalf("Load() unexpected error: %v", err)
 	}
 
@@ -106,7 +106,7 @@ func TestLoad_Base(t *testing.T) {
 func TestLoad_Override(t *testing.T) {
 	cleanupKeys(t, allBaseEnvKeys)
 
-	if err := lxenv.Load([]string{baseEnv, overrideEnv}); err != nil {
+	if err := lxenv.Load(baseEnv, overrideEnv); err != nil {
 		t.Fatalf("Load() unexpected error: %v", err)
 	}
 
@@ -140,38 +140,22 @@ func TestLoad_Override(t *testing.T) {
 	}
 }
 
-func TestLoad_OverwriteFalse(t *testing.T) {
-	os.Setenv("APP_ENV", "preset")
-	cleanupKeys(t, append(allBaseEnvKeys, "APP_ENV"))
-
-	if err := lxenv.Load([]string{baseEnv}, lxenv.WithOverwrite(false)); err != nil {
-		t.Fatalf("Load() unexpected error: %v", err)
-	}
-
-	if got := os.Getenv("APP_ENV"); got != "preset" {
-		t.Errorf("env[APP_ENV] = %q, want %q (should not overwrite)", got, "preset")
-	}
-	if got := os.Getenv("APP_NAME"); got != "lx" {
-		t.Errorf("env[APP_NAME] = %q, want %q", got, "lx")
-	}
-}
-
 func TestLoad_NonExistentFile(t *testing.T) {
-	if err := lxenv.Load([]string{"testdata/nonexistent.env"}); err == nil {
+	if err := lxenv.Load("testdata/nonexistent.env"); err == nil {
 		t.Error("Load() expected error for non-existent file, got nil")
 	}
 }
 
-func TestLoad_EmptyPaths(t *testing.T) {
-	if err := lxenv.Load([]string{}); err != nil {
-		t.Errorf("Load() with empty paths returned unexpected error: %v", err)
+func TestLoad_NoPaths(t *testing.T) {
+	if err := lxenv.Load(); err != nil {
+		t.Errorf("Load() with no paths returned unexpected error: %v", err)
 	}
 }
 
 func TestLoad_SecondFileNotFound(t *testing.T) {
 	cleanupKeys(t, allBaseEnvKeys)
 
-	if err := lxenv.Load([]string{baseEnv, "testdata/nonexistent.env"}); err == nil {
+	if err := lxenv.Load(baseEnv, "testdata/nonexistent.env"); err == nil {
 		t.Error("Load() expected error when second file not found, got nil")
 	}
 }
@@ -183,7 +167,7 @@ func TestLoad_SecondFileNotFound(t *testing.T) {
 func TestLoadProperties_Base(t *testing.T) {
 	cleanupKeys(t, allBasePropertiesKeys)
 
-	if err := lxenv.LoadProperties([]string{baseProperties}); err != nil {
+	if err := lxenv.LoadProperties(baseProperties); err != nil {
 		t.Fatalf("LoadProperties() unexpected error: %v", err)
 	}
 
@@ -231,7 +215,7 @@ func TestLoadProperties_Base(t *testing.T) {
 func TestLoadProperties_Override(t *testing.T) {
 	cleanupKeys(t, allBasePropertiesKeys)
 
-	if err := lxenv.LoadProperties([]string{baseProperties, overrideProperties}); err != nil {
+	if err := lxenv.LoadProperties(baseProperties, overrideProperties); err != nil {
 		t.Fatalf("LoadProperties() unexpected error: %v", err)
 	}
 
@@ -269,24 +253,8 @@ func TestLoadProperties_Override(t *testing.T) {
 	}
 }
 
-func TestLoadProperties_OverwriteFalse(t *testing.T) {
-	os.Setenv("app.env", "preset")
-	cleanupKeys(t, allBasePropertiesKeys)
-
-	if err := lxenv.LoadProperties([]string{baseProperties}, lxenv.WithOverwrite(false)); err != nil {
-		t.Fatalf("LoadProperties() unexpected error: %v", err)
-	}
-
-	if got := os.Getenv("app.env"); got != "preset" {
-		t.Errorf("env[app.env] = %q, want %q (should not overwrite)", got, "preset")
-	}
-	if got := os.Getenv("app.name"); got != "lx" {
-		t.Errorf("env[app.name] = %q, want %q", got, "lx")
-	}
-}
-
 func TestLoadProperties_NonExistentFile(t *testing.T) {
-	if err := lxenv.LoadProperties([]string{"testdata/nonexistent.properties"}); err == nil {
+	if err := lxenv.LoadProperties("testdata/nonexistent.properties"); err == nil {
 		t.Error("LoadProperties() expected error for non-existent file, got nil")
 	}
 }
@@ -298,7 +266,7 @@ func TestLoadProperties_NonExistentFile(t *testing.T) {
 func TestLoadYML_Base(t *testing.T) {
 	cleanupKeys(t, allBaseYMLKeys)
 
-	if err := lxenv.LoadYML([]string{baseYML}); err != nil {
+	if err := lxenv.LoadYML(baseYML); err != nil {
 		t.Fatalf("LoadYML() unexpected error: %v", err)
 	}
 
@@ -381,15 +349,14 @@ func TestLoadYML_Base(t *testing.T) {
 func TestLoadYML_NestedKeysNotLeakedAsTopLevel(t *testing.T) {
 	cleanupKeys(t, allBaseYMLKeys)
 
-	if err := lxenv.LoadYML([]string{baseYML}); err != nil {
+	if err := lxenv.LoadYML(baseYML); err != nil {
 		t.Fatalf("LoadYML() unexpected error: %v", err)
 	}
 
-	// bare leaf names must NOT appear as standalone env vars
 	for _, k := range []string{"name", "host", "port", "username", "password", "secret", "enabled", "level"} {
 		t.Run("not_set/"+k, func(t *testing.T) {
 			if got := os.Getenv(k); got != "" {
-				t.Errorf("bare key %q should not be set as env var, got %q", k, got)
+				t.Errorf("bare key %q should not be set, got %q", k, got)
 			}
 		})
 	}
@@ -398,7 +365,7 @@ func TestLoadYML_NestedKeysNotLeakedAsTopLevel(t *testing.T) {
 func TestLoadYML_Override(t *testing.T) {
 	cleanupKeys(t, allBaseYMLKeys)
 
-	if err := lxenv.LoadYML([]string{baseYML, overrideYML}); err != nil {
+	if err := lxenv.LoadYML(baseYML, overrideYML); err != nil {
 		t.Fatalf("LoadYML() unexpected error: %v", err)
 	}
 
@@ -452,24 +419,8 @@ func TestLoadYML_Override(t *testing.T) {
 	}
 }
 
-func TestLoadYML_OverwriteFalse(t *testing.T) {
-	os.Setenv("app.env", "preset")
-	cleanupKeys(t, allBaseYMLKeys)
-
-	if err := lxenv.LoadYML([]string{baseYML}, lxenv.WithOverwrite(false)); err != nil {
-		t.Fatalf("LoadYML() unexpected error: %v", err)
-	}
-
-	if got := os.Getenv("app.env"); got != "preset" {
-		t.Errorf("env[app.env] = %q, want %q (should not overwrite)", got, "preset")
-	}
-	if got := os.Getenv("app.name"); got != "lx" {
-		t.Errorf("env[app.name] = %q, want %q", got, "lx")
-	}
-}
-
 func TestLoadYML_NonExistentFile(t *testing.T) {
-	if err := lxenv.LoadYML([]string{"testdata/nonexistent.yml"}); err == nil {
+	if err := lxenv.LoadYML("testdata/nonexistent.yml"); err == nil {
 		t.Error("LoadYML() expected error for non-existent file, got nil")
 	}
 }

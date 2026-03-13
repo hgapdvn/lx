@@ -2,12 +2,48 @@ package lxenv
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 )
 
-var durationRE = regexp.MustCompile(`^([-+]?([0-9]*\.[0-9]+|[0-9]+))([a-zA-Zµμ]+)$`)
+// GetDuration retrieves an environment variable as a duration.
+// Supports standard Go duration strings and extended units: d (days), w (weeks), y (years).
+// Returns (value, true) if the variable is set and can be parsed as a duration.
+// Returns (0, false) if the variable is not set or cannot be parsed.
+//
+// Example:
+//
+//	if timeout, ok := lxenv.GetDuration("TIMEOUT"); ok {
+//	    // Use timeout as time.Duration
+//	}
+func GetDuration(key string) (time.Duration, bool) {
+	value := os.Getenv(key)
+	if value == "" {
+		return 0, false
+	}
+	parsed, err := parseDuration(value)
+	if err != nil {
+		return 0, false
+	}
+	return parsed, true
+}
+
+// GetDurationOr retrieves an environment variable as a duration or returns a default value.
+// Returns the parsed duration if the variable is set and valid, otherwise returns defaultValue.
+//
+// Example:
+//
+//	timeout := lxenv.GetDurationOr("TIMEOUT", 30*time.Second)
+//	// timeout: 30s if TIMEOUT is not set or invalid
+func GetDurationOr(key string, defaultValue time.Duration) time.Duration {
+	if value, ok := GetDuration(key); ok {
+		return value
+	}
+	return defaultValue
+}
 
 // parseDuration parses a duration string that supports extended units:
 // y (years), w (weeks), d (days).
@@ -22,35 +58,37 @@ var durationRE = regexp.MustCompile(`^([-+]?([0-9]*\.[0-9]+|[0-9]+))([a-zA-Zµμ
 //   - "3d" -> 72 * time.Hour
 //   - "1w" -> 168 * time.Hour
 //   - "1.5d" -> 36 * time.Hour
+//   - "1d 12h" -> 36 * time.Hour
 func parseDuration(s string) (time.Duration, error) {
-	if s == "" {
+	orig := strings.TrimSpace(s)
+	if orig == "" {
 		return 0, fmt.Errorf("lxenv: empty duration")
 	}
 
 	// Try standard parsing first for compatibility
-	if d, err := time.ParseDuration(s); err == nil {
+	if d, err := time.ParseDuration(orig); err == nil {
 		return d, nil
 	}
 
-	// For extended units or combined units not handled by stdlib
-	// We'll support simple ones first as requested (3d, etc.)
-	// If they want combined like "1d2h", we'll need a more robust parser.
-	// Let's implement a robust one that handles multiple parts.
+	// Robust parser that consumes the string part by part
+	// Supports optional spaces between value and unit, and between parts.
+	re := regexp.MustCompile(`^\s*([-+]?([0-9]*\.[0-9]+|[0-9]+))\s*([a-zA-Zµμ]+)`)
 
-	re := regexp.MustCompile(`([-+]?([0-9]*\.[0-9]+|[0-9]+))([a-zA-Zµμ]+)`)
-	matches := re.FindAllStringSubmatch(s, -1)
-	if len(matches) == 0 {
-		return 0, fmt.Errorf("lxenv: invalid duration %q", s)
-	}
-
+	remaining := orig
 	var total time.Duration
-	for _, match := range matches {
-		valStr := match[1]
-		unit := match[3]
+	for remaining != "" {
+		matches := re.FindStringSubmatch(remaining)
+		if matches == nil {
+			return 0, fmt.Errorf("lxenv: invalid duration component in %q", orig)
+		}
+
+		fullMatch := matches[0]
+		valStr := matches[1]
+		unit := strings.ToLower(matches[3])
 
 		val, err := strconv.ParseFloat(valStr, 64)
 		if err != nil {
-			return 0, fmt.Errorf("lxenv: invalid value %q in duration %q", valStr, s)
+			return 0, fmt.Errorf("lxenv: invalid value %q in duration %q", valStr, orig)
 		}
 
 		var factor time.Duration
@@ -74,10 +112,12 @@ func parseDuration(s string) (time.Duration, error) {
 		case "ns", "nsec", "nanosecond", "nanoseconds":
 			factor = time.Nanosecond
 		default:
-			return 0, fmt.Errorf("lxenv: unknown unit %q in duration %q", unit, s)
+			return 0, fmt.Errorf("lxenv: unknown unit %q in duration %q", unit, orig)
 		}
 
 		total += time.Duration(val * float64(factor))
+		remaining = remaining[len(fullMatch):]
+		remaining = strings.TrimLeft(remaining, " \t\n\r")
 	}
 
 	return total, nil
