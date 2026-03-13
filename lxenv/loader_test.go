@@ -53,6 +53,10 @@ var allBaseYMLKeys = []string{
 	"security.jwt.secret", "security.jwt.expiration",
 	"security.jwt.refresh.secret", "security.jwt.refresh.expiration",
 	"security.cors.allowed-origins", "security.cors.allowed-methods",
+	// parent/intermediate nodes that must NOT be set as env vars
+	"app", "server", "database", "cache", "mail", "logging", "security",
+	"server.ssl", "database.pool", "cache.pool", "mail.tls",
+	"logging.pattern", "security.jwt", "security.jwt.refresh", "security.cors",
 }
 
 func cleanupKeys(t *testing.T, keys []string) {
@@ -259,6 +263,20 @@ func TestLoadProperties_NonExistentFile(t *testing.T) {
 	}
 }
 
+func TestLoadProperties_NoPaths(t *testing.T) {
+	if err := lxenv.LoadProperties(); err != nil {
+		t.Errorf("LoadProperties() with no paths returned unexpected error: %v", err)
+	}
+}
+
+func TestLoadProperties_SecondFileNotFound(t *testing.T) {
+	cleanupKeys(t, allBasePropertiesKeys)
+
+	if err := lxenv.LoadProperties(baseProperties, "testdata/nonexistent.properties"); err == nil {
+		t.Error("LoadProperties() expected error when second file not found, got nil")
+	}
+}
+
 // -----------------------------------------------
 // LoadYML
 // -----------------------------------------------
@@ -422,5 +440,82 @@ func TestLoadYML_Override(t *testing.T) {
 func TestLoadYML_NonExistentFile(t *testing.T) {
 	if err := lxenv.LoadYML("testdata/nonexistent.yml"); err == nil {
 		t.Error("LoadYML() expected error for non-existent file, got nil")
+	}
+}
+
+func TestLoadYML_NoPaths(t *testing.T) {
+	if err := lxenv.LoadYML(); err != nil {
+		t.Errorf("LoadYML() with no paths returned unexpected error: %v", err)
+	}
+}
+
+func TestLoadYML_SecondFileNotFound(t *testing.T) {
+	cleanupKeys(t, allBaseYMLKeys)
+
+	if err := lxenv.LoadYML(baseYML, "testdata/nonexistent.yml"); err == nil {
+		t.Error("LoadYML() expected error when second file not found, got nil")
+	}
+}
+
+func TestLoadYML_ParentKeysNotSetInEnv(t *testing.T) {
+	cleanupKeys(t, allBaseYMLKeys)
+
+	if err := lxenv.LoadYML(baseYML); err != nil {
+		t.Fatalf("LoadYML() unexpected error: %v", err)
+	}
+
+	parentKeys := []string{
+		"app", "server", "database", "cache", "mail", "logging", "security",
+		"server.ssl", "database.pool", "cache.pool", "mail.tls",
+		"logging.pattern", "security.jwt", "security.jwt.refresh", "security.cors",
+	}
+	for _, k := range parentKeys {
+		t.Run("not_set/"+k, func(t *testing.T) {
+			if _, exists := os.LookupEnv(k); exists {
+				t.Errorf("parent key %q should not be set in env, but it is (value=%q)", k, os.Getenv(k))
+			}
+		})
+	}
+}
+
+func TestLoadYML_ListItemsSkipped(t *testing.T) {
+	content := []byte(`server:
+  host: localhost
+  allowed:
+    - item1
+    - item2
+  port: 8080
+`)
+
+	f, err := os.CreateTemp("", "lxenv_list_test_*.yml")
+	if err != nil {
+		t.Fatalf("could not create temp file: %v", err)
+	}
+	t.Cleanup(func() { os.Remove(f.Name()) })
+
+	if _, err := f.Write(content); err != nil {
+		f.Close()
+		t.Fatalf("could not write temp file: %v", err)
+	}
+	f.Close()
+
+	keysToClean := []string{"server", "server.host", "server.allowed", "server.port"}
+	cleanupKeys(t, keysToClean)
+
+	if err := lxenv.LoadYML(f.Name()); err != nil {
+		t.Fatalf("LoadYML() unexpected error: %v", err)
+	}
+
+	if got := os.Getenv("server.host"); got != "localhost" {
+		t.Errorf("env[%q] = %q, want %q", "server.host", got, "localhost")
+	}
+	if got := os.Getenv("server.port"); got != "8080" {
+		t.Errorf("env[%q] = %q, want %q", "server.port", got, "8080")
+	}
+	if _, exists := os.LookupEnv("server.allowed"); exists {
+		t.Errorf("list parent key %q should not be set in env", "server.allowed")
+	}
+	if _, exists := os.LookupEnv("server"); exists {
+		t.Errorf("parent key %q should not be set in env", "server")
 	}
 }

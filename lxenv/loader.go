@@ -3,6 +3,7 @@ package lxenv
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 )
@@ -105,7 +106,7 @@ func applyPairs(pairs map[string]string) error {
 // - Blank lines are ignored
 // - Values may be quoted with " or '
 // - Inline comments after # are stripped (outside quotes)
-func parseEnv(r *os.File) (map[string]string, error) {
+func parseEnv(r io.Reader) (map[string]string, error) {
 	pairs := make(map[string]string)
 	scanner := bufio.NewScanner(r)
 	lineNum := 0
@@ -150,7 +151,7 @@ func parseEnv(r *os.File) (map[string]string, error) {
 // - Lines starting with # are comments and are ignored
 // - Blank lines are ignored
 // - List items starting with - are ignored
-func parseYAML(r *os.File) (map[string]string, error) {
+func parseYAML(r io.Reader) (map[string]string, error) {
 	pairs := make(map[string]string)
 	scanner := bufio.NewScanner(r)
 
@@ -210,9 +211,8 @@ func parseYAML(r *os.File) (map[string]string, error) {
 		}
 
 		if val == "" {
-			// mapping parent — push onto stack and store as empty
+			// mapping parent — push onto stack only, do NOT emit an env var
 			stack = append(stack, frame{indent: indent, key: key})
-			pairs[fullKey] = ""
 		} else {
 			val = stripInlineComment(val)
 			val = unquote(val)
