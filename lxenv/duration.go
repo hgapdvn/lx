@@ -9,6 +9,9 @@ import (
 	"time"
 )
 
+// durationRe matches a single numeric component followed by a unit in a duration string.
+var durationRe = regexp.MustCompile(`^\s*([-+]?([0-9]*\.[0-9]+|[0-9]+))\s*([a-zA-Zµμ]+)`)
+
 // GetDuration retrieves an environment variable as a duration.
 // Supports standard Go duration strings and extended units: d (days), w (weeks), y (years).
 // Returns (value, true) if the variable is set and can be parsed as a duration.
@@ -72,12 +75,10 @@ func parseDuration(s string) (time.Duration, error) {
 
 	// Robust envLoader that consumes the string part by part
 	// Supports optional spaces between value and unit, and between parts.
-	re := regexp.MustCompile(`^\s*([-+]?([0-9]*\.[0-9]+|[0-9]+))\s*([a-zA-Zµμ]+)`)
-
 	remaining := orig
 	var total time.Duration
 	for remaining != "" {
-		matches := re.FindStringSubmatch(remaining)
+		matches := durationRe.FindStringSubmatch(remaining)
 		if matches == nil {
 			return 0, fmt.Errorf("lxenv: invalid duration component in %q", orig)
 		}

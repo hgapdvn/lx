@@ -76,20 +76,25 @@ type envLoader struct {
 
 func (ep *envLoader) load(paths ...string) error {
 	for _, path := range paths {
-		f, err := os.Open(path)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-		pairs, err := ep.parser.parse(f)
-		if err != nil {
-			return fmt.Errorf("parse %q: %w", path, err)
-		}
-		for k, v := range pairs {
-			err := Set(k, v)
+		if err := func() error {
+			f, err := os.Open(path)
 			if err != nil {
-				return fmt.Errorf("set %q: %w", k, err)
+				return err
 			}
+			defer f.Close()
+
+			pairs, err := ep.parser.parse(f)
+			if err != nil {
+				return fmt.Errorf("parse %q: %w", path, err)
+			}
+			for k, v := range pairs {
+				if err := Set(k, v); err != nil {
+					return fmt.Errorf("set %q: %w", k, err)
+				}
+			}
+			return nil
+		}(); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -271,8 +276,10 @@ func (*simpleValueNormalizer) unquote(s string) string {
 	return s
 }
 
-// normalize strips inline comments then unquotes the value.
+// normalize strips inline comments, trims surrounding whitespace, then unquotes the value.
 // This is the standard pipeline for any parsed scalar value.
 func (p *simpleValueNormalizer) normalize(s string) string {
-	return p.unquote(p.stripInlineComment(s))
+	s = p.stripInlineComment(s)
+	s = strings.TrimSpace(s)
+	return p.unquote(s)
 }
