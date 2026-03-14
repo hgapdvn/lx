@@ -70,7 +70,7 @@ func parseDuration(s string) (time.Duration, error) {
 		return d, nil
 	}
 
-	// Robust parser that consumes the string part by part
+	// Robust envLoader that consumes the string part by part
 	// Supports optional spaces between value and unit, and between parts.
 	re := regexp.MustCompile(`^\s*([-+]?([0-9]*\.[0-9]+|[0-9]+))\s*([a-zA-Zµμ]+)`)
 

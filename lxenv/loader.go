@@ -8,20 +8,28 @@ import (
 	"strings"
 )
 
-// Load reads one or more .env files and sets environment variables from them.
+var (
+	// Value normalizers
+	defaultValueNormalizer = &simpleValueNormalizer{}
+	// Env file parsers
+	defaultEnvFileParser    = &envFileParser{valueNormalizer: defaultValueNormalizer}
+	defaultPropertiesParser = &propertiesFileParser{envFileParser: defaultEnvFileParser}
+	defaultYAMLParser       = &yamlFileParser{valueNormalizer: defaultValueNormalizer}
+	// Env Loaders
+	defaultEnvLoader        = &envLoader{parser: defaultEnvFileParser}
+	defaultPropertiesLoader = &envLoader{parser: defaultPropertiesParser}
+	defaultYAMLLoader       = &envLoader{parser: defaultYAMLParser}
+)
+
+// LoadEnv reads one or more .env files and sets environment variables from them.
 // Files are loaded in order — later files override earlier ones.
 //
 // Example:
 //
-//	lxenv.Load(".env")
-//	lxenv.Load(".env", ".env.local")
-func Load(paths ...string) error {
-	for _, p := range paths {
-		if err := loadEnvFile(p); err != nil {
-			return err
-		}
-	}
-	return nil
+//	lxenv.LoadEnv(".env")
+//	lxenv.LoadEnv(".env", ".env.local")
+func LoadEnv(paths ...string) error {
+	return defaultEnvLoader.load(paths...)
 }
 
 // LoadProperties reads one or more .properties files and sets environment variables from them.
@@ -32,12 +40,7 @@ func Load(paths ...string) error {
 //	lxenv.LoadProperties("app.properties")
 //	lxenv.LoadProperties("app.properties", "app.local.properties")
 func LoadProperties(paths ...string) error {
-	for _, p := range paths {
-		if err := loadEnvFile(p); err != nil {
-			return err
-		}
-	}
-	return nil
+	return defaultPropertiesLoader.load(paths...)
 }
 
 // LoadYML reads one or more .yml/.yaml files and sets environment variables from them.
@@ -54,59 +57,56 @@ func LoadProperties(paths ...string) error {
 //	lxenv.LoadYML("config.yml")
 //	lxenv.LoadYML("config.yml", "config.local.yml")
 func LoadYML(paths ...string) error {
-	for _, p := range paths {
-		if err := loadYAMLFile(p); err != nil {
+	return defaultYAMLLoader.load(paths...)
+}
+
+// envLoader is an interface for parsing environment variables from a file.
+type envParser interface {
+	parse(io.Reader) (map[string]string, error)
+}
+
+// valueNormalizer is an interface for cleaning up parsed values.
+type valueNormalizer interface {
+	normalize(string) string
+}
+
+type envLoader struct {
+	parser envParser
+}
+
+func (ep *envLoader) load(paths ...string) error {
+	for _, path := range paths {
+		f, err := os.Open(path)
+		if err != nil {
 			return err
 		}
-	}
-	return nil
-}
-
-func loadEnvFile(filename string) error {
-	f, err := os.Open(filename)
-	if err != nil {
-		return fmt.Errorf("lxenv: cannot open file %q: %w", filename, err)
-	}
-	defer f.Close()
-
-	pairs, err := parseEnv(f)
-	if err != nil {
-		return fmt.Errorf("lxenv: failed to parse %q: %w", filename, err)
-	}
-
-	return applyPairs(pairs)
-}
-
-func loadYAMLFile(filename string) error {
-	f, err := os.Open(filename)
-	if err != nil {
-		return fmt.Errorf("lxenv: cannot open file %q: %w", filename, err)
-	}
-	defer f.Close()
-
-	pairs, err := parseYAML(f)
-	if err != nil {
-		return fmt.Errorf("lxenv: failed to parse %q: %w", filename, err)
-	}
-
-	return applyPairs(pairs)
-}
-
-func applyPairs(pairs map[string]string) error {
-	for k, v := range pairs {
-		if err := os.Setenv(k, v); err != nil {
-			return fmt.Errorf("lxenv: failed to set %q: %w", k, err)
+		defer f.Close()
+		pairs, err := ep.parser.parse(f)
+		if err != nil {
+			return fmt.Errorf("parse %q: %w", path, err)
+		}
+		for k, v := range pairs {
+			err := Set(k, v)
+			if err != nil {
+				return fmt.Errorf("set %q: %w", k, err)
+			}
 		}
 	}
 	return nil
 }
 
-// parseEnv parses KEY=VALUE format (.env / .properties).
+// envFileParser is a struct that implements the envParser interface.
+// It reads environment variables from .env files.
+type envFileParser struct {
+	valueNormalizer valueNormalizer
+}
+
+// parse parses KEY=VALUE format (.env / .properties).
 // - Lines starting with # are comments
 // - Blank lines are ignored
 // - Values may be quoted with " or '
 // - Inline comments after # are stripped (outside quotes)
-func parseEnv(r io.Reader) (map[string]string, error) {
+func (elp *envFileParser) parse(r io.Reader) (map[string]string, error) {
 	pairs := make(map[string]string)
 	scanner := bufio.NewScanner(r)
 	lineNum := 0
@@ -132,15 +132,20 @@ func parseEnv(r io.Reader) (map[string]string, error) {
 			return nil, fmt.Errorf("line %d: empty key", lineNum)
 		}
 
-		val = stripInlineComment(val)
-		val = unquote(val)
+		val = elp.valueNormalizer.normalize(val)
 		pairs[key] = val
 	}
 
 	return pairs, scanner.Err()
 }
 
-// parseYAML parses nested YAML format with unlimited nesting depth.
+// yamlFileParser is a struct that implements the Loader interface.
+// It reads environment variables from .yml/.yaml files.
+type yamlFileParser struct {
+	valueNormalizer valueNormalizer
+}
+
+// parse parses nested YAML format with unlimited nesting depth.
 // Nested keys are flattened using dot-notation, e.g.:
 //
 //	database:
@@ -151,7 +156,7 @@ func parseEnv(r io.Reader) (map[string]string, error) {
 // - Lines starting with # are comments and are ignored
 // - Blank lines are ignored
 // - List items starting with - are ignored
-func parseYAML(r io.Reader) (map[string]string, error) {
+func (yfp *yamlFileParser) parse(r io.Reader) (map[string]string, error) {
 	pairs := make(map[string]string)
 	scanner := bufio.NewScanner(r)
 
@@ -214,17 +219,27 @@ func parseYAML(r io.Reader) (map[string]string, error) {
 			// mapping parent — push onto stack only, do NOT emit an env var
 			stack = append(stack, frame{indent: indent, key: key})
 		} else {
-			val = stripInlineComment(val)
-			val = unquote(val)
-			pairs[fullKey] = val
+			pairs[fullKey] = yfp.valueNormalizer.normalize(val)
 		}
 	}
 
 	return pairs, scanner.Err()
 }
 
+// propertiesFileParser is a wrapper around envParser.
+type propertiesFileParser struct {
+	envFileParser envParser
+}
+
+func (pfp *propertiesFileParser) parse(r io.Reader) (map[string]string, error) {
+	return pfp.envFileParser.parse(r)
+}
+
+// simpleValueNormalizer handles raw string cleanup for parsed values.
+type simpleValueNormalizer struct{}
+
 // stripInlineComment removes everything after an unquoted #.
-func stripInlineComment(s string) string {
+func (*simpleValueNormalizer) stripInlineComment(s string) string {
 	inSingle, inDouble := false, false
 	for i, ch := range s {
 		switch ch {
@@ -246,7 +261,7 @@ func stripInlineComment(s string) string {
 }
 
 // unquote removes surrounding single or double quotes from a value.
-func unquote(s string) string {
+func (*simpleValueNormalizer) unquote(s string) string {
 	if len(s) >= 2 {
 		if (s[0] == '"' && s[len(s)-1] == '"') ||
 			(s[0] == '\'' && s[len(s)-1] == '\'') {
@@ -254,4 +269,10 @@ func unquote(s string) string {
 		}
 	}
 	return s
+}
+
+// normalize strips inline comments then unquotes the value.
+// This is the standard pipeline for any parsed scalar value.
+func (p *simpleValueNormalizer) normalize(s string) string {
+	return p.unquote(p.stripInlineComment(s))
 }

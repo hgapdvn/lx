@@ -69,14 +69,14 @@ func cleanupKeys(t *testing.T, keys []string) {
 }
 
 // -----------------------------------------------
-// Load (.env)
+// LoadEnv (.env)
 // -----------------------------------------------
 
 func TestLoad_Base(t *testing.T) {
 	cleanupKeys(t, allBaseEnvKeys)
 
-	if err := lxenv.Load(baseEnv); err != nil {
-		t.Fatalf("Load() unexpected error: %v", err)
+	if err := lxenv.LoadEnv(baseEnv); err != nil {
+		t.Fatalf("LoadEnv() unexpected error: %v", err)
 	}
 
 	tests := []struct{ key, want string }{
@@ -110,8 +110,8 @@ func TestLoad_Base(t *testing.T) {
 func TestLoad_Override(t *testing.T) {
 	cleanupKeys(t, allBaseEnvKeys)
 
-	if err := lxenv.Load(baseEnv, overrideEnv); err != nil {
-		t.Fatalf("Load() unexpected error: %v", err)
+	if err := lxenv.LoadEnv(baseEnv, overrideEnv); err != nil {
+		t.Fatalf("LoadEnv() unexpected error: %v", err)
 	}
 
 	overridden := []struct{ key, want string }{
@@ -145,22 +145,22 @@ func TestLoad_Override(t *testing.T) {
 }
 
 func TestLoad_NonExistentFile(t *testing.T) {
-	if err := lxenv.Load("testdata/nonexistent.env"); err == nil {
-		t.Error("Load() expected error for non-existent file, got nil")
+	if err := lxenv.LoadEnv("testdata/nonexistent.env"); err == nil {
+		t.Error("LoadEnv() expected error for non-existent file, got nil")
 	}
 }
 
 func TestLoad_NoPaths(t *testing.T) {
-	if err := lxenv.Load(); err != nil {
-		t.Errorf("Load() with no paths returned unexpected error: %v", err)
+	if err := lxenv.LoadEnv(); err != nil {
+		t.Errorf("LoadEnv() with no paths returned unexpected error: %v", err)
 	}
 }
 
 func TestLoad_SecondFileNotFound(t *testing.T) {
 	cleanupKeys(t, allBaseEnvKeys)
 
-	if err := lxenv.Load(baseEnv, "testdata/nonexistent.env"); err == nil {
-		t.Error("Load() expected error when second file not found, got nil")
+	if err := lxenv.LoadEnv(baseEnv, "testdata/nonexistent.env"); err == nil {
+		t.Error("LoadEnv() expected error when second file not found, got nil")
 	}
 }
 
