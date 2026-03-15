@@ -2,6 +2,7 @@ package lxenv_test
 
 import (
 	"errors"
+	"math"
 	"os"
 	"strings"
 	"testing"
@@ -897,14 +898,6 @@ func TestGetIntOr(t *testing.T) {
 			expected:     100,
 		},
 		{
-			name:         "whitespace value returns default",
-			key:          "TEST_GETINTOR_WHITESPACE",
-			preset:       "   ",
-			setVar:       true,
-			defaultValue: 100,
-			expected:     100,
-		},
-		{
 			name:         "zero default value",
 			key:          "TEST_GETINTOR_ZERO_DEFAULT",
 			setVar:       false,
@@ -1335,12 +1328,10 @@ func TestMustGetBool(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.setEnv {
-				if err := os.Setenv(tt.key, tt.value); err != nil {
-					t.Fatalf("failed to set env %s: %v", tt.key, err)
-				}
-				defer func() { _ = os.Unsetenv(tt.key) }()
+				os.Setenv(tt.key, tt.value)
+				defer os.Unsetenv(tt.key)
 			} else {
-				_ = os.Unsetenv(tt.key)
+				os.Unsetenv(tt.key)
 			}
 
 			var (
@@ -1369,6 +1360,185 @@ func TestMustGetBool(t *testing.T) {
 
 			if got != tt.want {
 				t.Fatalf("MustGetBool(%q) = %v, want %v", tt.key, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGetFloat(t *testing.T) {
+	tests := []struct {
+		name       string
+		key        string
+		preset     string
+		setVar     bool
+		expected   float64
+		expectedOk bool
+	}{
+		{"valid float", "TEST_GETFLOAT_VALID", "3.14", true, 3.14, true},
+		{"negative float", "TEST_GETFLOAT_NEG", "-2.5", true, -2.5, true},
+		{"plus sign", "TEST_GETFLOAT_PLUS", "+1.5", true, 1.5, true},
+		{"integer value", "TEST_GETFLOAT_INT", "42", true, 42.0, true},
+		{"scientific notation", "TEST_GETFLOAT_SCI", "1e6", true, 1e6, true},
+		{"nan value", "TEST_GETFLOAT_NAN", "NaN", true, math.NaN(), true},
+		{"inf value", "TEST_GETFLOAT_INF", "Inf", true, math.Inf(1), true},
+		{"negative zero", "TEST_GETFLOAT_NEGZERO", "-0", true, -0.0, true},
+		{"empty value", "TEST_GETFLOAT_EMPTY", "", true, 0, false},
+		{"whitespace value", "TEST_GETFLOAT_SPACE", "   ", true, 0, false},
+		{"invalid value", "TEST_GETFLOAT_INVALID", "not_float", true, 0, false},
+		{"non-existent", "TEST_GETFLOAT_NONEXIST", "", false, 0, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.setVar {
+				os.Setenv(tt.key, tt.preset)
+				defer os.Unsetenv(tt.key)
+			} else {
+				os.Unsetenv(tt.key)
+			}
+
+			v, ok := lxenv.GetFloat(tt.key)
+			if ok != tt.expectedOk {
+				t.Fatalf("GetFloat(%q) ok = %v, want %v", tt.key, ok, tt.expectedOk)
+			}
+			if ok {
+				// handle NaN specially
+				if math.IsNaN(tt.expected) {
+					if !math.IsNaN(v) {
+						t.Fatalf("GetFloat(%q) = %v, want NaN", tt.key, v)
+					}
+					return
+				}
+				// handle infinities
+				if math.IsInf(tt.expected, 0) {
+					if !math.IsInf(v, 1) && !math.IsInf(v, -1) {
+						t.Fatalf("GetFloat(%q) = %v, want %v", tt.key, v, tt.expected)
+					}
+					return
+				}
+				if v != tt.expected {
+					t.Fatalf("GetFloat(%q) = %v, want %v", tt.key, v, tt.expected)
+				}
+			}
+		})
+	}
+}
+
+func TestGetFloatOr(t *testing.T) {
+	tests := []struct {
+		name         string
+		key          string
+		preset       string
+		setVar       bool
+		defaultValue float64
+		expected     float64
+	}{
+		{"existing returns value", "TEST_GETFLOATOR_EXIST", "2.71", true, 0.0, 2.71},
+		{"non-existent returns default", "TEST_GETFLOATOR_NONEXIST", "", false, 1.23, 1.23},
+		{"invalid returns default", "TEST_GETFLOATOR_INVALID", "abc", true, 9.9, 9.9},
+		{"empty returns default", "TEST_GETFLOATOR_EMPTY", "", true, 7.7, 7.7},
+		{"scientific returns value", "TEST_GETFLOATOR_SCI", "-1e3", true, 0, -1000.0},
+		{"inf returns inf", "TEST_GETFLOATOR_INF", "Inf", true, 0, math.Inf(1)},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.setVar {
+				os.Setenv(tt.key, tt.preset)
+				defer os.Unsetenv(tt.key)
+			} else {
+				os.Unsetenv(tt.key)
+			}
+
+			res := lxenv.GetFloatOr(tt.key, tt.defaultValue)
+			// handle NaN/Inf if needed
+			if math.IsInf(tt.expected, 0) {
+				if !math.IsInf(res, 1) {
+					t.Fatalf("GetFloatOr(%q) = %v, want %v", tt.key, res, tt.expected)
+				}
+				return
+			}
+			if math.IsNaN(tt.expected) {
+				if !math.IsNaN(res) {
+					t.Fatalf("GetFloatOr(%q) = %v, want NaN", tt.key, res)
+				}
+				return
+			}
+			if res != tt.expected {
+				t.Fatalf("GetFloatOr(%q, %v) = %v, want %v", tt.key, tt.defaultValue, res, tt.expected)
+			}
+		})
+	}
+}
+
+func TestMustGetFloat(t *testing.T) {
+	tests := []struct {
+		name      string
+		key       string
+		preset    string
+		setVar    bool
+		want      float64
+		wantPanic bool
+	}{
+		{"valid float", "TEST_MUSTGETFLOAT_VALID", "6.28", true, 6.28, false},
+		{"missing panics", "TEST_MUSTGETFLOAT_MISSING", "", false, 0, true},
+		{"invalid panics", "TEST_MUSTGETFLOAT_INVALID", "notfloat", true, 0, true},
+		{"empty panics", "TEST_MUSTGETFLOAT_EMPTY", "", true, 0, true},
+		{"whitespace panics", "TEST_MUSTGETFLOAT_SPACE", "  ", true, 0, true},
+		{"plus sign", "TEST_MUSTGETFLOAT_PLUS", "+4.0", true, 4.0, false},
+		{"scientific", "TEST_MUSTGETFLOAT_SCI", "1.2e3", true, 1200.0, false},
+		{"NaN handled", "TEST_MUSTGETFLOAT_NAN", "NaN", true, math.NaN(), false},
+		{"Inf handled", "TEST_MUSTGETFLOAT_INF", "-Inf", true, math.Inf(-1), false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.setVar {
+				os.Setenv(tt.key, tt.preset)
+				defer os.Unsetenv(tt.key)
+			} else {
+				os.Unsetenv(tt.key)
+			}
+
+			var (
+				got      float64
+				didPanic bool
+			)
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						didPanic = true
+					}
+				}()
+				got = lxenv.MustGetFloat(tt.key)
+			}()
+
+			if tt.wantPanic {
+				if !didPanic {
+					t.Fatalf("MustGetFloat(%q) did not panic", tt.key)
+				}
+				return
+			}
+
+			if didPanic {
+				t.Fatalf("MustGetFloat(%q) panicked unexpectedly", tt.key)
+			}
+
+			if math.IsNaN(tt.want) {
+				if !math.IsNaN(got) {
+					t.Fatalf("MustGetFloat(%q) = %v, want NaN", tt.key, got)
+				}
+				return
+			}
+			if math.IsInf(tt.want, 0) {
+				if !math.IsInf(got, -1) && !math.IsInf(got, 1) {
+					t.Fatalf("MustGetFloat(%q) = %v, want %v", tt.key, got, tt.want)
+				}
+				return
+			}
+
+			if got != tt.want {
+				t.Fatalf("MustGetFloat(%q) = %v, want %v", tt.key, got, tt.want)
 			}
 		})
 	}

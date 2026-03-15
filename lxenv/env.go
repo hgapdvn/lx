@@ -215,6 +215,58 @@ func MustGetBool(key string) bool {
 	return value
 }
 
+// GetFloat retrieves an environment variable as a float64.
+// Returns (value, true) if the variable is set and can be parsed as a float64.
+// Returns (0, false) if the variable is not set or cannot be parsed.
+//
+// Example:
+//
+//	if v, ok := lxenv.GetFloat("THRESHOLD"); ok {
+//	    // use v (float64)
+//	}
+func GetFloat(key string) (float64, bool) {
+	value := os.Getenv(key)
+	if value == "" {
+		return 0, false
+	}
+	parsed, err := strconv.ParseFloat(value, 64)
+	if err != nil {
+		return 0, false
+	}
+	return parsed, true
+}
+
+// GetFloatOr retrieves an environment variable as a float64 or returns a default value.
+// Returns the parsed float if the variable is set and valid, otherwise returns defaultValue.
+//
+// Example:
+//
+//	threshold := lxenv.GetFloatOr("THRESHOLD", 0.1)
+//	// threshold: 0.1 if THRESHOLD is not set or invalid
+func GetFloatOr(key string, defaultValue float64) float64 {
+	if v, ok := GetFloat(key); ok {
+		return v
+	}
+	return defaultValue
+}
+
+// MustGetFloat retrieves the value of an environment variable as a float64.
+// Panics if the variable is not set or cannot be parsed as a float64.
+//
+// Example:
+//
+//	threshold := lxenv.MustGetFloat("THRESHOLD")
+//	// threshold: 0.1
+func MustGetFloat(key string) float64 {
+	if v, ok := GetFloat(key); ok {
+		return v
+	}
+	if _, exists := os.LookupEnv(key); exists {
+		panic("lxenv: environment variable " + key + " is not a valid float")
+	}
+	panic("lxenv: environment variable " + key + " is not set")
+}
+
 // Require ensures the provided keys exist in the environment.
 // Returns ErrKeyNotFound wrapped with the missing keys when any key is unset.
 func Require(keys ...string) error {
