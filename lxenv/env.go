@@ -281,10 +281,7 @@ func Require(keys ...string) error {
 		return nil
 	}
 
-	desc := fmt.Sprintf("missing required environment variable %s", missing[0])
-	if len(missing) > 1 {
-		desc = fmt.Sprintf("missing required environment variables: %s", strings.Join(missing, ", "))
-	}
+	desc := fmt.Sprintf("missing required environment variables: %s", strings.Join(missing, ", "))
 
 	return fmt.Errorf("%w: %s", ErrKeyNotFound, desc)
 }
