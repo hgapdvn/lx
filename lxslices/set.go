@@ -42,6 +42,9 @@ func Difference[T comparable](slice1, slice2 []T) []T {
 			}
 		}
 	}
+	if len(result) == 0 {
+		return nil
+	}
 	return result
 }
 

@@ -1,7 +1,6 @@
 package lxslices_test
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/nthanhhai2909/lx/lxslices"
@@ -219,13 +218,13 @@ func TestDifference_Int(t *testing.T) {
 			expected: []int{1, 2, 3},
 		},
 		{
-			name:     "empty s1",
+			name:     "empty s1 returns empty non-nil",
 			s1:       []int{},
 			s2:       []int{1},
-			expected: nil,
+			expected: []int{},
 		},
 		{
-			name:     "nil s1",
+			name:     "nil s1 returns nil",
 			s1:       nil,
 			s2:       []int{1},
 			expected: nil,
@@ -234,6 +233,10 @@ func TestDifference_Int(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := lxslices.Difference(tt.s1, tt.s2)
+			if (result == nil) != (tt.expected == nil) {
+				t.Errorf("Difference() nil = %v; want %v", result == nil, tt.expected == nil)
+				return
+			}
 			if len(result) != len(tt.expected) {
 				t.Errorf("Difference() length = %v; want %v", len(result), len(tt.expected))
 				return
@@ -273,13 +276,13 @@ func TestDifference_String(t *testing.T) {
 			expected: nil,
 		},
 		{
-			name:     "empty s1",
+			name:     "empty s1 returns empty non-nil",
 			s1:       []string{},
 			s2:       []string{"a"},
-			expected: nil,
+			expected: []string{},
 		},
 		{
-			name:     "nil s1",
+			name:     "nil s1 returns nil",
 			s1:       nil,
 			s2:       []string{"a"},
 			expected: nil,
@@ -288,6 +291,10 @@ func TestDifference_String(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := lxslices.Difference(tt.s1, tt.s2)
+			if (result == nil) != (tt.expected == nil) {
+				t.Errorf("Difference() nil = %v; want %v", result == nil, tt.expected == nil)
+				return
+			}
 			if len(result) != len(tt.expected) {
 				t.Errorf("Difference() length = %v; want %v", len(result), len(tt.expected))
 				return
@@ -332,13 +339,13 @@ func TestDifference_Struct(t *testing.T) {
 			expected: nil,
 		},
 		{
-			name:     "empty s1",
+			name:     "empty s1 returns empty non-nil",
 			s1:       []Item{},
 			s2:       []Item{{1, "a"}},
-			expected: nil,
+			expected: []Item{},
 		},
 		{
-			name:     "nil s1",
+			name:     "nil s1 returns nil",
 			s1:       nil,
 			s2:       []Item{{1, "a"}},
 			expected: nil,
@@ -347,6 +354,10 @@ func TestDifference_Struct(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := lxslices.Difference(tt.s1, tt.s2)
+			if (result == nil) != (tt.expected == nil) {
+				t.Errorf("Difference() nil = %v; want %v", result == nil, tt.expected == nil)
+				return
+			}
 			if len(result) != len(tt.expected) {
 				t.Errorf("Difference() length = %v; want %v", len(result), len(tt.expected))
 				return
@@ -704,34 +715,4 @@ func TestUnion_Struct(t *testing.T) {
 			}
 		})
 	}
-}
-
-// TestDifferenceNilInput verifies that Difference returns nil when slice1 is nil.
-func TestDifferenceNilInput(t *testing.T) {
-result := lxslices.Difference[int](nil, []int{1, 2, 3})
-if result != nil {
-t.Errorf("Difference(nil, ...) = %v; want nil", result)
-}
-}
-
-// TestDifferenceEmptyInput verifies that Difference returns the original empty
-// non-nil slice when slice1 is empty but non-nil.
-func TestDifferenceEmptyInput(t *testing.T) {
-empty := []int{}
-result := lxslices.Difference(empty, []int{1, 2, 3})
-if result == nil {
-t.Error("Difference([]int{}, ...) = nil; want non-nil empty slice")
-}
-if len(result) != 0 {
-t.Errorf("Difference([]int{}, ...) length = %d; want 0", len(result))
-}
-}
-
-// TestDifferenceNormal verifies standard Difference behavior.
-func TestDifferenceNormal(t *testing.T) {
-result := lxslices.Difference([]int{1, 2, 3, 4}, []int{2, 4})
-expected := []int{1, 3}
-if !reflect.DeepEqual(result, expected) {
-t.Errorf("Difference() = %v; want %v", result, expected)
-}
 }
