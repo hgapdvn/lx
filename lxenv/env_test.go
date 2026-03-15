@@ -1,7 +1,9 @@
 package lxenv_test
 
 import (
+	"errors"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/nthanhhai2909/lx/lxenv"
@@ -163,6 +165,118 @@ func TestGetOr(t *testing.T) {
 			result := lxenv.GetOr(tt.key, tt.defaultValue)
 			if result != tt.expected {
 				t.Errorf("GetOr(%q, %q) = %q, want %q", tt.key, tt.defaultValue, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestMustGet(t *testing.T) {
+	tests := []struct {
+		name      string
+		key       string
+		value     string
+		setEnv    bool
+		want      string
+		wantPanic bool
+	}{
+		{
+			name:   "env exists",
+			key:    "TEST_ENV_EXIST",
+			value:  "hello",
+			setEnv: true,
+			want:   "hello",
+		},
+		{
+			name:      "env not exists",
+			key:       "TEST_ENV_NOT_EXIST",
+			setEnv:    false,
+			wantPanic: true,
+		},
+		{
+			name:   "empty value does not panic",
+			key:    "TEST_ENV_EMPTY",
+			value:  "",
+			setEnv: true,
+			want:   "",
+		},
+		{
+			name:   "whitespace value preserved",
+			key:    "TEST_ENV_WHITESPACE",
+			value:  "   ",
+			setEnv: true,
+			want:   "   ",
+		},
+		{
+			name:   "special characters preserved",
+			key:    "TEST_ENV_SPECIAL",
+			value:  "hello@world!#$%",
+			setEnv: true,
+			want:   "hello@world!#$%",
+		},
+		{
+			name:   "unicode preserved",
+			key:    "TEST_ENV_UNICODE",
+			value:  "こんにちは🌏",
+			setEnv: true,
+			want:   "こんにちは🌏",
+		},
+		{
+			name:   "newline preserved",
+			key:    "TEST_ENV_NEWLINE",
+			value:  "line1\nline2",
+			setEnv: true,
+			want:   "line1\nline2",
+		},
+		{
+			name:   "tab preserved",
+			key:    "TEST_ENV_TAB",
+			value:  "\tindented",
+			setEnv: true,
+			want:   "\tindented",
+		},
+		{
+			name:   "equals sign preserved",
+			key:    "TEST_ENV_EQUALS",
+			value:  "a=b=c",
+			setEnv: true,
+			want:   "a=b=c",
+		},
+		{
+			name:   "zero string preserved",
+			key:    "TEST_ENV_ZERO",
+			value:  "0",
+			setEnv: true,
+			want:   "0",
+		},
+		{
+			name:   "long value preserved",
+			key:    "TEST_ENV_LONG",
+			value:  strings.Repeat("x", 2048),
+			setEnv: true,
+			want:   strings.Repeat("x", 2048),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.setEnv {
+				os.Setenv(tt.key, tt.value)
+				defer os.Unsetenv(tt.key)
+			} else {
+				os.Unsetenv(tt.key)
+			}
+
+			if tt.wantPanic {
+				defer func() {
+					if r := recover(); r == nil {
+						t.Errorf("MustGet(%q) did not panic", tt.key)
+					}
+				}()
+			}
+
+			got := lxenv.MustGet(tt.key)
+			if !tt.wantPanic && got != tt.want {
+				t.Errorf("MustGet(%q) = %q, want %q", tt.key, got, tt.want)
 			}
 		})
 	}
@@ -363,6 +477,194 @@ func TestHas(t *testing.T) {
 			result := lxenv.Has(tt.key)
 			if result != tt.expected {
 				t.Errorf("Has(%q) = %v, want %v", tt.key, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestNotHas(t *testing.T) {
+	tests := []struct {
+		name     string
+		key      string
+		preset   string
+		setVar   bool
+		expected bool
+	}{
+		{
+			name:     "existing variable returns false",
+			key:      "TEST_NOTHAS_EXISTING",
+			preset:   "value",
+			setVar:   true,
+			expected: false,
+		},
+		{
+			name:     "existing empty variable returns false",
+			key:      "TEST_NOTHAS_EMPTY",
+			preset:   "",
+			setVar:   true,
+			expected: false,
+		},
+		{
+			name:     "existing whitespace variable returns false",
+			key:      "TEST_NOTHAS_SPACE",
+			preset:   "   ",
+			setVar:   true,
+			expected: false,
+		},
+		{
+			name:     "existing special characters variable returns false",
+			key:      "TEST_NOTHAS_SPECIAL",
+			preset:   "hello@world!#$%",
+			setVar:   true,
+			expected: false,
+		},
+		{
+			name:     "missing variable returns true",
+			key:      "TEST_NOTHAS_MISSING",
+			setVar:   false,
+			expected: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.setVar {
+				os.Setenv(tt.key, tt.preset)
+				defer os.Unsetenv(tt.key)
+			} else {
+				os.Unsetenv(tt.key)
+			}
+
+			result := lxenv.NotHas(tt.key)
+			if result != tt.expected {
+				t.Errorf("NotHas(%q) = %v, want %v", tt.key, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestExists(t *testing.T) {
+	tests := []struct {
+		name     string
+		key      string
+		preset   string
+		setVar   bool
+		expected bool
+	}{
+		{
+			name:     "existing variable with value",
+			key:      "TEST_HAS_EXISTING",
+			preset:   "hello",
+			setVar:   true,
+			expected: true,
+		},
+		{
+			name:     "existing variable with empty value",
+			key:      "TEST_HAS_EMPTY_VALUE",
+			preset:   "",
+			setVar:   true,
+			expected: true,
+		},
+		{
+			name:     "existing variable with whitespace value",
+			key:      "TEST_HAS_WHITESPACE",
+			preset:   "   ",
+			setVar:   true,
+			expected: true,
+		},
+		{
+			name:     "existing variable with special characters",
+			key:      "TEST_HAS_SPECIAL",
+			preset:   "hello@world!#$%",
+			setVar:   true,
+			expected: true,
+		},
+		{
+			name:     "existing variable with numeric value",
+			key:      "TEST_HAS_NUMERIC",
+			preset:   "12345",
+			setVar:   true,
+			expected: true,
+		},
+		{
+			name:     "non-existent variable",
+			key:      "TEST_HAS_NONEXISTENT",
+			setVar:   false,
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.setVar {
+				os.Setenv(tt.key, tt.preset)
+				defer os.Unsetenv(tt.key)
+			}
+
+			result := lxenv.Exists(tt.key)
+			if result != tt.expected {
+				t.Errorf("Has(%q) = %v, want %v", tt.key, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestNotExists(t *testing.T) {
+	tests := []struct {
+		name     string
+		key      string
+		preset   string
+		setVar   bool
+		expected bool
+	}{
+		{
+			name:     "existing variable returns false",
+			key:      "TEST_NOTEXISTS_EXISTING",
+			preset:   "value",
+			setVar:   true,
+			expected: false,
+		},
+		{
+			name:     "existing empty variable returns false",
+			key:      "TEST_NOTEXISTS_EMPTY",
+			preset:   "",
+			setVar:   true,
+			expected: false,
+		},
+		{
+			name:     "existing whitespace variable returns false",
+			key:      "TEST_NOTEXISTS_SPACE",
+			preset:   "   ",
+			setVar:   true,
+			expected: false,
+		},
+		{
+			name:     "existing special characters variable returns false",
+			key:      "TEST_NOTEXISTS_SPECIAL",
+			preset:   "hello@world!#$%",
+			setVar:   true,
+			expected: false,
+		},
+		{
+			name:     "missing variable returns true",
+			key:      "TEST_NOTEXISTS_MISSING",
+			setVar:   false,
+			expected: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.setVar {
+				os.Setenv(tt.key, tt.preset)
+				defer os.Unsetenv(tt.key)
+			} else {
+				os.Unsetenv(tt.key)
+			}
+
+			result := lxenv.NotExists(tt.key)
+			if result != tt.expected {
+				t.Errorf("NotExists(%q) = %v, want %v", tt.key, result, tt.expected)
 			}
 		})
 	}
@@ -881,6 +1183,109 @@ func TestGetBoolOr(t *testing.T) {
 			result := lxenv.GetBoolOr(tt.key, tt.defaultValue)
 			if result != tt.expected {
 				t.Errorf("GetBoolOr(%q, %v) = %v, want %v", tt.key, tt.defaultValue, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestRequire(t *testing.T) {
+	tests := []struct {
+		name       string
+		keys       []string // keys to pass to Require
+		preset     map[string]string
+		expectsErr bool
+		missing    []string // expected missing keys included in the error text
+	}{
+		{
+			name:       "all keys present",
+			keys:       []string{"TEST_REQUIRE_K1", "TEST_REQUIRE_K2"},
+			preset:     map[string]string{"TEST_REQUIRE_K1": "v1", "TEST_REQUIRE_K2": "v2"},
+			expectsErr: false,
+		},
+		{
+			name:       "single missing key",
+			keys:       []string{"TEST_REQUIRE_PRESENT", "TEST_REQUIRE_MISSING"},
+			preset:     map[string]string{"TEST_REQUIRE_PRESENT": "v"},
+			expectsErr: true,
+			missing:    []string{"TEST_REQUIRE_MISSING"},
+		},
+		{
+			name:       "multiple missing keys",
+			keys:       []string{"TEST_REQUIRE_A", "TEST_REQUIRE_M1", "TEST_REQUIRE_M2"},
+			preset:     map[string]string{"TEST_REQUIRE_A": "v"},
+			expectsErr: true,
+			missing:    []string{"TEST_REQUIRE_M1", "TEST_REQUIRE_M2"},
+		},
+		{
+			name:       "none present",
+			keys:       []string{"TEST_REQUIRE_NONE"},
+			preset:     map[string]string{},
+			expectsErr: true,
+			missing:    []string{"TEST_REQUIRE_NONE"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Save original values for all relevant keys so we can restore after the case.
+			orig := make(map[string]*string)
+			allKeys := make(map[string]struct{})
+			for _, k := range tt.keys {
+				allKeys[k] = struct{}{}
+			}
+			for k := range tt.preset {
+				allKeys[k] = struct{}{}
+			}
+			for k := range allKeys {
+				if v, ok := os.LookupEnv(k); ok {
+					val := v
+					orig[k] = &val
+				} else {
+					orig[k] = nil
+				}
+				// ensure clean state before setting up
+				os.Unsetenv(k)
+			}
+
+			// Setup preset env vars for this case
+			for k, v := range tt.preset {
+				if err := os.Setenv(k, v); err != nil {
+					t.Fatalf("failed to set env %s: %v", k, err)
+				}
+			}
+
+			// Call Require
+			err := lxenv.Require(tt.keys...)
+
+			// Restore originals
+			for k, vptr := range orig {
+				if vptr == nil {
+					os.Unsetenv(k)
+				} else {
+					os.Setenv(k, *vptr)
+				}
+			}
+
+			if tt.expectsErr {
+				if err == nil {
+					t.Fatalf("Require(%v) expected error, got nil", tt.keys)
+				}
+				// check sentinel
+				if !errors.Is(err, lxenv.ErrKeyNotFound) {
+					t.Fatalf("Require(%v) expected ErrKeyNotFound, got: %v", tt.keys, err)
+				}
+				// check missing keys mentioned in the error text
+				for _, missing := range tt.missing {
+					if !strings.Contains(err.Error(), missing) {
+						t.Fatalf("error %q did not mention missing key %q", err, missing)
+					}
+				}
+				return
+			}
+
+			// expects no error
+			if err != nil {
+				t.Fatalf("Require(%v) returned unexpected error: %v", tt.keys, err)
 			}
 		})
 	}

@@ -1,8 +1,15 @@
 package lxenv
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"strconv"
+	"strings"
+)
+
+var (
+	ErrKeyNotFound = errors.New("lxenv: environment variable not found")
 )
 
 // Get retrieves the value of an environment variable.
@@ -28,6 +35,21 @@ func GetOr(key string, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+// MustGet retrieves the value of an environment variable.
+// Panics if the variable is not set.
+//
+// Example:
+//
+//	value := lxenv.MustGet("HOME")
+//	// value: "/Users/username"
+func MustGet(key string) string {
+	value, ok := os.LookupEnv(key)
+	if !ok {
+		panic("lxenv: environment variable " + key + " is not set")
+	}
+	return value
 }
 
 // Set sets the value of an environment variable.
@@ -61,6 +83,21 @@ func Unset(key string) error {
 func Has(key string) bool {
 	_, exists := os.LookupEnv(key)
 	return exists
+}
+
+// NotHas is an alias for !Has.
+func NotHas(key string) bool {
+	return !Has(key)
+}
+
+// Exists is an alias for Has.
+func Exists(key string) bool {
+	return Has(key)
+}
+
+// NotExists is an alias for !Exists.
+func NotExists(key string) bool {
+	return !Exists(key)
 }
 
 // Lookup retrieves an environment variable and reports whether it was set.
@@ -146,4 +183,26 @@ func GetBoolOr(key string, defaultValue bool) bool {
 		return value
 	}
 	return defaultValue
+}
+
+// Require ensures the provided keys exist in the environment.
+// Returns ErrKeyNotFound wrapped with the missing keys when any key is unset.
+func Require(keys ...string) error {
+	var missing []string
+	for _, key := range keys {
+		if NotExists(key) {
+			missing = append(missing, key)
+		}
+	}
+
+	if len(missing) == 0 {
+		return nil
+	}
+
+	desc := fmt.Sprintf("missing required environment variable %s", missing[0])
+	if len(missing) > 1 {
+		desc = fmt.Sprintf("missing required environment variables: %s", strings.Join(missing, ", "))
+	}
+
+	return fmt.Errorf("%w: %s", ErrKeyNotFound, desc)
 }
