@@ -1030,7 +1030,7 @@ func TestZip_IntString(t *testing.T) {
 	a := []int{1, 2, 3}
 	b := []string{"a", "b"}
 	got := lxslices.Zip(a, b)
-	want := []lxtypes.Pair[int, string]{{1, "a"}, {2, "b"}}
+	want := []lxtypes.Pair[int, string]{{First: 1, Second: "a"}, {First: 2, Second: "b"}}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("Zip(%v,%v) = %v; want %v", a, b, got, want)
 	}
@@ -1062,7 +1062,7 @@ func TestZip_Struct(t *testing.T) {
 }
 
 func TestUnzip_IntString(t *testing.T) {
-	pairs := []lxtypes.Pair[int, string]{{1, "a"}, {2, "b"}}
+	pairs := []lxtypes.Pair[int, string]{{First: 1, Second: "a"}, {First: 2, Second: "b"}}
 	a, b := lxslices.Unzip(pairs)
 	if !reflect.DeepEqual(a, []int{1, 2}) || !reflect.DeepEqual(b, []string{"a", "b"}) {
 		t.Fatalf("Unzip(%v) = (%v, %v); want (%v, %v)", pairs, a, b, []int{1, 2}, []string{"a", "b"})
