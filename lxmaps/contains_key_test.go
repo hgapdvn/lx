@@ -6,7 +6,7 @@ import (
 	"github.com/nthanhhai2909/lx/lxmaps"
 )
 
-func TestContains_StringInt(t *testing.T) {
+func TestContainsKey_StringInt(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    map[string]int
@@ -50,19 +50,19 @@ func TestContains_StringInt(t *testing.T) {
 			expected: false,
 		},
 		{
-			name:     "key with zero value",
+			name:     "key with zero value exists",
 			input:    map[string]int{"a": 0},
 			key:      "a",
-			expected: false,
+			expected: true,
 		},
 		{
-			name:     "key with negative value",
+			name:     "key with negative value exists",
 			input:    map[string]int{"a": -1},
 			key:      "a",
 			expected: true,
 		},
 		{
-			name:     "key with positive value",
+			name:     "key with positive value exists",
 			input:    map[string]int{"a": 1},
 			key:      "a",
 			expected: true,
@@ -181,25 +181,19 @@ func TestContains_StringInt(t *testing.T) {
 			key:      "",
 			expected: false,
 		},
-		{
-			name:     "large value key exists",
-			input:    map[string]int{"big": 1000000},
-			key:      "big",
-			expected: true,
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := lxmaps.Contains(tt.input, tt.key)
+			got := lxmaps.ContainsKey(tt.input, tt.key)
 			if got != tt.expected {
-				t.Fatalf("Contains(%v, %q) = %v, want %v", tt.input, tt.key, got, tt.expected)
+				t.Fatalf("ContainsKey(%v, %q) = %v, want %v", tt.input, tt.key, got, tt.expected)
 			}
 		})
 	}
 }
 
-func TestContains_IntString(t *testing.T) {
+func TestContainsKey_IntString(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    map[int]string
@@ -243,13 +237,13 @@ func TestContains_IntString(t *testing.T) {
 			expected: false,
 		},
 		{
-			name:     "key with empty string value",
+			name:     "key with empty string value exists",
 			input:    map[int]string{1: ""},
 			key:      1,
-			expected: false,
+			expected: true,
 		},
 		{
-			name:     "key with non-empty string value",
+			name:     "key with non-empty string value exists",
 			input:    map[int]string{1: "one"},
 			key:      1,
 			expected: true,
@@ -330,15 +324,15 @@ func TestContains_IntString(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := lxmaps.Contains(tt.input, tt.key)
+			got := lxmaps.ContainsKey(tt.input, tt.key)
 			if got != tt.expected {
-				t.Fatalf("Contains(%v, %d) = %v, want %v", tt.input, tt.key, got, tt.expected)
+				t.Fatalf("ContainsKey(%v, %d) = %v, want %v", tt.input, tt.key, got, tt.expected)
 			}
 		})
 	}
 }
 
-func TestContains_StructKey(t *testing.T) {
+func TestContainsKey_StructKey(t *testing.T) {
 	type Key struct {
 		ID   int
 		Name string
@@ -396,7 +390,7 @@ func TestContains_StructKey(t *testing.T) {
 			name:     "struct key with empty value",
 			input:    map[Key]string{{ID: 1, Name: "test"}: ""},
 			key:      Key{ID: 1, Name: "test"},
-			expected: false,
+			expected: true,
 		},
 		{
 			name:     "struct key with non-empty value",
@@ -420,18 +414,18 @@ func TestContains_StructKey(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := lxmaps.Contains(tt.input, tt.key)
+			got := lxmaps.ContainsKey(tt.input, tt.key)
 			if got != tt.expected {
-				t.Fatalf("Contains(%v, %v) = %v, want %v", tt.input, tt.key, got, tt.expected)
+				t.Fatalf("ContainsKey(%v, %v) = %v, want %v", tt.input, tt.key, got, tt.expected)
 			}
 		})
 	}
 }
 
-func TestContains_InterfaceValue(t *testing.T) {
+func TestContainsKey_StringBool(t *testing.T) {
 	tests := []struct {
 		name     string
-		input    map[string]interface{}
+		input    map[string]bool
 		key      string
 		expected bool
 	}{
@@ -442,86 +436,32 @@ func TestContains_InterfaceValue(t *testing.T) {
 			expected: false,
 		},
 		{
-			name:     "key with nil value",
-			input:    map[string]interface{}{"key": nil},
-			key:      "key",
-			expected: false,
-		},
-		{
-			name:     "key with string value",
-			input:    map[string]interface{}{"key": "value"},
+			name:     "key with true value",
+			input:    map[string]bool{"key": true},
 			key:      "key",
 			expected: true,
 		},
 		{
-			name:     "key with int value",
-			input:    map[string]interface{}{"key": 42},
+			name:     "key with false value",
+			input:    map[string]bool{"key": false},
 			key:      "key",
 			expected: true,
 		},
 		{
-			name:     "key with bool value",
-			input:    map[string]interface{}{"key": true},
-			key:      "key",
-			expected: true,
-		},
-		{
-			name:     "key with float value",
-			input:    map[string]interface{}{"key": 3.14},
-			key:      "key",
-			expected: true,
-		},
-		{
-			name:     "key with empty string value",
-			input:    map[string]interface{}{"key": ""},
-			key:      "key",
-			expected: false,
-		},
-		{
-			name:     "key with zero int value",
-			input:    map[string]interface{}{"key": 0},
-			key:      "key",
-			expected: false,
-		},
-		{
-			name:     "key with false bool value",
-			input:    map[string]interface{}{"key": false},
-			key:      "key",
-			expected: false,
-		},
-		{
-			name:     "key with slice value",
-			input:    map[string]interface{}{"key": []int{1, 2, 3}},
-			key:      "key",
-			expected: true,
-		},
-		{
-			name:     "key with empty slice value",
-			input:    map[string]interface{}{"key": []int{}},
-			key:      "key",
-			expected: false,
-		},
-		{
-			name:     "key with map value",
-			input:    map[string]interface{}{"key": map[string]string{"a": "b"}},
-			key:      "key",
-			expected: true,
-		},
-		{
-			name:     "key with empty map value",
-			input:    map[string]interface{}{"key": map[string]string{}},
-			key:      "key",
-			expected: false,
-		},
-		{
-			name:     "multiple keys with mixed values",
-			input:    map[string]interface{}{"a": "value", "b": 42, "c": nil},
+			name:     "multiple entries true value",
+			input:    map[string]bool{"a": true, "b": false},
 			key:      "a",
 			expected: true,
 		},
 		{
-			name:     "multiple keys with mixed values key not found",
-			input:    map[string]interface{}{"a": "value", "b": 42},
+			name:     "multiple entries false value",
+			input:    map[string]bool{"a": true, "b": false},
+			key:      "b",
+			expected: true,
+		},
+		{
+			name:     "key does not exist",
+			input:    map[string]bool{"a": true, "b": false},
 			key:      "c",
 			expected: false,
 		},
@@ -529,15 +469,15 @@ func TestContains_InterfaceValue(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := lxmaps.Contains(tt.input, tt.key)
+			got := lxmaps.ContainsKey(tt.input, tt.key)
 			if got != tt.expected {
-				t.Fatalf("Contains(%v, %q) = %v, want %v", tt.input, tt.key, got, tt.expected)
+				t.Fatalf("ContainsKey(%v, %q) = %v, want %v", tt.input, tt.key, got, tt.expected)
 			}
 		})
 	}
 }
 
-func TestContains_StringPointer(t *testing.T) {
+func TestContainsKey_StringPointer(t *testing.T) {
 	type Person struct {
 		Name string
 		Age  int
@@ -571,7 +511,7 @@ func TestContains_StringPointer(t *testing.T) {
 			name:     "key with nil pointer value",
 			input:    map[string]*Person{"alice": nil},
 			key:      "alice",
-			expected: false,
+			expected: true,
 		},
 		{
 			name:     "multiple entries key with non-nil pointer",
@@ -583,7 +523,7 @@ func TestContains_StringPointer(t *testing.T) {
 			name:     "multiple entries key with nil pointer",
 			input:    map[string]*Person{"alice": {Name: "Alice", Age: 25}, "bob": nil},
 			key:      "bob",
-			expected: false,
+			expected: true,
 		},
 		{
 			name:     "multiple entries key does not exist",
@@ -595,18 +535,18 @@ func TestContains_StringPointer(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := lxmaps.Contains(tt.input, tt.key)
+			got := lxmaps.ContainsKey(tt.input, tt.key)
 			if got != tt.expected {
-				t.Fatalf("Contains(%v, %q) = %v, want %v", tt.input, tt.key, got, tt.expected)
+				t.Fatalf("ContainsKey(%v, %q) = %v, want %v", tt.input, tt.key, got, tt.expected)
 			}
 		})
 	}
 }
 
-func TestContains_BoolValue(t *testing.T) {
+func TestContainsKey_InterfaceValue(t *testing.T) {
 	tests := []struct {
 		name     string
-		input    map[string]bool
+		input    map[string]interface{}
 		key      string
 		expected bool
 	}{
@@ -617,36 +557,84 @@ func TestContains_BoolValue(t *testing.T) {
 			expected: false,
 		},
 		{
-			name:     "key with true value",
-			input:    map[string]bool{"key": true},
+			name:     "key with nil value",
+			input:    map[string]interface{}{"key": nil},
 			key:      "key",
 			expected: true,
 		},
 		{
-			name:     "key with false value",
-			input:    map[string]bool{"key": false},
+			name:     "key with string value",
+			input:    map[string]interface{}{"key": "value"},
 			key:      "key",
-			expected: false,
+			expected: true,
 		},
 		{
-			name:     "multiple entries true value",
-			input:    map[string]bool{"a": true, "b": false},
+			name:     "key with int value",
+			input:    map[string]interface{}{"key": 42},
+			key:      "key",
+			expected: true,
+		},
+		{
+			name:     "key with bool value",
+			input:    map[string]interface{}{"key": true},
+			key:      "key",
+			expected: true,
+		},
+		{
+			name:     "key with float value",
+			input:    map[string]interface{}{"key": 3.14},
+			key:      "key",
+			expected: true,
+		},
+		{
+			name:     "key with empty string value",
+			input:    map[string]interface{}{"key": ""},
+			key:      "key",
+			expected: true,
+		},
+		{
+			name:     "key with zero int value",
+			input:    map[string]interface{}{"key": 0},
+			key:      "key",
+			expected: true,
+		},
+		{
+			name:     "key with false bool value",
+			input:    map[string]interface{}{"key": false},
+			key:      "key",
+			expected: true,
+		},
+		{
+			name:     "key with empty slice value",
+			input:    map[string]interface{}{"key": []int{}},
+			key:      "key",
+			expected: true,
+		},
+		{
+			name:     "key with empty map value",
+			input:    map[string]interface{}{"key": map[string]string{}},
+			key:      "key",
+			expected: true,
+		},
+		{
+			name:     "multiple keys with mixed values",
+			input:    map[string]interface{}{"a": "value", "b": 42, "c": nil},
 			key:      "a",
 			expected: true,
 		},
 		{
-			name:     "multiple entries false value",
-			input:    map[string]bool{"a": true, "b": false},
-			key:      "b",
+			name:     "multiple keys with mixed values key not found",
+			input:    map[string]interface{}{"a": "value", "b": 42},
+			key:      "c",
 			expected: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := lxmaps.Contains(tt.input, tt.key)
+			got := lxmaps.ContainsKey(tt.input, tt.key)
 			if got != tt.expected {
-				t.Fatalf("Contains(%v, %q) = %v, want %v", tt.input, tt.key, got, tt.expected)
+				t.Fatalf("ContainsKey(%v, %q) = %v, want %v", tt.input, tt.key, got, tt.expected)
 			}
 		})
 	}
