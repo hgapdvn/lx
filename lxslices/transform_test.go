@@ -1119,7 +1119,7 @@ func TestCopy_Int(t *testing.T) {
 			}
 
 			// Further independence checks only make sense for non-nil and non-empty
-			if tt.slice != nil && len(tt.slice) > 0 {
+			if len(tt.slice) > 0 {
 				// backing array independence: compare addresses of first element
 				origAddr := &tt.slice[0]
 				gotAddr := &got[0]
@@ -1144,7 +1144,6 @@ func TestCopy_Int(t *testing.T) {
 				// 3) Ensure append operations are independent (appending to copy should not change original)
 				originalLen := len(tt.slice)
 				originalCap := cap(tt.slice)
-				gotCopy := append([]int(nil), got...)
 				got = append(got, 999)
 				if len(tt.slice) != originalLen {
 					t.Fatalf("Appending to copy affected original length: want %d got %d", originalLen, len(tt.slice))
@@ -1152,8 +1151,6 @@ func TestCopy_Int(t *testing.T) {
 				if cap(tt.slice) != originalCap {
 					t.Fatalf("Appending to copy affected original capacity: want %d got %d", originalCap, cap(tt.slice))
 				}
-				// restore got
-				got = gotCopy
 			}
 		})
 	}
@@ -1179,7 +1176,7 @@ func TestCopy_String(t *testing.T) {
 				t.Fatalf("Copy(%v) = %v; want %v", tt.slice, got, tt.want)
 			}
 
-			if tt.slice != nil && len(tt.slice) > 0 {
+			if len(tt.slice) > 0 {
 				// mutate original
 				tt.slice[0] = tt.slice[0] + "!"
 				if reflect.DeepEqual(got, tt.slice) {
@@ -1219,7 +1216,7 @@ func TestCopy_Struct(t *testing.T) {
 				t.Fatalf("Copy(%v) = %v; want %v", tt.slice, got, tt.want)
 			}
 
-			if tt.slice != nil && len(tt.slice) > 0 {
+			if len(tt.slice) > 0 {
 				// mutate original element
 				tt.slice[0].ID += 10
 				if reflect.DeepEqual(got, tt.slice) {

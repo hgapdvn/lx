@@ -112,7 +112,7 @@ func TestLazyEager_IsEvaluated(t *testing.T) {
 	}
 
 	// Should still be true after Get
-	lazy.Get()
+	_, _ = lazy.Get()
 	if !lazy.IsEvaluated() {
 		t.Error("IsEvaluated() should still be true after Get()")
 	}
@@ -349,7 +349,7 @@ func TestLazyDeferred_IsEvaluated(t *testing.T) {
 	}
 
 	// Call Get
-	lazy.Get()
+	_, _ = lazy.Get()
 
 	// Should be true after Get
 	if !lazy.IsEvaluated() {
@@ -366,7 +366,7 @@ func TestLazyDeferred_IsEvaluated_AfterError(t *testing.T) {
 		t.Error("IsEvaluated() should be false before Get()")
 	}
 
-	lazy.Get()
+	_, _ = lazy.Get()
 
 	// Should be true even if computation failed
 	if !lazy.IsEvaluated() {
@@ -553,7 +553,7 @@ func TestLazyDeferred_PanicInFunction(t *testing.T) {
 		}
 	}()
 
-	lazy.Get()
+	_, _ = lazy.Get()
 }
 
 func TestLazyDeferred_LongRunningComputation(t *testing.T) {
@@ -641,7 +641,7 @@ func BenchmarkLazyEager_Get(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		lazy.Get()
+		_, _ = lazy.Get()
 	}
 }
 
@@ -652,7 +652,7 @@ func BenchmarkLazyDeferred_FirstGet(b *testing.B) {
 		lazy := LazyDeferred(func() (int, error) {
 			return 42, nil
 		})
-		lazy.Get()
+		_, _ = lazy.Get()
 	}
 }
 
@@ -660,12 +660,12 @@ func BenchmarkLazyDeferred_CachedGet(b *testing.B) {
 	lazy := LazyDeferred(func() (int, error) {
 		return 42, nil
 	})
-	lazy.Get() // Prime the cache
+	_, _ = lazy.Get() // Prime the cache
 
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		lazy.Get()
+		_, _ = lazy.Get()
 	}
 }
 
@@ -680,7 +680,7 @@ func BenchmarkLazyDeferred_ExpensiveComputation(b *testing.B) {
 			}
 			return result, nil
 		})
-		lazy.Get()
+		_, _ = lazy.Get()
 	}
 }
 
@@ -693,7 +693,7 @@ func BenchmarkLazyDeferred_ConcurrentAccess(b *testing.B) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			lazy.Get()
+			_, _ = lazy.Get()
 		}
 	})
 }
@@ -987,7 +987,7 @@ func TestLazy_IsEvaluatedConsistency(t *testing.T) {
 		}
 
 		// After Get
-		lazy.Get()
+		_, _ = lazy.Get()
 		for i := 0; i < 5; i++ {
 			if !lazy.IsEvaluated() {
 				t.Errorf("IsEvaluated() call %d returned false after Get()", i)

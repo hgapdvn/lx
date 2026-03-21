@@ -33,8 +33,7 @@ func TestRef(t *testing.T) {
 	})
 
 	t.Run("Int64", func(t *testing.T) {
-		var v int64
-		v = 98
+		v := int64(98)
 		p := lxptrs.Ref(v)
 		if *p != v {
 			t.Errorf("Ref(%v) = %v; want %v", v, *p, v)
@@ -42,8 +41,7 @@ func TestRef(t *testing.T) {
 	})
 
 	t.Run("Int32", func(t *testing.T) {
-		var v int32
-		v = 12
+		v := int32(12)
 		p := lxptrs.Ref(v)
 		if *p != v {
 			t.Errorf("Ref(%v) = %v; want %v", v, *p, v)
@@ -51,8 +49,7 @@ func TestRef(t *testing.T) {
 	})
 
 	t.Run("Int16", func(t *testing.T) {
-		var v int16
-		v = -55
+		v := int16(-55)
 		p := lxptrs.Ref(v)
 		if *p != v {
 			t.Errorf("Ref(%v) = %v; want %v", v, *p, v)
@@ -60,8 +57,7 @@ func TestRef(t *testing.T) {
 	})
 
 	t.Run("Int8", func(t *testing.T) {
-		var v int8
-		v = 12
+		v := int8(12)
 		p := lxptrs.Ref(v)
 		if *p != v {
 			t.Errorf("Ref(%v) = %v; want %v", v, *p, v)
@@ -69,8 +65,7 @@ func TestRef(t *testing.T) {
 	})
 
 	t.Run("Unit", func(t *testing.T) {
-		var v uint
-		v = 12
+		v := uint(12)
 		p := lxptrs.Ref(v)
 		if *p != v {
 			t.Errorf("Ref(%v) = %v; want %v", v, *p, v)
@@ -78,8 +73,7 @@ func TestRef(t *testing.T) {
 	})
 
 	t.Run("Unit64", func(t *testing.T) {
-		var v uint64
-		v = 1999
+		v := uint64(1999)
 		p := lxptrs.Ref(v)
 		if *p != v {
 			t.Errorf("Ref(%v) = %v; want %v", v, *p, v)
@@ -87,8 +81,7 @@ func TestRef(t *testing.T) {
 	})
 
 	t.Run("Unit32", func(t *testing.T) {
-		var v uint32
-		v = 19921
+		v := uint32(19921)
 		p := lxptrs.Ref(v)
 		if *p != v {
 			t.Errorf("Ref(%v) = %v; want %v", v, *p, v)
@@ -96,8 +89,7 @@ func TestRef(t *testing.T) {
 	})
 
 	t.Run("Unit16", func(t *testing.T) {
-		var v uint16
-		v = 1000
+		v := uint16(1000)
 		p := lxptrs.Ref(v)
 		if *p != v {
 			t.Errorf("Ref(%v) = %v; want %v", v, *p, v)
@@ -105,8 +97,7 @@ func TestRef(t *testing.T) {
 	})
 
 	t.Run("Unit8", func(t *testing.T) {
-		var v uint8
-		v = 1
+		v := uint8(1)
 		p := lxptrs.Ref(v)
 		if *p != v {
 			t.Errorf("Ref(%v) = %v; want %v", v, *p, v)
@@ -144,8 +135,7 @@ func TestDeref(t *testing.T) {
 	})
 
 	t.Run("Int64", func(t *testing.T) {
-		var v int64
-		v = 10
+		v := int64(10)
 		p := &v
 		result := lxptrs.Deref(p)
 		if result != v {
@@ -154,8 +144,7 @@ func TestDeref(t *testing.T) {
 	})
 
 	t.Run("Int32", func(t *testing.T) {
-		var v int32
-		v = 10
+		v := int32(10)
 		p := &v
 		result := lxptrs.Deref(p)
 		if result != v {
@@ -164,8 +153,7 @@ func TestDeref(t *testing.T) {
 	})
 
 	t.Run("Int16", func(t *testing.T) {
-		var v int16
-		v = 10
+		v := int16(10)
 		p := &v
 		result := lxptrs.Deref(p)
 		if result != v {
@@ -174,8 +162,7 @@ func TestDeref(t *testing.T) {
 	})
 
 	t.Run("Int8", func(t *testing.T) {
-		var v int8
-		v = 10
+		v := int8(10)
 		p := &v
 		result := lxptrs.Deref(p)
 		if result != v {
@@ -184,8 +171,7 @@ func TestDeref(t *testing.T) {
 	})
 
 	t.Run("UInt", func(t *testing.T) {
-		var v uint
-		v = 10
+		v := uint(10)
 		p := &v
 		result := lxptrs.Deref(p)
 		if result != v {
@@ -194,8 +180,7 @@ func TestDeref(t *testing.T) {
 	})
 
 	t.Run("UInt64", func(t *testing.T) {
-		var v uint64
-		v = 10
+		v := uint64(10)
 		p := &v
 		result := lxptrs.Deref(p)
 		if result != v {
@@ -204,8 +189,7 @@ func TestDeref(t *testing.T) {
 	})
 
 	t.Run("UInt32", func(t *testing.T) {
-		var v uint32
-		v = 10
+		v := uint32(10)
 		p := &v
 		result := lxptrs.Deref(p)
 		if result != v {
@@ -214,8 +198,7 @@ func TestDeref(t *testing.T) {
 	})
 
 	t.Run("UInt16", func(t *testing.T) {
-		var v uint16
-		v = 10
+		v := uint16(10)
 		p := &v
 		result := lxptrs.Deref(p)
 		if result != v {
@@ -224,8 +207,7 @@ func TestDeref(t *testing.T) {
 	})
 
 	t.Run("UInt8", func(t *testing.T) {
-		var v uint8
-		v = 10
+		v := uint8(10)
 		p := &v
 		result := lxptrs.Deref(p)
 		if result != v {

@@ -174,7 +174,7 @@ func TestSampleN_Int(t *testing.T) {
 			result := lxslices.SampleN(tt.slice, tt.n)
 
 			// Check nil vs non-nil semantics for nil/empty inputs
-			if tt.slice == nil || len(tt.slice) == 0 {
+			if len(tt.slice) == 0 {
 				if tt.wantNil && result != nil {
 					t.Errorf("SampleN() = %v; want nil", result)
 					return

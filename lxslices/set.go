@@ -99,7 +99,7 @@ func Union[T comparable](slice1, slice2 []T) []T {
 	// if result is empty but one of inputs was a non-nil empty slice, return empty slice
 	if len(result) == 0 {
 		// if either input is a non-nil empty slice, return empty slice (not nil)
-		if (slice1 != nil && len(slice1) == 0) || (slice2 != nil && len(slice2) == 0) {
+		if len(slice1) == 0 || len(slice2) == 0 {
 			return []T{}
 		}
 		// otherwise both were nil or had no unique elements; returning nil is fine

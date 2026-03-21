@@ -1381,7 +1381,7 @@ func TestGetFloat(t *testing.T) {
 		{"scientific notation", "TEST_GETFLOAT_SCI", "1e6", true, 1e6, true},
 		{"nan value", "TEST_GETFLOAT_NAN", "NaN", true, math.NaN(), true},
 		{"inf value", "TEST_GETFLOAT_INF", "Inf", true, math.Inf(1), true},
-		{"negative zero", "TEST_GETFLOAT_NEGZERO", "-0", true, -0.0, true},
+		{"negative zero", "TEST_GETFLOAT_NEGZERO", "-0", true, 0, true},
 		{"empty value", "TEST_GETFLOAT_EMPTY", "", true, 0, false},
 		{"whitespace value", "TEST_GETFLOAT_SPACE", "   ", true, 0, false},
 		{"invalid value", "TEST_GETFLOAT_INVALID", "not_float", true, 0, false},

@@ -203,8 +203,7 @@ func Length(s string) int {
 //
 // Example:
 //
-//    RuneCount("こんにちは") // 5
-//
+//	RuneCount("こんにちは") // 5
 func RuneCount(s string) int {
 	return utf8.RuneCountInString(s)
 }
