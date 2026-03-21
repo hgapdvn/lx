@@ -177,8 +177,7 @@ func TestGetDuration(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.setVar {
-				os.Setenv(tt.key, tt.preset)
-				defer os.Unsetenv(tt.key)
+				t.Setenv(tt.key, tt.preset)
 			}
 
 			value, ok := GetDuration(tt.key)
@@ -242,8 +241,7 @@ func TestGetDurationOr(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.setVar {
-				os.Setenv(tt.key, tt.preset)
-				defer os.Unsetenv(tt.key)
+				t.Setenv(tt.key, tt.preset)
 			}
 
 			result := GetDurationOr(tt.key, tt.defaultValue)
@@ -323,8 +321,7 @@ func TestMustGetDuration(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.setVar {
-				os.Setenv(tt.key, tt.preset)
-				defer os.Unsetenv(tt.key)
+				t.Setenv(tt.key, tt.preset)
 			} else {
 				os.Unsetenv(tt.key)
 			}

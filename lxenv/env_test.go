@@ -71,8 +71,7 @@ func TestGet(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.setVar {
-				os.Setenv(tt.key, tt.setValue)
-				defer os.Unsetenv(tt.key)
+				t.Setenv(tt.key, tt.setValue)
 			}
 
 			result := lxenv.Get(tt.key)
@@ -159,8 +158,7 @@ func TestGetOr(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.setVar {
-				os.Setenv(tt.key, tt.setValue)
-				defer os.Unsetenv(tt.key)
+				t.Setenv(tt.key, tt.setValue)
 			}
 
 			result := lxenv.GetOr(tt.key, tt.defaultValue)
@@ -261,8 +259,7 @@ func TestMustGet(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.setEnv {
-				os.Setenv(tt.key, tt.value)
-				defer os.Unsetenv(tt.key)
+				t.Setenv(tt.key, tt.value)
 			} else {
 				os.Unsetenv(tt.key)
 			}
@@ -471,8 +468,7 @@ func TestHas(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.setVar {
-				os.Setenv(tt.key, tt.preset)
-				defer os.Unsetenv(tt.key)
+				t.Setenv(tt.key, tt.preset)
 			}
 
 			result := lxenv.Has(tt.key)
@@ -530,8 +526,7 @@ func TestNotHas(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.setVar {
-				os.Setenv(tt.key, tt.preset)
-				defer os.Unsetenv(tt.key)
+				t.Setenv(tt.key, tt.preset)
 			} else {
 				os.Unsetenv(tt.key)
 			}
@@ -598,8 +593,7 @@ func TestExists(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.setVar {
-				os.Setenv(tt.key, tt.preset)
-				defer os.Unsetenv(tt.key)
+				t.Setenv(tt.key, tt.preset)
 			}
 
 			result := lxenv.Exists(tt.key)
@@ -657,8 +651,7 @@ func TestNotExists(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.setVar {
-				os.Setenv(tt.key, tt.preset)
-				defer os.Unsetenv(tt.key)
+				t.Setenv(tt.key, tt.preset)
 			} else {
 				os.Unsetenv(tt.key)
 			}
@@ -732,8 +725,7 @@ func TestLookup(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.setVar {
-				os.Setenv(tt.key, tt.preset)
-				defer os.Unsetenv(tt.key)
+				t.Setenv(tt.key, tt.preset)
 			}
 
 			value, ok := lxenv.Lookup(tt.key)
@@ -821,8 +813,7 @@ func TestGetInt(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.setVar {
-				os.Setenv(tt.key, tt.preset)
-				defer os.Unsetenv(tt.key)
+				t.Setenv(tt.key, tt.preset)
 			}
 
 			value, ok := lxenv.GetInt(tt.key)
@@ -909,8 +900,7 @@ func TestGetIntOr(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.setVar {
-				os.Setenv(tt.key, tt.preset)
-				defer os.Unsetenv(tt.key)
+				t.Setenv(tt.key, tt.preset)
 			}
 
 			result := lxenv.GetIntOr(tt.key, tt.defaultValue)
@@ -997,8 +987,7 @@ func TestMustGetInt(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.setEnv {
-				os.Setenv(tt.key, tt.value)
-				defer os.Unsetenv(tt.key)
+				t.Setenv(tt.key, tt.value)
 			} else {
 				os.Unsetenv(tt.key)
 			}
@@ -1186,8 +1175,7 @@ func TestGetBool(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.setVar {
-				os.Setenv(tt.key, tt.preset)
-				defer os.Unsetenv(tt.key)
+				t.Setenv(tt.key, tt.preset)
 			}
 
 			value, ok := lxenv.GetBool(tt.key)
@@ -1282,8 +1270,7 @@ func TestGetBoolOr(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.setVar {
-				os.Setenv(tt.key, tt.preset)
-				defer os.Unsetenv(tt.key)
+				t.Setenv(tt.key, tt.preset)
 			}
 
 			result := lxenv.GetBoolOr(tt.key, tt.defaultValue)
@@ -1328,8 +1315,7 @@ func TestMustGetBool(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.setEnv {
-				os.Setenv(tt.key, tt.value)
-				defer os.Unsetenv(tt.key)
+				t.Setenv(tt.key, tt.value)
 			} else {
 				os.Unsetenv(tt.key)
 			}
@@ -1391,8 +1377,7 @@ func TestGetFloat(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.setVar {
-				os.Setenv(tt.key, tt.preset)
-				defer os.Unsetenv(tt.key)
+				t.Setenv(tt.key, tt.preset)
 			} else {
 				os.Unsetenv(tt.key)
 			}
@@ -1444,8 +1429,7 @@ func TestGetFloatOr(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.setVar {
-				os.Setenv(tt.key, tt.preset)
-				defer os.Unsetenv(tt.key)
+				t.Setenv(tt.key, tt.preset)
 			} else {
 				os.Unsetenv(tt.key)
 			}
@@ -1494,8 +1478,7 @@ func TestMustGetFloat(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.setVar {
-				os.Setenv(tt.key, tt.preset)
-				defer os.Unsetenv(tt.key)
+				t.Setenv(tt.key, tt.preset)
 			} else {
 				os.Unsetenv(tt.key)
 			}
