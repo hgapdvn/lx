@@ -367,14 +367,24 @@ func TestLoadYML_Base(t *testing.T) {
 func TestLoadYML_NestedKeysNotLeakedAsTopLevel(t *testing.T) {
 	cleanupKeys(t, allBaseYMLKeys)
 
+	bareKeys := []string{"name", "host", "port", "username", "password", "secret", "enabled", "level"}
+	
+	// Snapshot OS environment before LoadYML to handle system variables like Windows' USERNAME
+	before := make(map[string]string)
+	for _, k := range bareKeys {
+		before[k] = os.Getenv(k)
+	}
+
 	if err := lxenv.LoadYML(baseYML); err != nil {
 		t.Fatalf("LoadYML() unexpected error: %v", err)
 	}
 
-	for _, k := range []string{"name", "host", "port", "username", "password", "secret", "enabled", "level"} {
+	for _, k := range bareKeys {
 		t.Run("not_set/"+k, func(t *testing.T) {
-			if got := os.Getenv(k); got != "" {
-				t.Errorf("bare key %q should not be set, got %q", k, got)
+			got := os.Getenv(k)
+			// Ensure our loader did not leak the key by checking if it changed from "before" state
+			if got != before[k] {
+				t.Errorf("bare key %q leaked or was manipulated! Expected original OS value %q, got %q", k, before[k], got)
 			}
 		})
 	}
