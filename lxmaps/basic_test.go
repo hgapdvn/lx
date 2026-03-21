@@ -33,6 +33,14 @@ func TestKeys_String(t *testing.T) {
 		{"zwj emoji", map[string]int{"👩‍💻": 1, "👨‍🚀": 2}, []string{"👩‍💻", "👨‍🚀"}},
 		{"many keys small", map[string]int{"k1": 1, "k2": 2, "k3": 3, "k4": 4, "k5": 5}, []string{"k1", "k2", "k3", "k4", "k5"}},
 		{"mixed small", map[string]int{"X": 1, "y": 2, "Z": 3}, []string{"X", "y", "Z"}},
+		{"numeric words", map[string]int{"one": 1, "two": 2, "three": 3}, []string{"one", "two", "three"}},
+		{"punctuated", map[string]int{"end.": 1, "start,": 2}, []string{"end.", "start,"}},
+		{"mixed lengths", map[string]int{"s": 1, "medium": 2, "a very long key indeed": 3}, []string{"s", "medium", "a very long key indeed"}},
+		{"repeated pattern keys", map[string]int{"p1": 1, "p2": 2, "p3": 3, "p4": 4}, []string{"p1", "p2", "p3", "p4"}},
+		{"underscore keys", map[string]int{"a_b": 1, "c_d": 2}, []string{"a_b", "c_d"}},
+		{"hyphen keys", map[string]int{"a-b": 1, "c-d": 2}, []string{"a-b", "c-d"}},
+		{"mixed symbols", map[string]int{"$a": 1, "#b": 2, "&c": 3}, []string{"$a", "#b", "&c"}},
+		{"final extra", map[string]int{"z1": 1, "z2": 2}, []string{"z1", "z2"}},
 	}
 
 	for _, tt := range tests {
@@ -55,10 +63,9 @@ func TestKeys_String(t *testing.T) {
 				t.Fatalf("Keys(%v) length = %d; want %d", tt.input, len(got), len(tt.expected))
 			}
 
-			for _, exp := range tt.expected {
-				if !lxslices.Contains(got, exp) {
-					t.Fatalf("Keys(%v) missing key %q in result %v", tt.input, exp, got)
-				}
+			// use ContainsAll to assert membership (order-independent)
+			if !lxslices.ContainsAll(got, tt.expected...) {
+				t.Fatalf("Keys(%v) missing expected keys; got %v, want %v", tt.input, got, tt.expected)
 			}
 		})
 	}
@@ -89,6 +96,11 @@ func TestKeys_Int(t *testing.T) {
 		{"range 3", map[int]string{20: "a", 21: "b", 22: "c"}, []int{20, 21, 22}},
 		{"random small", map[int]string{42: "x", 7: "y"}, []int{42, 7}},
 		{"mixed many", map[int]string{100: "x", -1: "y", 0: "z"}, []int{100, -1, 0}},
+		{"negative range", map[int]string{-20: "a", -19: "b"}, []int{-20, -19}},
+		{"high low", map[int]string{214: "a", -214: "b"}, []int{214, -214}},
+		{"step keys", map[int]string{1: "a", 3: "b", 5: "c"}, []int{1, 3, 5}},
+		{"modulus keys", map[int]string{2: "r2", 4: "r4", 6: "r6"}, []int{2, 4, 6}},
+		{"final extras", map[int]string{11: "k", 22: "l"}, []int{11, 22}},
 	}
 
 	for _, tt := range tests {
@@ -111,10 +123,8 @@ func TestKeys_Int(t *testing.T) {
 				t.Fatalf("Keys(%v) length = %d; want %d", tt.input, len(got), len(tt.expected))
 			}
 
-			for _, exp := range tt.expected {
-				if !lxslices.Contains(got, exp) {
-					t.Fatalf("Keys(%v) missing key %v in result %v", tt.input, exp, got)
-				}
+			if !lxslices.ContainsAll(got, tt.expected...) {
+				t.Fatalf("Keys(%v) missing expected keys; got %v, want %v", tt.input, got, tt.expected)
 			}
 		})
 	}
@@ -175,6 +185,164 @@ func TestKeys_Struct(t *testing.T) {
 			for _, exp := range tt.expected {
 				if !lxslices.Contains(got, exp) {
 					t.Fatalf("Keys(%v) missing key %v in result %v", tt.input, exp, got)
+				}
+			}
+		})
+	}
+}
+
+func TestValues_String(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    map[string]int
+		expected []int
+	}{
+		{"nil map", nil, nil},
+		{"empty map", map[string]int{}, []int{}},
+		{"single value", map[string]int{"a": 1}, []int{1}},
+		{"multiple values small", map[string]int{"a": 1, "b": 2, "c": 3}, []int{1, 2, 3}},
+		{"unicode values", map[string]int{"k1": 10, "k2": 20}, []int{10, 20}},
+		{"emoji values", map[string]int{"e": 100, "f": 200}, []int{100, 200}},
+		{"long values", map[string]int{"long": 123456, "other": 654321}, []int{123456, 654321}},
+		{"many values small", map[string]int{"k1": 1, "k2": 2, "k3": 3, "k4": 4, "k5": 5}, []int{1, 2, 3, 4, 5}},
+		{"mixed values", map[string]int{"x": 7, "y": 8, "z": 9}, []int{7, 8, 9}},
+		{"zero value", map[string]int{"zero": 0, "one": 1}, []int{0, 1}},
+		{"negative values", map[string]int{"n1": -1, "n2": -2}, []int{-1, -2}},
+		{"sparse values", map[string]int{"a": 2, "b": 100}, []int{2, 100}},
+		{"single large", map[string]int{"big": 999}, []int{999}},
+		{"sequential", map[string]int{"a": 10, "b": 11, "c": 12}, []int{10, 11, 12}},
+		{"mixed many", map[string]int{"p": 100, "q": -1, "r": 0}, []int{100, -1, 0}},
+		{"final small", map[string]int{"end": 3, "stop": 4}, []int{3, 4}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := lxmaps.Values(tt.input)
+
+			// Distinguish between expected nil vs empty slice
+			if tt.expected == nil {
+				if got != nil {
+					t.Fatalf("Values(%v) = %v; want nil", tt.input, got)
+				}
+				return
+			}
+
+			if got == nil {
+				t.Fatalf("Values(%v) = nil; want non-nil with length %d", tt.input, len(tt.expected))
+			}
+
+			if len(got) != len(tt.expected) {
+				t.Fatalf("Values(%v) length = %d; want %d", tt.input, len(got), len(tt.expected))
+			}
+
+			for _, exp := range tt.expected {
+				if !lxslices.Contains(got, exp) {
+					t.Fatalf("Values(%v) missing value %v in result %v", tt.input, exp, got)
+				}
+			}
+		})
+	}
+}
+
+func TestValues_Int(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    map[int]string
+		expected []string
+	}{
+		{"nil map", nil, nil},
+		{"empty map", map[int]string{}, []string{}},
+		{"single value", map[int]string{1: "one"}, []string{"one"}},
+		{"multiple values small", map[int]string{1: "a", 2: "b", 3: "c"}, []string{"a", "b", "c"}},
+		{"zero value", map[int]string{0: "zero", 1: "one"}, []string{"zero", "one"}},
+		{"negative values", map[int]string{-1: "neg", -2: "neg2"}, []string{"neg", "neg2"}},
+		{"mixed values", map[int]string{-5: "a", 5: "b"}, []string{"a", "b"}},
+		{"long strings", map[int]string{100: "long", 200: "other"}, []string{"long", "other"}},
+		{"many values", map[int]string{1: "k1", 2: "k2", 3: "k3", 4: "k4", 5: "k5"}, []string{"k1", "k2", "k3", "k4", "k5"}},
+		{"mixed small", map[int]string{7: "g", 8: "h", 9: "i"}, []string{"g", "h", "i"}},
+		{"sparse", map[int]string{2: "a", 100: "b"}, []string{"a", "b"}},
+		{"single large", map[int]string{999: "x"}, []string{"x"}},
+		{"random small", map[int]string{42: "x", 7: "y"}, []string{"x", "y"}},
+		{"mixed many", map[int]string{100: "x", -1: "y", 0: "z"}, []string{"x", "y", "z"}},
+		{"final small", map[int]string{3: "end", 4: "stop"}, []string{"end", "stop"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := lxmaps.Values(tt.input)
+
+			// Distinguish between expected nil vs empty slice
+			if tt.expected == nil {
+				if got != nil {
+					t.Fatalf("Values(%v) = %v; want nil", tt.input, got)
+				}
+				return
+			}
+
+			if got == nil {
+				t.Fatalf("Values(%v) = nil; want non-nil with length %d", tt.input, len(tt.expected))
+			}
+
+			if len(got) != len(tt.expected) {
+				t.Fatalf("Values(%v) length = %d; want %d", tt.input, len(got), len(tt.expected))
+			}
+
+			for _, exp := range tt.expected {
+				if !lxslices.Contains(got, exp) {
+					t.Fatalf("Values(%v) missing value %q in result %v", tt.input, exp, got)
+				}
+			}
+		})
+	}
+}
+
+func TestValues_Struct(t *testing.T) {
+	// comparable struct type for values
+	type VS struct {
+		I int
+		S string
+	}
+
+	tests := []struct {
+		name     string
+		input    map[string]VS
+		expected []VS
+	}{
+		{"nil map", nil, nil},
+		{"empty map", map[string]VS{}, []VS{}},
+		{"single value", map[string]VS{"a": {I: 1, S: "one"}}, []VS{{I: 1, S: "one"}}},
+		{"multiple small", map[string]VS{"a": {I: 1, S: "a"}, "b": {I: 2, S: "b"}}, []VS{{I: 1, S: "a"}, {I: 2, S: "b"}}},
+		{"zero and neg", map[string]VS{"z": {I: 0, S: "z"}, "n": {I: -1, S: "n"}}, []VS{{I: 0, S: "z"}, {I: -1, S: "n"}}},
+		{"unicode fields", map[string]VS{"u": {I: 10, S: "こんにちは"}, "v": {I: 11, S: "世界"}}, []VS{{I: 10, S: "こんにちは"}, {I: 11, S: "世界"}}},
+		{"emoji fields", map[string]VS{"e": {I: 2, S: "😊"}, "f": {I: 3, S: "👋"}}, []VS{{I: 2, S: "😊"}, {I: 3, S: "👋"}}},
+		{"many small", map[string]VS{"a": {I: 1, S: "a"}, "b": {I: 2, S: "b"}, "c": {I: 3, S: "c"}}, []VS{{I: 1, S: "a"}, {I: 2, S: "b"}, {I: 3, S: "c"}}},
+		{"mixed fields", map[string]VS{"x": {I: 5, S: "X"}, "y": {I: -5, S: "Y"}}, []VS{{I: 5, S: "X"}, {I: -5, S: "Y"}}},
+		{"final small", map[string]VS{"end": {I: 3, S: "end"}, "stop": {I: 4, S: "stop"}}, []VS{{I: 3, S: "end"}, {I: 4, S: "stop"}}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := lxmaps.Values(tt.input)
+
+			// Distinguish between expected nil vs empty slice
+			if tt.expected == nil {
+				if got != nil {
+					t.Fatalf("Values(%v) = %v; want nil", tt.input, got)
+				}
+				return
+			}
+
+			if got == nil {
+				t.Fatalf("Values(%v) = nil; want non-nil with length %d", tt.input, len(tt.expected))
+			}
+
+			if len(got) != len(tt.expected) {
+				t.Fatalf("Values(%v) length = %d; want %d", tt.input, len(got), len(tt.expected))
+			}
+
+			for _, exp := range tt.expected {
+				if !lxslices.Contains(got, exp) {
+					t.Fatalf("Values(%v) missing value %v in result %v", tt.input, exp, got)
 				}
 			}
 		})
