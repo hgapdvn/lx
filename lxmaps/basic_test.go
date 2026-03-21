@@ -5,6 +5,7 @@ import (
 
 	"github.com/nthanhhai2909/lx/lxmaps"
 	"github.com/nthanhhai2909/lx/lxslices"
+	"github.com/nthanhhai2909/lx/lxtypes"
 )
 
 func TestKeys_String(t *testing.T) {
@@ -344,6 +345,196 @@ func TestValues_Struct(t *testing.T) {
 				if !lxslices.Contains(got, exp) {
 					t.Fatalf("Values(%v) missing value %v in result %v", tt.input, exp, got)
 				}
+			}
+		})
+	}
+}
+
+func TestEntries_String(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    map[string]int
+		expected []lxtypes.Pair[string, int]
+	}{
+		{"nil map", nil, nil},
+		{"empty map", map[string]int{}, []lxtypes.Pair[string, int]{}},
+		{"single", map[string]int{"a": 1}, []lxtypes.Pair[string, int]{{First: "a", Second: 1}}},
+		{"multiple small", map[string]int{"a": 1, "b": 2, "c": 3}, []lxtypes.Pair[string, int]{{First: "a", Second: 1}, {First: "b", Second: 2}, {First: "c", Second: 3}}},
+		{"unicode", map[string]int{"こんにちは": 10, "世界": 20}, []lxtypes.Pair[string, int]{{First: "こんにちは", Second: 10}, {First: "世界", Second: 20}}},
+		{"emoji", map[string]int{"😊": 5, "🚀": 6}, []lxtypes.Pair[string, int]{{First: "😊", Second: 5}, {First: "🚀", Second: 6}}},
+		{"empty key", map[string]int{"": 0, "x": 1}, []lxtypes.Pair[string, int]{{First: "", Second: 0}, {First: "x", Second: 1}}},
+		{"special chars", map[string]int{"!@#": 7, "$%": 8}, []lxtypes.Pair[string, int]{{First: "!@#", Second: 7}, {First: "$%", Second: 8}}},
+		{"mixed lengths", map[string]int{"s": 1, "medium": 2, "a very long key indeed": 3}, []lxtypes.Pair[string, int]{{First: "s", Second: 1}, {First: "medium", Second: 2}, {First: "a very long key indeed", Second: 3}}},
+		{"many small", map[string]int{"k1": 1, "k2": 2, "k3": 3, "k4": 4, "k5": 5}, []lxtypes.Pair[string, int]{{First: "k1", Second: 1}, {First: "k2", Second: 2}, {First: "k3", Second: 3}, {First: "k4", Second: 4}, {First: "k5", Second: 5}}},
+		{"numeric-string keys", map[string]int{"1": 1, "2": 2, "3": 3}, []lxtypes.Pair[string, int]{{First: "1", Second: 1}, {First: "2", Second: 2}, {First: "3", Second: 3}}},
+		{"underscore/hyphen", map[string]int{"a_b": 1, "c-d": 2}, []lxtypes.Pair[string, int]{{First: "a_b", Second: 1}, {First: "c-d", Second: 2}}},
+		{"prefix/suffix", map[string]int{"pre_": 1, "_suf": 2}, []lxtypes.Pair[string, int]{{First: "pre_", Second: 1}, {First: "_suf", Second: 2}}},
+		{"zwj emoji", map[string]int{"👩‍💻": 1, "👨‍🚀": 2}, []lxtypes.Pair[string, int]{{First: "👩‍💻", Second: 1}, {First: "👨‍🚀", Second: 2}}},
+		{"random small", map[string]int{"x": 42, "y": 7}, []lxtypes.Pair[string, int]{{First: "x", Second: 42}, {First: "y", Second: 7}}},
+		{"final group", map[string]int{"z1": 1, "z2": 2, "z3": 3}, []lxtypes.Pair[string, int]{{First: "z1", Second: 1}, {First: "z2", Second: 2}, {First: "z3", Second: 3}}},
+		{"extra1", map[string]int{"e1": 11}, []lxtypes.Pair[string, int]{{First: "e1", Second: 11}}},
+		{"extra2", map[string]int{"e2": 22}, []lxtypes.Pair[string, int]{{First: "e2", Second: 22}}},
+		{"extra3", map[string]int{"e3": 33}, []lxtypes.Pair[string, int]{{First: "e3", Second: 33}}},
+		{"extra4", map[string]int{"e4": 44}, []lxtypes.Pair[string, int]{{First: "e4", Second: 44}}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := lxmaps.Entries(tt.input)
+
+			if tt.expected == nil {
+				if got != nil {
+					t.Fatalf("Entries(%v) = %v; want nil", tt.input, got)
+				}
+				return
+			}
+
+			if got == nil {
+				t.Fatalf("Entries(%v) = nil; want non-nil with length %d", tt.input, len(tt.expected))
+			}
+
+			if len(got) != len(tt.expected) {
+				t.Fatalf("Entries(%v) length = %d; want %d", tt.input, len(got), len(tt.expected))
+			}
+
+			if !lxslices.ContainsAll(got, tt.expected...) {
+				t.Fatalf("Entries(%v) missing expected pairs; got %v, want %v", tt.input, got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestEntries_Int(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    map[int]string
+		expected []lxtypes.Pair[int, string]
+	}{
+		{"nil map", nil, nil},
+		{"empty map", map[int]string{}, []lxtypes.Pair[int, string]{}},
+		{"single", map[int]string{1: "one"}, []lxtypes.Pair[int, string]{{First: 1, Second: "one"}}},
+		{"multiple small", map[int]string{1: "a", 2: "b", 3: "c"}, []lxtypes.Pair[int, string]{{First: 1, Second: "a"}, {First: 2, Second: "b"}, {First: 3, Second: "c"}}},
+		{"zero key", map[int]string{0: "zero", 1: "one"}, []lxtypes.Pair[int, string]{{First: 0, Second: "zero"}, {First: 1, Second: "one"}}},
+		{"negative keys", map[int]string{-1: "n1", -2: "n2"}, []lxtypes.Pair[int, string]{{First: -1, Second: "n1"}, {First: -2, Second: "n2"}}},
+		{"mixed sign", map[int]string{-5: "a", 5: "b"}, []lxtypes.Pair[int, string]{{First: -5, Second: "a"}, {First: 5, Second: "b"}}},
+		{"large numbers", map[int]string{1000000: "m", 999999: "n"}, []lxtypes.Pair[int, string]{{First: 1000000, Second: "m"}, {First: 999999, Second: "n"}}},
+		{"sequential 5", map[int]string{10: "a", 11: "b", 12: "c", 13: "d", 14: "e"}, []lxtypes.Pair[int, string]{{First: 10, Second: "a"}, {First: 11, Second: "b"}, {First: 12, Second: "c"}, {First: 13, Second: "d"}, {First: 14, Second: "e"}}},
+		{"sparse", map[int]string{2: "a", 100: "b"}, []lxtypes.Pair[int, string]{{First: 2, Second: "a"}, {First: 100, Second: "b"}}},
+		{"single large", map[int]string{999: "x"}, []lxtypes.Pair[int, string]{{First: 999, Second: "x"}}},
+		{"many", map[int]string{1: "k1", 2: "k2", 3: "k3", 4: "k4", 5: "k5"}, []lxtypes.Pair[int, string]{{First: 1, Second: "k1"}, {First: 2, Second: "k2"}, {First: 3, Second: "k3"}, {First: 4, Second: "k4"}, {First: 5, Second: "k5"}}},
+		{"random small", map[int]string{42: "x", 7: "y"}, []lxtypes.Pair[int, string]{{First: 42, Second: "x"}, {First: 7, Second: "y"}}},
+		{"mix many", map[int]string{100: "x", -1: "y", 0: "z"}, []lxtypes.Pair[int, string]{{First: 100, Second: "x"}, {First: -1, Second: "y"}, {First: 0, Second: "z"}}},
+		{"negative range", map[int]string{-20: "a", -19: "b"}, []lxtypes.Pair[int, string]{{First: -20, Second: "a"}, {First: -19, Second: "b"}}},
+		{"high low", map[int]string{214: "a", -214: "b"}, []lxtypes.Pair[int, string]{{First: 214, Second: "a"}, {First: -214, Second: "b"}}},
+		{"step keys", map[int]string{1: "a", 3: "b", 5: "c"}, []lxtypes.Pair[int, string]{{First: 1, Second: "a"}, {First: 3, Second: "b"}, {First: 5, Second: "c"}}},
+		{"modulus keys", map[int]string{2: "r2", 4: "r4", 6: "r6"}, []lxtypes.Pair[int, string]{{First: 2, Second: "r2"}, {First: 4, Second: "r4"}, {First: 6, Second: "r6"}}},
+		{"final extra", map[int]string{11: "k", 22: "l"}, []lxtypes.Pair[int, string]{{First: 11, Second: "k"}, {First: 22, Second: "l"}}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := lxmaps.Entries(tt.input)
+
+			if tt.expected == nil {
+				if got != nil {
+					t.Fatalf("Entries(%v) = %v; want nil", tt.input, got)
+				}
+				return
+			}
+
+			if got == nil {
+				t.Fatalf("Entries(%v) = nil; want non-nil with length %d", tt.input, len(tt.expected))
+			}
+
+			if len(got) != len(tt.expected) {
+				t.Fatalf("Entries(%v) length = %d; want %d", tt.input, len(got), len(tt.expected))
+			}
+
+			if !lxslices.ContainsAll(got, tt.expected...) {
+				t.Fatalf("Entries(%v) missing expected pairs; got %v, want %v", tt.input, got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestEntries_Struct(t *testing.T) {
+	// comparable key and value structs
+	type K struct {
+		I int
+		S string
+	}
+	type V struct {
+		N string
+		M int
+	}
+
+	tests := []struct {
+		name     string
+		input    map[K]V
+		expected []lxtypes.Pair[K, V]
+	}{
+		{"nil map", nil, nil},
+		{"empty map", map[K]V{}, []lxtypes.Pair[K, V]{}},
+		{"single", map[K]V{{I: 1, S: "a"}: {N: "one", M: 1}}, []lxtypes.Pair[K, V]{
+			{First: K{I: 1, S: "a"}, Second: V{N: "one", M: 1}},
+		}},
+		{"multiple", map[K]V{{I: 1, S: "a"}: {N: "one", M: 1}, {I: 2, S: "b"}: {N: "two", M: 2}}, []lxtypes.Pair[K, V]{
+			{First: K{I: 1, S: "a"}, Second: V{N: "one", M: 1}},
+			{First: K{I: 2, S: "b"}, Second: V{N: "two", M: 2}},
+		}},
+		{"unicode", map[K]V{{I: 10, S: "こんにちは"}: {N: "u", M: 10}, {I: 11, S: "世界"}: {N: "v", M: 11}}, []lxtypes.Pair[K, V]{
+			{First: K{I: 10, S: "こんにちは"}, Second: V{N: "u", M: 10}},
+			{First: K{I: 11, S: "世界"}, Second: V{N: "v", M: 11}},
+		}},
+		{"emoji", map[K]V{{I: 2, S: "😊"}: {N: "e", M: 2}, {I: 3, S: "👋"}: {N: "w", M: 3}}, []lxtypes.Pair[K, V]{
+			{First: K{I: 2, S: "😊"}, Second: V{N: "e", M: 2}},
+			{First: K{I: 3, S: "👋"}, Second: V{N: "w", M: 3}},
+		}},
+		{"many small", map[K]V{{I: 1, S: "a"}: {N: "a", M: 1}, {I: 2, S: "b"}: {N: "b", M: 2}, {I: 3, S: "c"}: {N: "c", M: 3}}, []lxtypes.Pair[K, V]{
+			{First: K{I: 1, S: "a"}, Second: V{N: "a", M: 1}},
+			{First: K{I: 2, S: "b"}, Second: V{N: "b", M: 2}},
+			{First: K{I: 3, S: "c"}, Second: V{N: "c", M: 3}},
+		}},
+		{"mixed", map[K]V{{I: 5, S: "X"}: {N: "X", M: 5}, {I: -5, S: "Y"}: {N: "Y", M: -5}}, []lxtypes.Pair[K, V]{
+			{First: K{I: 5, S: "X"}, Second: V{N: "X", M: 5}},
+			{First: K{I: -5, S: "Y"}, Second: V{N: "Y", M: -5}},
+		}},
+		{"extra1", map[K]V{{I: 6, S: "aa"}: {N: "aa", M: 6}}, []lxtypes.Pair[K, V]{
+			{First: K{I: 6, S: "aa"}, Second: V{N: "aa", M: 6}},
+		}},
+		{"extra2", map[K]V{{I: 7, S: "bb"}: {N: "bb", M: 7}}, []lxtypes.Pair[K, V]{
+			{First: K{I: 7, S: "bb"}, Second: V{N: "bb", M: 7}},
+		}},
+		{"extra3", map[K]V{{I: 8, S: "cc"}: {N: "cc", M: 8}}, []lxtypes.Pair[K, V]{
+			{First: K{I: 8, S: "cc"}, Second: V{N: "cc", M: 8}},
+		}},
+		{"final small", map[K]V{{I: 3, S: "end"}: {N: "end", M: 3}, {I: 4, S: "stop"}: {N: "stop", M: 4}}, []lxtypes.Pair[K, V]{
+			{First: K{I: 3, S: "end"}, Second: V{N: "end", M: 3}},
+			{First: K{I: 4, S: "stop"}, Second: V{N: "stop", M: 4}},
+		}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := lxmaps.Entries(tt.input)
+
+			if tt.expected == nil {
+				if got != nil {
+					t.Fatalf("Entries(%v) = %v; want nil", tt.input, got)
+				}
+				return
+			}
+
+			if got == nil {
+				t.Fatalf("Entries(%v) = nil; want non-nil with length %d", tt.input, len(tt.expected))
+			}
+
+			if len(got) != len(tt.expected) {
+				t.Fatalf("Entries(%v) length = %d; want %d", tt.input, len(got), len(tt.expected))
+			}
+
+			if !lxslices.ContainsAll(got, tt.expected...) {
+				t.Fatalf("Entries(%v) missing expected pairs; got %v, want %v", tt.input, got, tt.expected)
 			}
 		})
 	}

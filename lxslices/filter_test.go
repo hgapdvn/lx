@@ -1643,29 +1643,29 @@ func TestCount_Struct(t *testing.T) {
 
 // TestFilterNilInput verifies that Filter returns nil for nil input.
 func TestFilterNilInput(t *testing.T) {
-result := lxslices.Filter[int](nil, func(v int) bool { return v > 0 })
-if result != nil {
-t.Errorf("Filter(nil, ...) = %v; want nil", result)
-}
+	result := lxslices.Filter[int](nil, func(v int) bool { return v > 0 })
+	if result != nil {
+		t.Errorf("Filter(nil, ...) = %v; want nil", result)
+	}
 }
 
 // TestFilterNoMatchesReturnsEmptyNonNil verifies that a non-nil input with no matching
 // elements returns a non-nil empty slice (not nil).
 func TestFilterNoMatchesReturnsEmptyNonNil(t *testing.T) {
-result := lxslices.Filter([]int{1, 2, 3}, func(v int) bool { return v > 100 })
-if result == nil {
-t.Error("Filter(non-nil, no-match predicate) = nil; want non-nil empty slice")
-}
-if len(result) != 0 {
-t.Errorf("Filter(non-nil, no-match predicate) length = %d; want 0", len(result))
-}
+	result := lxslices.Filter([]int{1, 2, 3}, func(v int) bool { return v > 100 })
+	if result == nil {
+		t.Error("Filter(non-nil, no-match predicate) = nil; want non-nil empty slice")
+	}
+	if len(result) != 0 {
+		t.Errorf("Filter(non-nil, no-match predicate) length = %d; want 0", len(result))
+	}
 }
 
 // TestFilterMatches verifies that Filter correctly returns matching elements.
 func TestFilterMatches(t *testing.T) {
-result := lxslices.Filter([]int{1, 2, 3, 4, 5}, func(v int) bool { return v%2 == 0 })
-expected := []int{2, 4}
-if !reflect.DeepEqual(result, expected) {
-t.Errorf("Filter() = %v; want %v", result, expected)
-}
+	result := lxslices.Filter([]int{1, 2, 3, 4, 5}, func(v int) bool { return v%2 == 0 })
+	expected := []int{2, 4}
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("Filter() = %v; want %v", result, expected)
+	}
 }

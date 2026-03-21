@@ -59,9 +59,9 @@ func TestLoadEnv_NormalizeWhitespace(t *testing.T) {
 	}
 
 	tests := []struct{ key, want string }{
-		{"KEY1", "trimmed"},         // trailing spaces on unquoted value must be stripped
-		{"KEY2", "  spaced  "},      // internal spaces inside quotes must be preserved
-		{"KEY3", "value"},           // inline comment and surrounding spaces must be stripped
+		{"KEY1", "trimmed"},    // trailing spaces on unquoted value must be stripped
+		{"KEY2", "  spaced  "}, // internal spaces inside quotes must be preserved
+		{"KEY3", "value"},      // inline comment and surrounding spaces must be stripped
 	}
 	for _, tt := range tests {
 		t.Run(tt.key, func(t *testing.T) {
