@@ -841,7 +841,7 @@ func TestLazyDeferred_MemoryEfficiency(t *testing.T) {
 
 	// Only evaluate half of them
 	for i := 0; i < count/2; i++ {
-		lazies[i].Get()
+		_, _ = lazies[i].Get()
 	}
 
 	// Check evaluation status

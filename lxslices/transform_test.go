@@ -1144,7 +1144,7 @@ func TestCopy_Int(t *testing.T) {
 				// 3) Ensure append operations are independent (appending to copy should not change original)
 				originalLen := len(tt.slice)
 				originalCap := cap(tt.slice)
-				got = append(got, 999)
+				_ = append(got, 999)
 				if len(tt.slice) != originalLen {
 					t.Fatalf("Appending to copy affected original length: want %d got %d", originalLen, len(tt.slice))
 				}

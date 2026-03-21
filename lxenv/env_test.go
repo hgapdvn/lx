@@ -1572,7 +1572,7 @@ func TestRequire(t *testing.T) {
 					os.Unsetenv(tt.keys[k])
 				}
 			}
-			
+
 			// Setup preset env vars for this case
 			for k, v := range tt.preset {
 				t.Setenv(k, v)
