@@ -80,7 +80,7 @@ func TestKeys_Int(t *testing.T) {
 	}{
 		{"no args", nil, nil},
 		{"single nil map", []map[int]string{nil}, []int{}},
-		{"empty map", []map[int]string{map[int]string{}}, []int{}},
+		{"empty map", []map[int]string{{}}, []int{}},
 		{"single key", []map[int]string{{1: "one"}}, []int{1}},
 		{"multi maps duplicated key", []map[int]string{{1: "a", 2: "b"}, {2: "c", 3: "d"}}, []int{1, 2, 2, 3}},
 		{"empty + map", []map[int]string{{}, {7: "y"}}, []int{7}},

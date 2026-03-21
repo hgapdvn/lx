@@ -1161,7 +1161,7 @@ func TestAny_Struct(t *testing.T) {
 		{
 			name: "any user with ID greater than 1",
 			slice: []User{
-				User{1, "Alice", true},
+				{1, "Alice", true},
 				{2, "Bob", false},
 				{3, "Charlie", true},
 			},
@@ -1342,7 +1342,7 @@ func TestAll_Struct(t *testing.T) {
 		{
 			name: "all user with ID greater than 0",
 			slice: []User{
-				User{1, "Alice", true},
+				{1, "Alice", true},
 				{2, "Bob", true},
 				{3, "Charlie", true},
 			},

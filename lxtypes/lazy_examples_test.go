@@ -294,13 +294,19 @@ func ExampleLazyDeferred_multipleTypes() {
 		return Person{Name: "Alice", Age: 30}, nil
 	})
 
-	intVal, _ := intLazy.Get()
-	strVal, _ := strLazy.Get()
-	personVal, _ := personLazy.Get()
+	intVal, intErr := intLazy.Get()
+	strVal, strErr := strLazy.Get()
+	personVal, personErr := personLazy.Get()
 
-	fmt.Println("Int:", intVal)
-	fmt.Println("String:", strVal)
-	fmt.Printf("Person: %s, %d\n", personVal.Name, personVal.Age)
+	if intErr == nil {
+		fmt.Println("Int:", intVal)
+	}
+	if strErr == nil {
+		fmt.Println("String:", strVal)
+	}
+	if personErr == nil {
+		fmt.Printf("Person: %s, %d\n", personVal.Name, personVal.Age)
+	}
 
 	// Output:
 	// Int: 42
