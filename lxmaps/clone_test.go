@@ -247,23 +247,30 @@ func TestClone_IntString(t *testing.T) {
 }
 
 func TestClone_IndependentFromSource(t *testing.T) {
-	orig := map[string]int{"a": 1, "b": 2}
-	cp := lxmaps.Clone(orig)
-
-	cp["c"] = 3
-	if _, ok := orig["c"]; ok {
-		t.Fatal("mutating clone added key to original")
-	}
-
-	cp["a"] = 99
-	if orig["a"] != 1 {
-		t.Fatalf("mutating clone changed original value: orig[a]=%d, want 1", orig["a"])
-	}
-
-	delete(cp, "b")
-	if _, ok := orig["b"]; !ok {
-		t.Fatal("deleting from clone removed key from original")
-	}
+	t.Run("add key on clone", func(t *testing.T) {
+		orig := map[string]int{"a": 1, "b": 2}
+		cp := lxmaps.Clone(orig)
+		cp["c"] = 3
+		if _, ok := orig["c"]; ok {
+			t.Fatal("mutating clone added key to original")
+		}
+	})
+	t.Run("change value on clone", func(t *testing.T) {
+		orig := map[string]int{"a": 1, "b": 2}
+		cp := lxmaps.Clone(orig)
+		cp["a"] = 99
+		if orig["a"] != 1 {
+			t.Fatalf("mutating clone changed original value: orig[a]=%d, want 1", orig["a"])
+		}
+	})
+	t.Run("delete from clone", func(t *testing.T) {
+		orig := map[string]int{"a": 1, "b": 2}
+		cp := lxmaps.Clone(orig)
+		delete(cp, "b")
+		if _, ok := orig["b"]; !ok {
+			t.Fatal("deleting from clone removed key from original")
+		}
+	})
 }
 
 func TestClone_ShallowCopyPointerValues(t *testing.T) {
