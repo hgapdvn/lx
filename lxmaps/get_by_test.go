@@ -1,10 +1,10 @@
 package lxmaps_test
 
 import (
-	"slices"
 	"testing"
 
 	"github.com/nthanhhai2909/lx/lxmaps"
+	"github.com/nthanhhai2909/lx/lxslices"
 )
 
 func TestGetBy_StringInt(t *testing.T) {
@@ -476,7 +476,7 @@ func TestGetBy_IntString_AmbiguousMatch(t *testing.T) {
 			if !found {
 				return
 			}
-			if !slices.Contains(tt.allowedValues, value) {
+			if !lxslices.Contains(tt.allowedValues, value) {
 				t.Errorf("GetBy() value = %q, want one of %v", value, tt.allowedValues)
 			}
 		})
