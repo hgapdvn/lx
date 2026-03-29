@@ -299,7 +299,7 @@ result := AddUserIDs(id1, id2)  // Works! result is UserID(300)
 
 - **[lxslices](../lxslices)**: Generic slice operations using these constraints
 - **[lxtypes](../lxtypes)**: Functional programming types
-- **[lxptrs](../lxptrs)**: Pointer utilities
+- **[lxptrs](../ptrs)**: Pointer utilities
 
 ## Contributing
 
