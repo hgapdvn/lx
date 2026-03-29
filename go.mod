@@ -1,3 +1,3 @@
-module github.com/nthanhhai2909/lx
+module github.com/hgapdvn/lx
 
 go 1.18

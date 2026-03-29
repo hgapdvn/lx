@@ -1,6 +1,6 @@
 package lxslices
 
-import "github.com/nthanhhai2909/lx/constraints"
+import "github.com/hgapdvn/lx/constraints"
 
 // Reduce applies the given function to each element of the slice and returns the result.
 // The order of the elements in the returned slice is the same as in the original slice.

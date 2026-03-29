@@ -9,7 +9,7 @@
 ## 📋 Project Overview
 
 **Project Name**: lx  
-**Repository**: github.com/nthanhhai2909/lx  
+**Repository**: github.com/hgapdvn/lx  
 **Language**: Go 1.18+  
 **License**: Apache 2.0
 **Purpose**: Small, focused extensions to Go's standard library

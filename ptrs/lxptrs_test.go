@@ -3,7 +3,7 @@ package lxptrs_test
 import (
 	"testing"
 
-	"github.com/nthanhhai2909/lx/ptrs"
+	"github.com/hgapdvn/lx/ptrs"
 )
 
 func TestRef(t *testing.T) {

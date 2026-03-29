@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nthanhhai2909/lx/slices"
+	"github.com/hgapdvn/lx/slices"
 )
 
 func TestFind_Int(t *testing.T) {

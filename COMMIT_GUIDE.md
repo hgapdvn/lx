@@ -205,7 +205,7 @@ git push origin main
 
 2. **Set Repository Details**
    - Add description: "Small, focused extensions to Go's standard library"
-   - Add website: `https://pkg.go.dev/github.com/nthanhhai2909/lx`
+   - Add website: `https://pkg.go.dev/github.com/hgapdvn/lx`
    - Add topics: `golang`, `go`, `utilities`, `generics`, `stdlib`
 
 3. **Configure Branch Protection**
@@ -236,7 +236,7 @@ git remote -v
 git log --oneline -5
 
 # Check GitHub Actions (in browser)
-# https://github.com/nthanhhai2909/lx/actions
+# https://github.com/hgapdvn/lx/actions
 ```
 
 ---

@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/nthanhhai2909/lx/slices"
-	"github.com/nthanhhai2909/lx/types"
+	"github.com/hgapdvn/lx/slices"
+	"github.com/hgapdvn/lx/types"
 )
 
 func TestTake_Int(t *testing.T) {

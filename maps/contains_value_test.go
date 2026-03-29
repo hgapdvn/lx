@@ -3,7 +3,7 @@ package lxmaps_test
 import (
 	"testing"
 
-	"github.com/nthanhhai2909/lx/maps"
+	"github.com/hgapdvn/lx/maps"
 )
 
 func TestContainsValue_StringInt(t *testing.T) {

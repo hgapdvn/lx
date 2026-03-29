@@ -87,7 +87,7 @@ Have an idea? [Open an issue](../../issues/new?labels=enhancement) or [start a d
 
 3. **Add upstream** remote:
    ```bash
-   git remote add upstream https://github.com/nthanhhai2909/lx.git
+   git remote add upstream https://github.com/hgapdvn/lx.git
    ```
 
 4. **Verify** everything works:

@@ -29,7 +29,7 @@
 //
 //	import (
 //	    "fmt"
-//	    "github.com/nthanhhai2909/lx/lxstrings"
+//	    "github.com/hgapdvn/lx/lxstrings"
 //	)
 //
 //	func main() {

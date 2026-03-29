@@ -1,8 +1,8 @@
 package lxslices
 
 import (
-	"github.com/nthanhhai2909/lx/constraints"
-	"github.com/nthanhhai2909/lx/types"
+	"github.com/hgapdvn/lx/constraints"
+	"github.com/hgapdvn/lx/types"
 )
 
 // Index returns the index of the first instance of elem in slice, or -1 if elem is not present in slice.

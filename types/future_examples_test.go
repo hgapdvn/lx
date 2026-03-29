@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/nthanhhai2909/lx/types"
+	"github.com/hgapdvn/lx/types"
 )
 
 // Example of basic async operation with FutureDo

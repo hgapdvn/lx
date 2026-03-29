@@ -1,6 +1,6 @@
 package lxslices
 
-import "github.com/nthanhhai2909/lx/types"
+import "github.com/hgapdvn/lx/types"
 
 // Take returns the first n elements from the slice.
 // If n is greater than the slice length, returns the entire slice.

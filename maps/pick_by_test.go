@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/nthanhhai2909/lx/maps"
+	"github.com/hgapdvn/lx/maps"
 )
 
 func TestPickBy_StringInt(t *testing.T) {

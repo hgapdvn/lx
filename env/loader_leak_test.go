@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/nthanhhai2909/lx/env"
+	"github.com/hgapdvn/lx/env"
 )
 
 // TestLoadEnv_FileDescriptorsClosed verifies that LoadEnv does not leak file

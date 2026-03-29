@@ -34,7 +34,7 @@ A clear and concise description of what actually happened.
 // Minimal reproducible example
 package main
 
-import "github.com/nthanhhai2909/lx/lxslices"
+import "github.com/hgapdvn/lx/lxslices"
 
 func main() {
     // Your code here

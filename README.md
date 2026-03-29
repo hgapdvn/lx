@@ -4,8 +4,8 @@
 
 [![Go Version](https://img.shields.io/badge/Go-1.18%2B-00ADD8?style=flat&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![Go Report Card](https://goreportcard.com/badge/github.com/nthanhhai2909/lx)](https://goreportcard.com/report/github.com/nthanhhai2909/lx)
-[![GoDoc](https://pkg.go.dev/badge/github.com/nthanhhai2909/lx)](https://pkg.go.dev/github.com/nthanhhai2909/lx)
+[![Go Report Card](https://goreportcard.com/badge/github.com/hgapdvn/lx)](https://goreportcard.com/report/github.com/hgapdvn/lx)
+[![GoDoc](https://pkg.go.dev/badge/github.com/hgapdvn/lx)](https://pkg.go.dev/github.com/hgapdvn/lx)
 
 **Small, focused extensions to Go's standard library**
 
@@ -76,15 +76,15 @@ See our [**Package Roadmap**](./PACKAGE_ROADMAP.md) for planned packages:
 ## 🚀 Installation
 
 ```bash
-go get github.com/nthanhhai2909/lx
+go get github.com/hgapdvn/lx
 ```
 
 **Requirements**: Go 1.18 or higher (generics support required)
 
 > 💡 **Note**: Installing `lx` downloads all packages, but you only import what you need:
 > ```go
-> import "github.com/nthanhhai2909/lx/lxslices"  // Only use slices
-> import "github.com/nthanhhai2909/lx/lxstrings" // Only use strings
+> import "github.com/hgapdvn/lx/lxslices"  // Only use slices
+> import "github.com/hgapdvn/lx/lxstrings" // Only use strings
 > ```
 > Go's compiler will only include imported packages in your binary.
 
@@ -95,7 +95,7 @@ go get github.com/nthanhhai2909/lx
 ### Working with Slices
 
 ```go
-import "github.com/nthanhhai2909/lx/lxslices"
+import "github.com/hgapdvn/lx/lxslices"
 
 // Filter even numbers
 numbers := []int{1, 2, 3, 4, 5, 6}
@@ -128,7 +128,7 @@ chunks := lxslices.Chunk(numbers, 2)
 ### String Utilities
 
 ```go
-import "github.com/nthanhhai2909/lx/lxstrings"
+import "github.com/hgapdvn/lx/lxstrings"
 
 // Check for blank strings (empty or whitespace)
 if lxstrings.IsBlank("   ") {
@@ -145,7 +145,7 @@ lxstrings.ContainsIgnoreCase("Hello", "HELLO")  // true
 ### Pointer Helpers
 
 ```go
-import "github.com/nthanhhai2909/lx/lxptrs"
+import "github.com/hgapdvn/lx/lxptrs"
 
 // Create pointers inline
 value := lxptrs.Ref(42)  // *int pointing to 42
@@ -160,7 +160,7 @@ str := lxptrs.DerefOr(stringPtr, "default")  // "default" if nil
 ### System Information
 
 ```go
-import "github.com/nthanhhai2909/lx/lxsystems"
+import "github.com/hgapdvn/lx/lxsystems"
 
 // Get system info
 lxsystems.OSName    // "darwin", "linux", "windows"
@@ -178,7 +178,7 @@ temp := lxsystems.TempDir()
 
 Each package has comprehensive documentation with examples:
 
-- **GoDoc**: [pkg.go.dev/github.com/nthanhhai2909/lx](https://pkg.go.dev/github.com/nthanhhai2909/lx)
+- **GoDoc**: [pkg.go.dev/github.com/hgapdvn/lx](https://pkg.go.dev/github.com/hgapdvn/lx)
 - **Package READMEs**: Check each package directory for detailed docs
 - **Examples**: Every function includes usage examples in tests
 

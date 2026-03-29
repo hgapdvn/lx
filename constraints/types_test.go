@@ -3,7 +3,7 @@ package lxconstraints_test
 import (
 	"testing"
 
-	"github.com/nthanhhai2909/lx/constraints"
+	"github.com/hgapdvn/lx/constraints"
 )
 
 // Helper functions for testing constraints

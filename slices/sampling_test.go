@@ -3,7 +3,7 @@ package lxslices_test
 import (
 	"testing"
 
-	"github.com/nthanhhai2909/lx/slices"
+	"github.com/hgapdvn/lx/slices"
 )
 
 func TestSample_Int(t *testing.T) {

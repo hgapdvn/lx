@@ -1,6 +1,6 @@
 package lxslices
 
-import "github.com/nthanhhai2909/lx/constraints"
+import "github.com/hgapdvn/lx/constraints"
 
 // Repeat creates a new slice with the given value repeated n times.
 // Returns nil if n is less than or equal to 0.

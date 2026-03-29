@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/nthanhhai2909/lx/slices"
+	"github.com/hgapdvn/lx/slices"
 )
 
 func TestIndex_Int(t *testing.T) {

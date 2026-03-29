@@ -5,7 +5,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/nthanhhai2909/lx/systems"
+	"github.com/hgapdvn/lx/systems"
 )
 
 func TestConstants(t *testing.T) {

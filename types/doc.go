@@ -151,5 +151,5 @@
 //	fmt.Println(counter.Get())  // 11
 //
 // For comprehensive documentation, examples, and use cases, see:
-// https://github.com/nthanhhai2909/lx/tree/main/lxtypes#readme
+// https://github.com/hgapdvn/lx/tree/main/lxtypes#readme
 package lxtypes

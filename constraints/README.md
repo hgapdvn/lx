@@ -11,13 +11,13 @@ The `lxconstraints` package provides reusable type constraints that enable writi
 Install the lx module (includes all packages):
 
 ```bash
-go get github.com/nthanhhai2909/lx
+go get github.com/hgapdvn/lx
 ```
 
 Then import only what you need:
 
 ```go
-import "github.com/nthanhhai2909/lx/lxconstraints"
+import "github.com/hgapdvn/lx/lxconstraints"
 ```
 
 ## Available Constraints
