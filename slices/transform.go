@@ -3,7 +3,7 @@ package lxslices
 import (
 	"fmt"
 
-	"github.com/nthanhhai2909/lx/lxtypes"
+	"github.com/nthanhhai2909/lx/types"
 )
 
 // Map applies the given function to each element of the slice and returns a new slice with the results.

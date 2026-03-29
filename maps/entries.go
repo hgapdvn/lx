@@ -1,6 +1,6 @@
 package lxmaps
 
-import "github.com/nthanhhai2909/lx/lxtypes"
+import "github.com/nthanhhai2909/lx/types"
 
 // Entries returns a slice of key-value pairs from a map.
 // If the map is nil, it returns an empty slice.

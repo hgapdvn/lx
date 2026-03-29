@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/nthanhhai2909/lx/lxtypes"
+	"github.com/nthanhhai2909/lx/types"
 )
 
 // Database represents a simple struct for examples

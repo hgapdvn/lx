@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/nthanhhai2909/lx/lxtypes"
+	"github.com/nthanhhai2909/lx/types"
 )
 
 // ExampleNewRef demonstrates creating a Ref with an initial value.

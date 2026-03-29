@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nthanhhai2909/lx/lxtypes"
+	"github.com/nthanhhai2909/lx/types"
 )
 
 // ExampleLazyEager demonstrates creating a Lazy with an immediate value.

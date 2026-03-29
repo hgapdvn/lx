@@ -3,8 +3,8 @@ package lxmaps_test
 import (
 	"testing"
 
-	"github.com/nthanhhai2909/lx/lxtypes"
 	"github.com/nthanhhai2909/lx/maps"
+	"github.com/nthanhhai2909/lx/types"
 )
 
 func TestFromEntries_StringInt(t *testing.T) {

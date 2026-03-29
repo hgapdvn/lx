@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/nthanhhai2909/lx/lxtypes"
+	"github.com/nthanhhai2909/lx/types"
 )
 
 // Test types

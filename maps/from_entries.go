@@ -1,6 +1,6 @@
 package lxmaps
 
-import "github.com/nthanhhai2909/lx/lxtypes"
+import "github.com/nthanhhai2909/lx/types"
 
 // FromEntries builds a map from a slice of key-value pairs.
 // Pair.First is the key and Pair.Second is the value.

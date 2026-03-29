@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nthanhhai2909/lx/lxtypes"
 	"github.com/nthanhhai2909/lx/slices"
+	"github.com/nthanhhai2909/lx/types"
 )
 
 func TestPartitionN_Int(t *testing.T) {
