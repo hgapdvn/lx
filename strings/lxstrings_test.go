@@ -3,7 +3,7 @@ package lxstrings_test
 import (
 	"testing"
 
-	"github.com/nthanhhai2909/lx/lxstrings"
+	"github.com/nthanhhai2909/lx/strings"
 )
 
 func TestAbbreviate(t *testing.T) {

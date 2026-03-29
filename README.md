@@ -53,7 +53,7 @@ Think of it as the **missing pieces** of Go's stdlib - nothing more, nothing les
 | Package | Description | Status | Examples |
 |---------|-------------|--------|----------|
 | [`lxslices`](slices) | Slice operations (filter, map, reduce, etc.) | ✅ Stable | [View](slices#examples) |
-| [`lxstrings`](./lxstrings) | String utilities (blank checks, case conversion, etc.) | ✅ Stable | [View](./lxstrings#examples) |
+| [`lxstrings`](strings) | String utilities (blank checks, case conversion, etc.) | ✅ Stable | [View](strings#examples) |
 | [`lxptrs`](ptrs) | Pointer helpers (ref, deref, safe operations) | ✅ Stable | [View](ptrs#examples) |
 | [`lxtypes`](types) | Functional type definitions (Predicate, Function, Optional, Result, Either, Ref, Future, Lazy, Tuples, etc.) | ✅ Stable | [View](types#examples) |
 | [`lxtuples`](./lxtuples) | Tuple types (Pair, Triple, Quad) | ✅ Stable | [View](./lxtuples#examples) |
