@@ -3,7 +3,7 @@ package lxmaps_test
 import (
 	"testing"
 
-	"github.com/nthanhhai2909/lx/lxmaps"
+	"github.com/nthanhhai2909/lx/maps"
 )
 
 func TestGetOrDefault_StringInt(t *testing.T) {

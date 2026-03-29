@@ -3,8 +3,8 @@ package lxmaps_test
 import (
 	"testing"
 
-	"github.com/nthanhhai2909/lx/lxmaps"
 	"github.com/nthanhhai2909/lx/lxslices"
+	"github.com/nthanhhai2909/lx/maps"
 )
 
 func TestUniqValues_Int(t *testing.T) {

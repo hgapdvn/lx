@@ -3,9 +3,9 @@ package lxmaps_test
 import (
 	"testing"
 
-	"github.com/nthanhhai2909/lx/lxmaps"
 	"github.com/nthanhhai2909/lx/lxslices"
 	"github.com/nthanhhai2909/lx/lxtypes"
+	"github.com/nthanhhai2909/lx/maps"
 )
 
 func TestEntries_String(t *testing.T) {

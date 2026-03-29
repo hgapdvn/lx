@@ -5,8 +5,8 @@ import (
 	"math"
 	"testing"
 
-	"github.com/nthanhhai2909/lx/lxmaps"
 	"github.com/nthanhhai2909/lx/lxslices"
+	"github.com/nthanhhai2909/lx/maps"
 )
 
 func TestValueBy_String(t *testing.T) {
