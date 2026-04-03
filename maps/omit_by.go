@@ -1,7 +1,7 @@
 package lxmaps
 
 // OmitBy returns a new map without the entries for which the predicate returns true.
-// If the map is nil, it returns an empty (non-nil) map.
+// If the map is nil, returns nil.
 // The order of the entries in the returned map is not guaranteed to be the same as in the original map.
 //
 // Example:
