@@ -23,54 +23,7 @@
 
 ### **TIER 1: High Value, Essential Utilities** (Implement First)
 
-#### 1. **`lxmaps`** - Map/Dictionary Operations
-**Priority**: 🔥 HIGHEST  
-**Rationale**: Maps are as fundamental as slices but lack generic utilities
-
-**Core Functions**:
-```go
-// Basic operations
-func Keys[K comparable, V any](m map[K]V) []K
-func Values[K comparable, V any](m map[K]V) []V
-func Entries[K comparable, V any](m map[K]V) []lxtuples.Pair[K, V]
-func FromEntries[K comparable, V any](entries []lxtuples.Pair[K, V]) map[K]V
-
-// Filtering & transformation
-func Filter[K comparable, V any](m map[K]V, predicate func(K, V) bool) map[K]V
-func Map[K comparable, V, U any](m map[K]V, fn func(K, V) U) map[K]U
-func MapKeys[K, J comparable, V any](m map[K]V, fn func(K) J) map[J]V
-func MapValues[K comparable, V, U any](m map[K]V, fn func(V) U) map[K]U
-
-// Queries
-func Contains[K comparable, V any](m map[K]V, key K) bool
-func ContainsValue[K comparable, V comparable](m map[K]V, value V) bool
-func Get[K comparable, V any](m map[K]V, key K) (V, bool)
-func GetOrDefault[K comparable, V any](m map[K]V, key K, defaultValue V) V
-
-// Manipulation
-func Merge[K comparable, V any](maps ...map[K]V) map[K]V
-func Invert[K, V comparable](m map[K]V) map[V]K
-func Pick[K comparable, V any](m map[K]V, keys ...K) map[K]V
-func Omit[K comparable, V any](m map[K]V, keys ...K) map[K]V
-func Clone[K comparable, V any](m map[K]V) map[K]V
-
-// Set operations
-func Intersect[K comparable, V any](m1, m2 map[K]V) map[K]V
-func Difference[K comparable, V any](m1, m2 map[K]V) map[K]V
-func Equal[K, V comparable](m1, m2 map[K]V) bool
-```
-
-**File Structure**:
-- `basic.go` - Keys, Values, Entries, FromEntries
-- `transform.go` - Filter, Map, MapKeys, MapValues
-- `query.go` - Contains, Get, GetOrDefault
-- `manipulation.go` - Merge, Invert, Pick, Omit, Clone
-- `set.go` - Intersect, Difference, Equal
-- `*_test.go` - Comprehensive tests
-
----
-
-#### 2. **`lxmath`** - Mathematical Utilities
+####  **`lxmath`** - Mathematical Utilities
 **Priority**: 🔥 HIGH  
 **Rationale**: Common math operations missing from stdlib
 
@@ -117,7 +70,7 @@ func Ratio[T lxconstraints.Number](a, b T) float64
 
 ---
 
-#### 3. **`lxerrors`** - Error Handling Utilities
+#### **`lxerrors`** - Error Handling Utilities
 **Priority**: 🔥 HIGH  
 **Rationale**: Go error handling can be verbose and repetitive
 
@@ -161,7 +114,7 @@ func RecoverValue[T any](fn func() T) (T, error)
 
 ---
 
-#### 4. **`lxio`** - IO & File Utilities
+### **`lxio`** - IO & File Utilities
 **Priority**: 🔥 HIGH  
 **Rationale**: Common file operations are verbose in stdlib
 
@@ -224,7 +177,7 @@ func TempDir(pattern string) (string, error)
 
 ### **TIER 2: Very Useful, High Impact** (Implement Second)
 
-#### 5. **`lxtime`** - Time & Duration Utilities
+#### **`lxtime`** - Time & Duration Utilities
 **Priority**: 🟡 MEDIUM-HIGH  
 **Rationale**: Time handling in Go can be cumbersome
 
@@ -269,7 +222,7 @@ func SleepContext(ctx context.Context, d time.Duration) error
 
 ---
 
-#### 6. **`lxjson`** - JSON Utilities
+#### **`lxjson`** - JSON Utilities
 **Priority**: 🟡 MEDIUM-HIGH  
 **Rationale**: JSON operations are very common and can be simplified
 
@@ -306,7 +259,7 @@ func FromMap[T any](m map[string]any) (T, error)
 
 ---
 
-#### 7. **`lxhttp`** - HTTP Client Utilities
+#### **`lxhttp`** - HTTP Client Utilities
 **Priority**: 🟡 MEDIUM  
 **Rationale**: Building HTTP requests is repetitive
 
@@ -343,7 +296,7 @@ func IsServerError(status int) bool
 
 ---
 
-#### 8. **`lxregex`** - Regex Utilities
+#### **`lxregex`** - Regex Utilities
 **Priority**: 🟡 MEDIUM  
 **Rationale**: Regex in Go is verbose and error-prone
 
@@ -391,7 +344,7 @@ func IsAlphaNumeric(s string) bool
 
 ### **TIER 3: Specialized, Context-Specific** (Implement Based on Need)
 
-#### 9. **`lxcontext`** - Context Utilities
+#### **`lxcontext`** - Context Utilities
 **Priority**: 🟢 MEDIUM-LOW  
 **Rationale**: Context operations can be simplified
 
@@ -418,7 +371,7 @@ func Merge(parent context.Context, contexts ...context.Context) context.Context
 
 ---
 
-#### 10. **`lxrand`** - Random Utilities
+#### **`lxrand`** - Random Utilities
 **Priority**: 🟢 MEDIUM-LOW  
 **Rationale**: Random generation needs are common
 
@@ -454,7 +407,7 @@ func Shuffle[T any](slice []T)
 
 ---
 
-#### 11. **`lxvalidate`** - Validation Utilities
+#### **`lxvalidate`** - Validation Utilities
 **Priority**: 🟢 MEDIUM-LOW  
 **Rationale**: Common validation patterns
 
@@ -499,7 +452,7 @@ func (v *Validator[T]) Validate(value T) error
 
 ---
 
-#### 12. **`lxcrypto`** - Cryptography Utilities
+#### **`lxcrypto`** - Cryptography Utilities
 **Priority**: 🟢 LOW-MEDIUM  
 **Rationale**: Common crypto operations simplified
 
@@ -542,7 +495,7 @@ func SecureToken(n int) (string, error)
 ### **TIER 4: Nice to Have** (Future Consideration)
 ---
 
-#### 14. **`lxconcurrent`** - Concurrency Utilities
+#### **`lxconcurrent`** - Concurrency Utilities
 **Priority**: 🔵 LOW
 
 **Core Functions**:
@@ -572,7 +525,7 @@ func (p *Pool) Wait()
 
 ---
 
-#### 15. **`lxtest`** - Testing Utilities
+#### **`lxtest`** - Testing Utilities
 **Priority**: 🔵 LOW
 
 **Core Functions**:
