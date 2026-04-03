@@ -14,15 +14,12 @@ func ContainsAllValues[K comparable, V comparable](m map[K]V, values ...V) bool 
 	if len(values) == 0 {
 		return true
 	}
-	for _, value := range values {
-		found := false
-		for _, v := range m {
-			if v == value {
-				found = true
-				break
-			}
-		}
-		if !found {
+	seen := make(map[V]struct{}, len(m))
+	for _, v := range m {
+		seen[v] = struct{}{}
+	}
+	for _, v := range values {
+		if _, ok := seen[v]; !ok {
 			return false
 		}
 	}
