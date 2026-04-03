@@ -10,6 +10,9 @@ package lxmaps
 //	m := map[string]int{"a": 1, "b": 2, "c": 3}
 //	out := ContainsAllKeys(m, "a", "b", "c")
 func ContainsAllKeys[K comparable, V any](m map[K]V, keys ...K) bool {
+	if m == nil {
+		return false
+	}
 	if len(keys) == 0 {
 		return true
 	}

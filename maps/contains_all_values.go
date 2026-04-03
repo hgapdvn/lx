@@ -11,6 +11,9 @@ package lxmaps
 //	out := ContainsAllValues(m, 1, 2, 3)
 //	// out: true
 func ContainsAllValues[K comparable, V comparable](m map[K]V, values ...V) bool {
+	if m == nil {
+		return false
+	}
 	if len(values) == 0 {
 		return true
 	}
