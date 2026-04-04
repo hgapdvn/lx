@@ -20,15 +20,15 @@
 ### Current Packages (All Stable ✅)
 
 ```
-lxslices/    → Slice operations (Filter, Map, Reduce, Chunk, Window, etc.)
-lxstrings/   → String utilities (IsBlank, Capitalize, TrimPrefix, etc.)
-lxptrs/      → Pointer utilities (Ref, Deref, DerefOr, IsNil)
-lxtypes/     → Functional types (Lazy, Optional, Result, Either, Tuple types)
-lxtuples/    → Tuple types (Pair, Triple, Quad with generic K,V support)
-lxsystems/   → System info (OS detection, environment, paths)
-lxconstraints/ → Type constraints (Integer, Number, Ordered, Comparable)
-lxmaps/      → Map operations (Keys, Values, Filter, Merge, Pick, Omit, etc.)
-lxenv/       → Environment variables with typed parsing (Get, GetInt, GetBool, GetDuration)
+lxconstraints/ → Type constraints (Integer, Number, Ordered, Comparable, Addable, Signed, Unsigned, Float)
+lxenv/         → Environment variables with typed parsing (Get, GetInt, GetBool, GetDuration)
+lxmaps/        → Map operations (Keys, Values, Filter, Merge, Pick, Omit, etc.)
+lxptrs/        → Pointer utilities (Ref, Deref, DerefOr, IsNil)
+lxslices/      → Slice operations (Filter, Map, Reduce, Chunk, Window, etc.)
+lxstrings/     → String utilities (IsBlank, Capitalize, TrimPrefix, etc.)
+lxsystems/     → System info (OS detection, environment, paths)
+lxtime/        → Time utilities (Days, Hours, Minutes, StartOfDay, EndOfMonth, etc.)
+lxtypes/       → Functional & async types (Lazy, Optional, Result, Either, Future, Pair, Triple, etc.)
 ```
 
 ### File Organization Pattern
@@ -94,9 +94,13 @@ func Filter[T any](slice []T, predicate func(T) bool) []T {
 
 Use these from `lxconstraints`:
 ```go
-Integer  → int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, uintptr
-Number   → Integer + float32, float64, complex64, complex128
-Ordered  → Comparable types with <, >, <=, >= operators
+Integer    → int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, uintptr
+Signed     → Signed integer types only (int, int8, int16, int32, int64)
+Unsigned   → Unsigned integer types only (uint, uint8, uint16, uint32, uint64, uintptr)
+Number     → Integer + float32, float64, complex64, complex128
+Float      → float32, float64
+Addable    → Types that support the + operator (Number types)
+Ordered    → Comparable types with <, >, <=, >= operators
 Comparable → Types with == operator (suitable for map keys)
 ```
 
@@ -104,6 +108,7 @@ Comparable → Types with == operator (suitable for map keys)
 ```go
 func Sum[T lxconstraints.Number](slice []T) T
 func Sort[T lxconstraints.Ordered](slice []T) []T
+func Abs[T lxconstraints.Signed](n T) T
 func Unique[T comparable](slice []T) []T
 func Map[T, U any](slice []T, fn func(T) U) []U  // Most transformations use 'any'
 ```
@@ -113,9 +118,14 @@ func Map[T, U any](slice []T, fn func(T) U) []U  // Most transformations use 'an
 These exist in `lxtypes`:
 - `Predicate[T]` → `func(T) bool` (use when documenting predicates)
 - `Function[T, U]` → `func(T) U` (for transformations)
-- `Optional[T]` → Nullable type wrapper
-- `Result[T, E]` → Error type wrapper
-- `Either[A, B]` → Discriminated union
+- `Optional[T]` → Nullable type wrapper (comma-ok pattern: `Get()` returns `(T, bool)`)
+- `Result[T]` → Error handling wrapper (Go pattern: `Value()` returns `(T, error)`)
+- `Either[L, R]` → Discriminated union type
+- `Lazy[T]` → Deferred or immediate computation with caching
+- `Future[T]` → Asynchronous computation with type-safe composition and context support
+- `Pair[K, V]`, `Triple[T, U, V]`, `Quad[T, U, V, W]` → Tuple types for 2-4 values
+- `Tuple5[T1, T2, ...]` through `Tuple8[...]` → Extended tuples for 5-8 values
+- `Ref[T]` → Thread-safe mutable value cell
 
 ### 5. Error Handling Pattern
 
@@ -157,8 +167,23 @@ func FunctionName[T any](param T) T {
 ### Test File Naming & Organization
 
 - Test files: `*_test.go` (same package declared as `package_name_test`)
+- Example test files: `*_examples_test.go` (for runnable documentation examples, declared as `package_name_test`)
 - Import the package being tested: `"github.com/hgapdvn/lx/slices"`
 - Tests use external package import (not `.` import)
+
+Example test file pattern:
+```go
+package lxslices_test
+
+import "github.com/hgapdvn/lx/slices"
+
+// ExampleFilter demonstrates using the Filter function
+func ExampleFilter() {
+    numbers := []int{1, 2, 3, 4, 5}
+    evens := slices.Filter(numbers, func(n int) bool { return n%2 == 0 })
+    // evens: [2, 4]
+}
+```
 
 ### Table-Driven Test Pattern (MANDATORY)
 
@@ -344,14 +369,16 @@ func TestFilter_Struct(t *testing.T) { /* ... */ }
 ## 🔄 Cross-Package Patterns
 
 ### Import Pattern
+
 ```go
 import (
-    "github.com/hgapdvn/lx/slices"     // Import actual package
-    "github.com/hgapdvn/lx/constraints" // For type constraints
-    "github.com/hgapdvn/lx/tuples"     // For Pair, Triple types
+    "github.com/hgapdvn/lx/slices"      // Import actual package directory names (no lx prefix)
+    "github.com/hgapdvn/lx/constraints" // Not /lxconstraints
+    "github.com/hgapdvn/lx/types"       // Not /lxtypes
 )
 
 // Use as: slices.Filter(...)
+// Package names have lx prefix when used: lxslices, lxmaps, lxtypes, etc.
 ```
 
 ### Version Compatibility: Go 1.18+ Baseline
