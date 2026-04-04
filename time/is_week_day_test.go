@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	lxtime "github.com/hgapdvn/lx/time"
+	"github.com/hgapdvn/lx/time"
 )
 
 func TestIsWeekDay_BasicWeekdays(t *testing.T) {

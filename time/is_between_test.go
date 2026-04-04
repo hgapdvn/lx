@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	lxtime "github.com/hgapdvn/lx/time"
+	"github.com/hgapdvn/lx/time"
 )
 
 func TestIsBetween_TimeInRange(t *testing.T) {
