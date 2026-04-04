@@ -2,9 +2,9 @@ package lxtime
 
 import "time"
 
-// IsTomorrow returns true if the given time is tomorrow (in UTC).
-// This correctly handles timezones by comparing dates in UTC.
-// Near midnight, if t is in a different timezone than the system, this ensures correct results.
+// IsTomorrow returns true if the given time is tomorrow (in the local timezone).
+// This compares the local calendar dates, so times that are on the same day in
+// the same location are considered "tomorrow" even if they're different UTC dates.
 //
 // Example:
 //
@@ -13,9 +13,10 @@ import "time"
 //		// t is tomorrow
 //	}
 func IsTomorrow(t time.Time) bool {
-	tomorrow := time.Now().UTC().AddDate(0, 0, 1)
-	// Convert both to UTC to ensure consistent timezone comparison
-	y1, m1, d1 := t.UTC().Date()
+	now := time.Now()
+	tomorrow := now.AddDate(0, 0, 1)
+	// Compare local calendar dates
+	y1, m1, d1 := t.Date()
 	y2, m2, d2 := tomorrow.Date()
 	return y1 == y2 && m1 == m2 && d1 == d2
 }

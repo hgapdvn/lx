@@ -2,9 +2,9 @@ package lxtime
 
 import "time"
 
-// IsToday returns true if the given time is today (in UTC).
-// This correctly handles timezones by comparing dates in UTC.
-// Near midnight, if t is in a different timezone than the system, this ensures correct results.
+// IsToday returns true if the given time is today (in the local timezone).
+// This compares the local calendar dates, so times that are on the same day in
+// the same location are considered "today" even if they're different UTC dates.
 //
 // Example:
 //
@@ -14,8 +14,8 @@ import "time"
 //	}
 func IsToday(t time.Time) bool {
 	now := time.Now()
-	// Convert both to UTC to ensure consistent timezone comparison
-	y1, m1, d1 := t.UTC().Date()
-	y2, m2, d2 := now.UTC().Date()
+	// Compare local calendar dates
+	y1, m1, d1 := t.Date()
+	y2, m2, d2 := now.Date()
 	return y1 == y2 && m1 == m2 && d1 == d2
 }
