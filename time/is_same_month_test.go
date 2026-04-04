@@ -1,6 +1,7 @@
 package lxtime_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -115,9 +116,12 @@ func ExampleIsSameMonth() {
 	t1 := time.Date(2026, 4, 4, 10, 30, 0, 0, time.UTC)
 	t2 := time.Date(2026, 4, 30, 23, 59, 59, 0, time.UTC)
 	result := lxtime.IsSameMonth(t1, t2)
-	// result: true (both in April 2026)
+	fmt.Println(result)
 
 	t3 := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
 	result = lxtime.IsSameMonth(t1, t3)
-	// result: false (different months)
+	fmt.Println(result)
+	// Output:
+	// true
+	// false
 }

@@ -1,6 +1,7 @@
 package lxtime_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -116,9 +117,12 @@ func ExampleIsSameWeek() {
 	t1 := time.Date(2026, 4, 6, 10, 30, 0, 0, time.UTC) // Monday
 	t2 := time.Date(2026, 4, 8, 15, 45, 0, 0, time.UTC) // Wednesday
 	result := lxtime.IsSameWeek(t1, t2)
-	// result: true
+	fmt.Println(result)
 
 	t3 := time.Date(2026, 4, 13, 10, 0, 0, 0, time.UTC) // Monday of next week
 	result = lxtime.IsSameWeek(t1, t3)
-	// result: false
+	fmt.Println(result)
+	// Output:
+	// true
+	// false
 }

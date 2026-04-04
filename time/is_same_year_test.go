@@ -1,6 +1,7 @@
 package lxtime_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -147,9 +148,12 @@ func ExampleIsSameYear() {
 	t1 := time.Date(2026, 1, 1, 10, 30, 0, 0, time.UTC)
 	t2 := time.Date(2026, 12, 31, 23, 59, 59, 0, time.UTC)
 	result := lxtime.IsSameYear(t1, t2)
-	// result: true (both in 2026)
+	fmt.Println(result)
 
 	t3 := time.Date(2027, 1, 1, 0, 0, 0, 0, time.UTC)
 	result = lxtime.IsSameYear(t1, t3)
-	// result: false (different years)
+	fmt.Println(result)
+	// Output:
+	// true
+	// false
 }

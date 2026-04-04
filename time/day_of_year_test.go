@@ -1,6 +1,7 @@
 package lxtime_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -109,10 +110,10 @@ func TestDayOfYear_TimeComponentsIgnored(t *testing.T) {
 
 	expectedDay := lxtime.DayOfYear(baseDate)
 
-	for _, t := range times {
-		result := lxtime.DayOfYear(t)
+	for _, testTime := range times {
+		result := lxtime.DayOfYear(testTime)
 		if result != expectedDay {
-			t.Errorf("DayOfYear(%v) = %d, want %d", t, result, expectedDay)
+			t.Errorf("DayOfYear(%v) = %d, want %d", testTime, result, expectedDay)
 		}
 	}
 }
@@ -124,10 +125,10 @@ func TestDayOfYear_SequentialDays(t *testing.T) {
 		// Days in each month for 2026 (non-leap year)
 		daysInMonth := []int{31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}
 		for day := 1; day <= daysInMonth[month-1]; day++ {
-			t := time.Date(2026, time.Month(month), day, 10, 0, 0, 0, time.UTC)
-			result := lxtime.DayOfYear(t)
+			testDate := time.Date(2026, time.Month(month), day, 10, 0, 0, 0, time.UTC)
+			result := lxtime.DayOfYear(testDate)
 			if result != currentDay {
-				t.Errorf("DayOfYear(%v) = %d, want %d", t, result, currentDay)
+				t.Errorf("DayOfYear(%v) = %d, want %d", testDate, result, currentDay)
 			}
 			currentDay++
 		}
@@ -196,9 +197,12 @@ func TestDayOfYear_EdgeCases(t *testing.T) {
 func ExampleDayOfYear() {
 	t := time.Date(2026, 4, 4, 10, 30, 0, 0, time.UTC)
 	day := lxtime.DayOfYear(t)
-	// day: 94 (April 4 is the 94th day of 2026)
+	fmt.Println(day)
 
 	t2 := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	day2 := lxtime.DayOfYear(t2)
-	// day2: 1 (January 1st is the first day)
+	fmt.Println(day2)
+	// Output:
+	// 94
+	// 1
 }
