@@ -484,7 +484,7 @@ func TestIntersect_LargeMap(t *testing.T) {
 
 	// Verify values are from m1, not m2
 	for k, v := range result {
-		m1Val, _ := m1[k]
+		m1Val := m1[k]
 		if v != m1Val {
 			t.Errorf("value not from m1 for key %q: got %d, m1 has %d", k, v, m1Val)
 		}

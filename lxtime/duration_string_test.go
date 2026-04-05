@@ -356,7 +356,9 @@ func TestDurationString_Consistency(t *testing.T) {
 			name: "same duration returns same string",
 			check: func() bool {
 				d := 2*time.Hour + 30*time.Minute + 45*time.Second
-				return lxtime.DurationString(d) == lxtime.DurationString(d)
+				result1 := lxtime.DurationString(d)
+				result2 := lxtime.DurationString(d)
+				return result1 == result2
 			},
 		},
 		{

@@ -95,7 +95,8 @@ func ListAll(dir string) ([]string, error) {
 }
 
 // WalkFiles recursively walks through the root directory and all subdirectories,
-// calling fn for each file found. The path passed to fn is relative to root.
+// calling fn for each file found. The path passed to fn is relative to root
+// and always uses forward slashes as separators, regardless of the operating system.
 // If fn returns a non-nil error, the walk stops and that error is returned.
 // It returns an error if the root directory doesn't exist or cannot be read.
 //
@@ -125,7 +126,7 @@ func walkFilesInternal(currentPath string, relRoot string, fn func(path string) 
 		if relRoot == "" {
 			relPath = entry.Name()
 		} else {
-			relPath = filepath.Join(relRoot, entry.Name())
+			relPath = relRoot + "/" + entry.Name()
 		}
 
 		if entry.IsDir() {

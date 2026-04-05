@@ -164,13 +164,15 @@ func TestDirName(t *testing.T) {
 			name:     "dirname with trailing slash",
 			path:     "/path/to/dir/",
 			expected: filepath.Join("/path/to"),
-			check:    func(result, expected string) bool { return result == expected || result == "/path/to/dir" },
+			check: func(result, expected string) bool {
+				return result == expected || result == filepath.Dir("/path/to/dir/")
+			},
 		},
 		{
 			name:     "dirname of root",
 			path:     "/",
 			expected: "/",
-			check:    func(result, expected string) bool { return result == expected },
+			check:    func(result, expected string) bool { return result == expected || result == "\\" },
 		},
 		{
 			name:     "dirname of dot",
@@ -390,8 +392,8 @@ func TestPathOperationsCombined(t *testing.T) {
 				dir := lxio.DirName(path)
 				base := lxio.BaseName(path)
 
-				if dir != "/" || base != "file.txt" {
-					t.Errorf("expected dir='/', base='file.txt', got dir=%q, base=%q", dir, base)
+				if (dir != "/" && dir != "\\") || base != "file.txt" {
+					t.Errorf("expected dir='/' or '\\', base='file.txt', got dir=%q, base=%q", dir, base)
 				}
 			},
 		},
