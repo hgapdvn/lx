@@ -4,8 +4,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	lxio "github.com/hgapdvn/lx/lxio"
-	lxslices "github.com/hgapdvn/lx/lxslices"
+	"github.com/hgapdvn/lx/lxio"
+	"github.com/hgapdvn/lx/lxslices"
 )
 
 func TestJoinPath(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	lxio "github.com/hgapdvn/lx/lxio"
+	"github.com/hgapdvn/lx/lxio"
 )
 
 func TestCopyFile(t *testing.T) {

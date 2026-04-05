@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"testing"
 
-	lxio "github.com/hgapdvn/lx/lxio"
+	"github.com/hgapdvn/lx/lxio"
 )
 
 func TestWrite(t *testing.T) {
