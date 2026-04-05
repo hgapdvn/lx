@@ -164,7 +164,7 @@ func TestDirName(t *testing.T) {
 			name:     "dirname with trailing slash",
 			path:     "/path/to/dir/",
 			expected: filepath.Join("/path/to"),
-			check:    func(result, expected string) bool { return result == expected || result == "/path/to/dir" },
+			check:    func(result, expected string) bool { return result == expected || result == filepath.Dir("/path/to/dir/") },
 		},
 		{
 			name:     "dirname of root",
