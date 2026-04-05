@@ -3,6 +3,7 @@ package lxio_test
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/hgapdvn/lx/lxio"
@@ -353,6 +354,10 @@ func TestCreateFile(t *testing.T) {
 				info, err := os.Stat(path)
 				if err != nil {
 					return false
+				}
+				if runtime.GOOS == "windows" {
+					// Windows doesn't support Unix permission bits
+					return !info.IsDir()
 				}
 				// Check permissions (mode mask)
 				return (info.Mode() & 0777) == 0644

@@ -113,7 +113,7 @@ func TestExists(t *testing.T) {
 			t.Fatalf("failed to change permissions: %v", err)
 		}
 		t.Cleanup(func() {
-			os.Chmod(secureDir, 0755)
+			_ = os.Chmod(secureDir, 0755)
 		})
 
 		// Exists returns error on permission denied
@@ -162,7 +162,7 @@ func TestExistsOK(t *testing.T) {
 			t.Fatalf("failed to change permissions: %v", err)
 		}
 		t.Cleanup(func() {
-			os.Chmod(secureDir, 0755)
+			_ = os.Chmod(secureDir, 0755)
 		})
 
 		// ExistsOK swallows permission errors and returns false
@@ -209,7 +209,7 @@ func TestMustExist(t *testing.T) {
 			t.Fatalf("failed to change permissions: %v", err)
 		}
 		t.Cleanup(func() {
-			os.Chmod(secureDir, 0755)
+			_ = os.Chmod(secureDir, 0755)
 		})
 
 		defer func() {
@@ -307,7 +307,7 @@ func TestMustNotExist(t *testing.T) {
 			t.Fatalf("failed to change permissions: %v", err)
 		}
 		t.Cleanup(func() {
-			os.Chmod(secureDir, 0755)
+			_ = os.Chmod(secureDir, 0755)
 		})
 
 		defer func() {
@@ -372,7 +372,7 @@ func TestIsDir(t *testing.T) {
 			t.Fatalf("failed to change permissions: %v", err)
 		}
 		t.Cleanup(func() {
-			os.Chmod(secureDir, 0755)
+			_ = os.Chmod(secureDir, 0755)
 		})
 
 		// IsDir returns error on permission denied
@@ -421,7 +421,7 @@ func TestIsDirOK(t *testing.T) {
 			t.Fatalf("failed to change permissions: %v", err)
 		}
 		t.Cleanup(func() {
-			os.Chmod(secureDir, 0755)
+			_ = os.Chmod(secureDir, 0755)
 		})
 
 		// IsDirOK swallows permission errors and returns false
@@ -474,7 +474,7 @@ func TestMustBeDir(t *testing.T) {
 			t.Fatalf("failed to change permissions: %v", err)
 		}
 		t.Cleanup(func() {
-			os.Chmod(secureDir, 0755)
+			_ = os.Chmod(secureDir, 0755)
 		})
 
 		defer func() {
@@ -555,7 +555,7 @@ func TestIsFile(t *testing.T) {
 			t.Fatalf("failed to change permissions: %v", err)
 		}
 		t.Cleanup(func() {
-			os.Chmod(secureDir, 0755)
+			_ = os.Chmod(secureDir, 0755)
 		})
 
 		// IsFile returns error on permission denied
@@ -604,7 +604,7 @@ func TestIsFileOK(t *testing.T) {
 			t.Fatalf("failed to change permissions: %v", err)
 		}
 		t.Cleanup(func() {
-			os.Chmod(secureDir, 0755)
+			_ = os.Chmod(secureDir, 0755)
 		})
 
 		// IsFileOK swallows permission errors and returns false
@@ -657,7 +657,7 @@ func TestMustBeFile(t *testing.T) {
 			t.Fatalf("failed to change permissions: %v", err)
 		}
 		t.Cleanup(func() {
-			os.Chmod(secureDir, 0755)
+			_ = os.Chmod(secureDir, 0755)
 		})
 
 		defer func() {
@@ -737,7 +737,7 @@ func TestIsSymlink(t *testing.T) {
 			t.Fatalf("failed to change permissions: %v", err)
 		}
 		t.Cleanup(func() {
-			os.Chmod(secureDir, 0755)
+			_ = os.Chmod(secureDir, 0755)
 		})
 
 		// IsSymlink returns error on permission denied
@@ -791,7 +791,7 @@ func TestIsSymlinkOK(t *testing.T) {
 			t.Fatalf("failed to change permissions: %v", err)
 		}
 		t.Cleanup(func() {
-			os.Chmod(secureDir, 0755)
+			_ = os.Chmod(secureDir, 0755)
 		})
 
 		// IsSymlinkOK swallows permission errors and returns false

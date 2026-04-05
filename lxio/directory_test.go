@@ -3,6 +3,7 @@ package lxio_test
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"testing"
 
@@ -114,6 +115,9 @@ func TestListFiles(t *testing.T) {
 	})
 
 	t.Run("error on permission denied", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			t.Skip("skipping permission test on Windows")
+		}
 		if os.Geteuid() == 0 {
 			t.Skip("skipping permission test when running as root")
 		}
@@ -126,7 +130,7 @@ func TestListFiles(t *testing.T) {
 		if err != nil {
 			t.Skipf("unable to remove permissions: %v", err)
 		}
-		defer os.Chmod(dir, 0755) // Restore for cleanup
+		defer func() { _ = os.Chmod(dir, 0755) }() // Restore for cleanup
 
 		_, err = lxio.ListFiles(dir)
 		if err == nil {
@@ -218,6 +222,9 @@ func TestListDirs(t *testing.T) {
 	})
 
 	t.Run("error on permission denied", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			t.Skip("skipping permission test on Windows")
+		}
 		if os.Geteuid() == 0 {
 			t.Skip("skipping permission test when running as root")
 		}
@@ -230,7 +237,7 @@ func TestListDirs(t *testing.T) {
 		if err != nil {
 			t.Skipf("unable to remove permissions: %v", err)
 		}
-		defer os.Chmod(dir, 0755) // Restore for cleanup
+		defer func() { _ = os.Chmod(dir, 0755) }() // Restore for cleanup
 
 		_, err = lxio.ListDirs(dir)
 		if err == nil {
