@@ -535,7 +535,7 @@ func TestWriteLinesBytes(t *testing.T) {
 	t.Run("write binary bytes", func(t *testing.T) {
 		dir := t.TempDir()
 		path := filepath.Join(dir, "binary.txt")
-		lines := [][]byte{[]byte{0xFF, 0xFE}, []byte{0xAA, 0xBB}}
+		lines := [][]byte{{0xFF, 0xFE}, {0xAA, 0xBB}}
 		expected := "\xff\xfe\n\xaa\xbb"
 
 		err := lxio.WriteLinesBytes(path, lines)
