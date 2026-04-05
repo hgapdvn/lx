@@ -168,14 +168,14 @@ func FunctionName[T any](param T) T {
 
 - Test files: `*_test.go` (same package declared as `package_name_test`)
 - Example test files: `*_examples_test.go` (for runnable documentation examples, declared as `package_name_test`)
-- Import the package being tested: `"github.com/hgapdvn/lx/slices"`
+- Import the package being tested: `"github.com/hgapdvn/lx/lxslices"`
 - Tests use external package import (not `.` import)
 
 Example test file pattern:
 ```go
 package lxslices_test
 
-import "github.com/hgapdvn/lx/slices"
+import "github.com/hgapdvn/lx/lxslices"
 
 // ExampleFilter demonstrates using the Filter function
 func ExampleFilter() {
@@ -300,13 +300,13 @@ Use `*_examples_test.go` files to provide runnable documentation examples:
 
 ```bash
 # Single package
-go test -v ./slices/
+go test -v ./lxslices/
 
 # All with coverage
 go test -cover ./...
 
 # Specific test
-go test -run TestFilter_Int ./slices/
+go test -run TestFilter_Int ./lxslices/
 
 # With race detector (catches concurrency bugs)
 go test -race ./...
@@ -395,9 +395,9 @@ func TestFilter_Struct(t *testing.T) { /* ... */ }
 
 ```go
 import (
-    "github.com/hgapdvn/lx/slices"      // Import actual package directory names (no lx prefix)
-    "github.com/hgapdvn/lx/constraints" // Not /lxconstraints
-    "github.com/hgapdvn/lx/types"       // Not /lxtypes
+    "github.com/hgapdvn/lx/lxslices"      // Import actual package directory names (no lx prefix)
+    "github.com/hgapdvn/lx/lxconstraints" // Not /lxconstraints
+    "github.com/hgapdvn/lx/lxtypes"       // Not /lxtypes
 )
 
 // Use as: slices.Filter(...)
