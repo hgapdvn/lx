@@ -856,7 +856,7 @@ func TestMustBeSymlink(t *testing.T) {
 			t.Fatalf("failed to change permissions: %v", err)
 		}
 		t.Cleanup(func() {
-			os.Chmod(secureDir, 0755)
+			_ = os.Chmod(secureDir, 0755)
 		})
 
 		defer func() {

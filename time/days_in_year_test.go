@@ -1,6 +1,7 @@
 package lxtime_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -185,7 +186,7 @@ func TestDaysInYear_Consistency(t *testing.T) {
 		d2 := lxtime.TotalDaysInYear(time.Date(2024, 6, 15, 12, 30, 0, 0, time.UTC))
 		d3 := lxtime.TotalDaysInYear(time.Date(2024, 12, 31, 23, 59, 59, 0, time.UTC))
 
-		if d1 != d2 || d2 != d3 {
+		if d1 != d2 || d1 != d3 {
 			t.Errorf("TotalDaysInYear should return same value for all dates in same year: %d, %d, %d", d1, d2, d3)
 		}
 	})
@@ -319,12 +320,6 @@ func TestDaysInYear_EdgeCases(t *testing.T) {
 
 func ExampleTotalDaysInYear() {
 	t := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
-	days := lxtime.TotalDaysInYear(t)
-	// days: 366
-	_ = days
-
-	t2 := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	days2 := lxtime.TotalDaysInYear(t2)
-	// days2: 365
-	_ = days2
+	fmt.Println(lxtime.TotalDaysInYear(t))
+	// Output: 366
 }

@@ -1,6 +1,7 @@
 package lxtime_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -107,12 +108,6 @@ func TestDaysInMonth(t *testing.T) {
 
 func ExampleTotalDaysInMonth() {
 	t := time.Date(2026, 4, 15, 0, 0, 0, 0, time.UTC)
-	days := lxtime.TotalDaysInMonth(t)
-	// days: 30
-	_ = days
-
-	leapYearTime := time.Date(2024, 2, 15, 0, 0, 0, 0, time.UTC)
-	leapDays := lxtime.TotalDaysInMonth(leapYearTime)
-	// leapDays: 29
-	_ = leapDays
+	fmt.Println(lxtime.TotalDaysInMonth(t))
+	// Output: 30
 }
