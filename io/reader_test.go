@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hgapdvn/lx/lxio"
+	"github.com/hgapdvn/lx/io"
 )
 
 // helper to write a temporary file and return its path

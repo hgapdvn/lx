@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/hgapdvn/lx/lxio"
+	"github.com/hgapdvn/lx/io"
 )
 
 // setupTestEnvironment creates a temporary folder with a file, a directory,
