@@ -1,4 +1,4 @@
-package lxio
+package lxio_test
 
 import (
 	"errors"
@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
+
+	"github.com/hgapdvn/lx/lxio"
 )
 
 // setupTestEnvironment creates a temporary folder with a file, a directory,
@@ -105,21 +107,21 @@ func TestLxioHelpers(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// --- Test Quiet Methods ---
-			if got := Exists(tt.path); got != tt.wantExist {
+			if got := lxio.Exists(tt.path); got != tt.wantExist {
 				t.Errorf("Exists() = %v, want %v", got, tt.wantExist)
 			}
-			if got := IsFile(tt.path); got != tt.wantFile {
+			if got := lxio.IsFile(tt.path); got != tt.wantFile {
 				t.Errorf("IsFile() = %v, want %v", got, tt.wantFile)
 			}
-			if got := IsDir(tt.path); got != tt.wantDir {
+			if got := lxio.IsDir(tt.path); got != tt.wantDir {
 				t.Errorf("IsDir() = %v, want %v", got, tt.wantDir)
 			}
-			if got := IsSymlink(tt.path); got != tt.wantSymlink {
+			if got := lxio.IsSymlink(tt.path); got != tt.wantSymlink {
 				t.Errorf("IsSymlink() = %v, want %v", got, tt.wantSymlink)
 			}
 
 			// --- Test Loud (Error) Methods ---
-			gotE, err := ExistsE(tt.path)
+			gotE, err := lxio.ExistsE(tt.path)
 			if err != nil {
 				t.Errorf("ExistsE() unexpected error: %v", err)
 			}
@@ -127,7 +129,7 @@ func TestLxioHelpers(t *testing.T) {
 				t.Errorf("ExistsE() = %v, want %v", gotE, tt.wantExist)
 			}
 
-			gotFileE, err := IsFileE(tt.path)
+			gotFileE, err := lxio.IsFileE(tt.path)
 			if err != nil {
 				t.Errorf("IsFileE() unexpected error: %v", err)
 			}
@@ -135,7 +137,7 @@ func TestLxioHelpers(t *testing.T) {
 				t.Errorf("IsFileE() = %v, want %v", gotFileE, tt.wantFile)
 			}
 
-			gotDirE, err := IsDirE(tt.path)
+			gotDirE, err := lxio.IsDirE(tt.path)
 			if err != nil {
 				t.Errorf("IsDirE() unexpected error: %v", err)
 			}
@@ -143,7 +145,7 @@ func TestLxioHelpers(t *testing.T) {
 				t.Errorf("IsDirE() = %v, want %v", gotDirE, tt.wantDir)
 			}
 
-			gotSymlinkE, err := IsSymlinkE(tt.path)
+			gotSymlinkE, err := lxio.IsSymlinkE(tt.path)
 			if err != nil {
 				t.Errorf("IsSymlinkE() unexpected error: %v", err)
 			}
@@ -187,20 +189,20 @@ func TestLxioHelpers_PermissionError(t *testing.T) {
 
 	// --- Test the Quiet functions ---
 	// They should all swallow the permission error and return false.
-	if got := Exists(secretFile); got != false {
+	if got := lxio.Exists(secretFile); got != false {
 		t.Errorf("Exists() = %v, want false (due to permission error)", got)
 	}
-	if got := IsFile(secretFile); got != false {
+	if got := lxio.IsFile(secretFile); got != false {
 		t.Errorf("IsFile() = %v, want false", got)
 	}
-	if got := IsDir(secretFile); got != false {
+	if got := lxio.IsDir(secretFile); got != false {
 		t.Errorf("IsDir() = %v, want false", got)
 	}
 
 	// --- Test the Loud (E) functions ---
 	// They should all return false AND surface the permission error.
 
-	gotE, errE := ExistsE(secretFile)
+	gotE, errE := lxio.ExistsE(secretFile)
 	if gotE != false {
 		t.Errorf("ExistsE() = %v, want false", gotE)
 	}
@@ -208,7 +210,7 @@ func TestLxioHelpers_PermissionError(t *testing.T) {
 		t.Errorf("ExistsE() expected a permission error, got: %v", errE)
 	}
 
-	gotFileE, errFileE := IsFileE(secretFile)
+	gotFileE, errFileE := lxio.IsFileE(secretFile)
 	if gotFileE != false {
 		t.Errorf("IsFileE() = %v, want false", gotFileE)
 	}
@@ -216,7 +218,7 @@ func TestLxioHelpers_PermissionError(t *testing.T) {
 		t.Errorf("IsFileE() expected a permission error, got: %v", errFileE)
 	}
 
-	gotDirE, errDirE := IsDirE(secretFile)
+	gotDirE, errDirE := lxio.IsDirE(secretFile)
 	if gotDirE != false {
 		t.Errorf("IsDirE() = %v, want false", gotDirE)
 	}
@@ -224,11 +226,11 @@ func TestLxioHelpers_PermissionError(t *testing.T) {
 		t.Errorf("IsDirE() expected a permission error, got: %v", errDirE)
 	}
 
-	if got := IsSymlink(secretFile); got != false {
+	if got := lxio.IsSymlink(secretFile); got != false {
 		t.Errorf("IsSymlink() = %v, want false", got)
 	}
 
-	gotSymlinkE, errSymlinkE := IsSymlinkE(secretFile)
+	gotSymlinkE, errSymlinkE := lxio.IsSymlinkE(secretFile)
 	if gotSymlinkE != false {
 		t.Errorf("IsSymlinkE() = %v, want false", gotSymlinkE)
 	}
