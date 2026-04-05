@@ -221,9 +221,9 @@ func TestDaysInYear_HistoricalYears(t *testing.T) {
 			expected: 366, // 1600 is leap (divisible by 400)
 		},
 		{
-			name:     "1776 AD (non-leap year)",
+			name:     "1776 AD (leap year)",
 			date:     time.Date(1776, 7, 4, 0, 0, 0, 0, time.UTC),
-			expected: 365,
+			expected: 366, // 1776 is leap (divisible by 4, not by 100)
 		},
 		{
 			name:     "1800 AD (non-leap year)",

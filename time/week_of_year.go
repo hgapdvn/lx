@@ -25,18 +25,21 @@ func WeekOfYear(t time.Time) int {
 	// Get the start of the current week
 	weekStart := StartOfWeek(t)
 
-	// Get the start of the first week of the year
-	// First, find the first Monday of the year
-	firstWeekStart := StartOfWeek(yearStart)
-
-	// If the first Monday is in the previous year, move to the next Monday
-	if firstWeekStart.Year() < year {
-		firstWeekStart = firstWeekStart.AddDate(0, 0, 7)
+	// Find the first Monday of the year
+	// Start from Jan 1 and find the first Monday
+	firstMonday := yearStart
+	for firstMonday.Weekday() != time.Monday {
+		firstMonday = firstMonday.AddDate(0, 0, 1)
 	}
 
-	// Calculate days difference between week start and first week start
+	// For dates before the first Monday, return 1
+	if t.Before(firstMonday) {
+		return 1
+	}
+
+	// Calculate days difference between week start and first Monday
 	// Add 1 because we count weeks starting from 1
-	daysDiff := int(weekStart.Sub(firstWeekStart).Hours() / 24)
+	daysDiff := int(weekStart.Sub(firstMonday).Hours() / 24)
 	weekNumber := daysDiff/7 + 1
 
 	return weekNumber

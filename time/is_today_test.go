@@ -126,6 +126,10 @@ func TestIsToday_DifferentTimezones(t *testing.T) {
 	est, _ := time.LoadLocation("America/New_York")
 	pst, _ := time.LoadLocation("America/Los_Angeles")
 
+	// Use a time in the middle of the day to avoid timezone boundary issues
+	now := time.Now()
+	midday := time.Date(now.Year(), now.Month(), now.Day(), 12, 0, 0, 0, utc)
+
 	tests := []struct {
 		name  string
 		check func() bool
@@ -133,22 +137,22 @@ func TestIsToday_DifferentTimezones(t *testing.T) {
 		{
 			name: "today in UTC is today",
 			check: func() bool {
-				now := time.Now().In(utc)
-				return lxtime.IsToday(now)
+				testTime := time.Date(now.Year(), now.Month(), now.Day(), 12, 0, 0, 0, utc)
+				return lxtime.IsToday(testTime)
 			},
 		},
 		{
 			name: "today in EST is today",
 			check: func() bool {
-				now := time.Now().In(est)
-				return lxtime.IsToday(now)
+				testTime := midday.In(est)
+				return lxtime.IsToday(testTime)
 			},
 		},
 		{
 			name: "today in PST is today",
 			check: func() bool {
-				now := time.Now().In(pst)
-				return lxtime.IsToday(now)
+				testTime := midday.In(pst)
+				return lxtime.IsToday(testTime)
 			},
 		},
 	}

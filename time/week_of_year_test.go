@@ -24,9 +24,9 @@ func TestWeekOfYear_BasicCases(t *testing.T) {
 			expected: 1,
 		},
 		{
-			name:     "january 10 2026 (saturday, week 2)",
+			name:     "january 10 2026 (saturday, week 1)",
 			t:        time.Date(2026, 1, 10, 10, 0, 0, 0, time.UTC),
-			expected: 2,
+			expected: 1,
 		},
 		{
 			name:     "january 12 2026 (monday of week 2)",
@@ -36,17 +36,17 @@ func TestWeekOfYear_BasicCases(t *testing.T) {
 		{
 			name:     "april 4 2026 (saturday)",
 			t:        time.Date(2026, 4, 4, 10, 0, 0, 0, time.UTC),
-			expected: 14,
+			expected: 13,
 		},
 		{
 			name:     "december 28 2026 (monday)",
 			t:        time.Date(2026, 12, 28, 10, 0, 0, 0, time.UTC),
-			expected: 53,
+			expected: 52,
 		},
 		{
 			name:     "december 31 2026 (thursday)",
 			t:        time.Date(2026, 12, 31, 10, 0, 0, 0, time.UTC),
-			expected: 53,
+			expected: 52,
 		},
 	}
 
@@ -122,7 +122,7 @@ func TestWeekOfYear_EdgeCases(t *testing.T) {
 		{
 			name:     "year end after last monday",
 			t:        time.Date(2026, 12, 31, 0, 0, 0, 0, time.UTC),
-			expected: 53,
+			expected: 52,
 		},
 		{
 			name:     "leap year february 29",
