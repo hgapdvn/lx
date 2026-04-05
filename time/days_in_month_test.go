@@ -105,7 +105,7 @@ func TestDaysInMonth(t *testing.T) {
 	}
 }
 
-func ExampleDaysInMonth() {
+func ExampleTotalDaysInMonth() {
 	t := time.Date(2026, 4, 15, 0, 0, 0, 0, time.UTC)
 	days := lxtime.TotalDaysInMonth(t)
 	// days: 30

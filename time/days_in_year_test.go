@@ -317,7 +317,7 @@ func TestDaysInYear_EdgeCases(t *testing.T) {
 	}
 }
 
-func ExampleDaysInYear() {
+func ExampleTotalDaysInYear() {
 	t := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	days := lxtime.TotalDaysInYear(t)
 	// days: 366
