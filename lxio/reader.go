@@ -141,3 +141,161 @@ func ForEachLine(path string, fn func(line string) error) error {
 
 	return scanner.Err()
 }
+
+// --------------------------------- First N / Last N / Count Lines  ---------------------------------
+
+// ReadFirstN reads the first n lines from a file.
+// Returns an error if the file cannot be opened or read.
+// If the file has fewer than n lines, returns all available lines.
+// Returns empty slice if n is 0 or the file is empty.
+//
+// Example:
+//
+//     lines, err := lxio.ReadFirstN("/path/to/file", 10)
+//     // lines: first 10 lines of file (or fewer if file is smaller)
+//
+func ReadFirstN(path string, n int) ([]string, error) {
+	if n <= 0 {
+		return []string{}, nil
+	}
+
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	buf := make([]byte, 0, 64*1024)
+	scanner.Buffer(buf, 1024*1024)
+
+	var lines []string
+	count := 0
+
+	for scanner.Scan() && count < n {
+		lines = append(lines, scanner.Text())
+		count++
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return lines, nil
+}
+
+// ReadLastN reads the last n lines from a file using a memory-efficient rolling buffer.
+// Returns an error if the file cannot be opened or read.
+// If the file has fewer than n lines, returns all available lines.
+// Returns empty slice if n is 0 or the file is empty.
+//
+// Performance: Uses a circular buffer that keeps only the last n lines in memory,
+// making it memory-efficient even for very large files.
+//
+// Example:
+//
+//     lines, err := lxio.ReadLastN("/path/to/file", 10)
+//     // lines: last 10 lines of file (or fewer if file is smaller)
+//
+func ReadLastN(path string, n int) ([]string, error) {
+	if n <= 0 {
+		return []string{}, nil
+	}
+
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	buf := make([]byte, 0, 64*1024)
+	scanner.Buffer(buf, 1024*1024)
+
+	// Use a rolling/circular buffer that stores at most n lines
+	buffer := make([]string, 0, n)
+	index := 0
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		if len(buffer) < n {
+			// Buffer not full yet, just append
+			buffer = append(buffer, line)
+		} else {
+			// Buffer is full, overwrite oldest entry (circular)
+			buffer[index%n] = line
+		}
+		index++
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	// Reconstruct the lines in correct order if buffer was full
+	if len(buffer) < n {
+		// Buffer never filled, return as-is
+		return buffer, nil
+	}
+
+	// Buffer was full, rotate to get correct order
+	result := make([]string, n)
+	for i := 0; i < n; i++ {
+		result[i] = buffer[(index+i)%n]
+	}
+
+	return result, nil
+}
+
+// CountLines counts the number of lines in a file without loading the entire content into memory.
+// Returns an error if the file cannot be opened or read.
+// An empty file has 0 lines. A file with content but no trailing newline counts as 1 line.
+//
+// Example:
+//
+//     count, err := lxio.CountLines("/path/to/file")
+//     if err != nil {
+//         // handle error
+//     }
+//     fmt.Printf("File has %d lines\n", count)
+//
+func CountLines(path string) (int, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return 0, err
+	}
+	defer file.Close()
+
+	buf := make([]byte, 32*1024)
+	count := 0
+	var lastByte byte
+	var readAny bool
+
+	for {
+		n, err := file.Read(buf)
+		if n > 0 {
+			readAny = true
+			for i := 0; i < n; i++ {
+				if buf[i] == '\n' {
+					count++
+				}
+			}
+			lastByte = buf[n-1]
+		}
+
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return 0, err
+		}
+	}
+
+	// If file is not empty and doesn't end with newline → add last line
+	if readAny && lastByte != '\n' {
+		count++
+	}
+
+	return count, nil
+}

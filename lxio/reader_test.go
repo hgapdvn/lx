@@ -3,9 +3,11 @@ package lxio_test
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -338,4 +340,332 @@ func TestForEachLine(t *testing.T) {
 			t.Errorf("expected %q, got %q", expected, result)
 		}
 	})
+}
+
+// =============================== ReadFirstN Tests ===============================
+
+func TestReadFirstN(t *testing.T) {
+	tests := []struct {
+		name      string
+		content   string
+		n         int
+		expected  []string
+		shouldErr bool
+	}{
+		{
+			name:     "read first 3 lines",
+			content:  "line1\nline2\nline3\nline4\nline5",
+			n:        3,
+			expected: []string{"line1", "line2", "line3"},
+		},
+		{
+			name:     "read first 1 line",
+			content:  "only line",
+			n:        1,
+			expected: []string{"only line"},
+		},
+		{
+			name:     "n greater than file lines",
+			content:  "line1\nline2",
+			n:        10,
+			expected: []string{"line1", "line2"},
+		},
+		{
+			name:     "n is 0",
+			content:  "line1\nline2",
+			n:        0,
+			expected: []string{},
+		},
+		{
+			name:     "n is negative",
+			content:  "line1\nline2",
+			n:        -5,
+			expected: []string{},
+		},
+		{
+			name:     "empty file",
+			content:  "",
+			n:        5,
+			expected: []string{},
+		},
+		{
+			name:     "file with trailing newline",
+			content:  "line1\nline2\nline3\n",
+			n:        2,
+			expected: []string{"line1", "line2"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			path := createTempFile(t, tt.content)
+			result, err := lxio.ReadFirstN(path, tt.n)
+
+			if tt.shouldErr && err == nil {
+				t.Errorf("expected error but got nil")
+			}
+			if !tt.shouldErr && err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+
+			if !tt.shouldErr {
+				// Handle nil vs empty slice comparison
+				if len(result) != len(tt.expected) {
+					t.Errorf("expected %d lines, got %d", len(tt.expected), len(result))
+				}
+				for i, line := range result {
+					if i >= len(tt.expected) || line != tt.expected[i] {
+						t.Errorf("expected %q, got %q at index %d", tt.expected, result, i)
+						break
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestReadFirstN_NonExistentFile(t *testing.T) {
+	result, err := lxio.ReadFirstN("/nonexistent/path/file.txt", 5)
+	if err == nil {
+		t.Errorf("expected error for nonexistent file, got nil")
+	}
+	if result != nil {
+		t.Errorf("expected nil result for nonexistent file, got %v", result)
+	}
+}
+
+// =============================== ReadLastN Tests ================================
+
+func TestReadLastN(t *testing.T) {
+	tests := []struct {
+		name      string
+		content   string
+		n         int
+		expected  []string
+		shouldErr bool
+	}{
+		{
+			name:     "read last 3 lines",
+			content:  "line1\nline2\nline3\nline4\nline5",
+			n:        3,
+			expected: []string{"line3", "line4", "line5"},
+		},
+		{
+			name:     "read last 1 line",
+			content:  "only line",
+			n:        1,
+			expected: []string{"only line"},
+		},
+		{
+			name:     "n greater than file lines",
+			content:  "line1\nline2",
+			n:        10,
+			expected: []string{"line1", "line2"},
+		},
+		{
+			name:     "n is 0",
+			content:  "line1\nline2",
+			n:        0,
+			expected: []string{},
+		},
+		{
+			name:     "n is negative",
+			content:  "line1\nline2",
+			n:        -5,
+			expected: []string{},
+		},
+		{
+			name:     "empty file",
+			content:  "",
+			n:        5,
+			expected: []string{},
+		},
+		{
+			name:     "file with trailing newline",
+			content:  "line1\nline2\nline3\n",
+			n:        2,
+			expected: []string{"line2", "line3"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			path := createTempFile(t, tt.content)
+			result, err := lxio.ReadLastN(path, tt.n)
+
+			if tt.shouldErr && err == nil {
+				t.Errorf("expected error but got nil")
+			}
+			if !tt.shouldErr && err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+
+			if !tt.shouldErr {
+				// Handle nil vs empty slice comparison
+				if len(result) != len(tt.expected) {
+					t.Errorf("expected %d lines, got %d", len(tt.expected), len(result))
+				}
+				for i, line := range result {
+					if i >= len(tt.expected) || line != tt.expected[i] {
+						t.Errorf("expected %q, got %q at index %d", tt.expected, result, i)
+						break
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestReadLastN_NonExistentFile(t *testing.T) {
+	result, err := lxio.ReadLastN("/nonexistent/path/file.txt", 5)
+	if err == nil {
+		t.Errorf("expected error for nonexistent file, got nil")
+	}
+	if result != nil {
+		t.Errorf("expected nil result for nonexistent file, got %v", result)
+	}
+}
+
+// =============================== CountLines Tests ===============================
+
+func TestCountLines(t *testing.T) {
+	tests := []struct {
+		name      string
+		content   string
+		expected  int
+		shouldErr bool
+		isLarge   bool // Flag for large file tests
+	}{
+		{
+			name:     "count 5 lines with trailing newlines",
+			content:  "line1\nline2\nline3\nline4\nline5\n",
+			expected: 5,
+		},
+		{
+			name:     "single line with newline",
+			content:  "only line\n",
+			expected: 1,
+		},
+		{
+			name:     "two lines with newline",
+			content:  "line1\nline2\n",
+			expected: 2,
+		},
+		{
+			name:     "empty file",
+			content:  "",
+			expected: 0,
+		},
+		{
+			name:     "file with trailing newline",
+			content:  "line1\nline2\nline3\n",
+			expected: 3,
+		},
+		{
+			name:     "Windows line endings",
+			content:  "line1\r\nline2\r\nline3\r\n",
+			expected: 3,
+		},
+		{
+			name:     "mixed line endings",
+			content:  "line1\nline2\r\nline3\n",
+			expected: 3,
+		},
+		{
+			name:     "large file with 10000 lines",
+			isLarge:  true,
+			expected: 10000,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var path string
+			if tt.isLarge {
+				// Generate large file dynamically
+				testDir := t.TempDir()
+				path = filepath.Join(testDir, "large.txt")
+				content := strings.Repeat("line\n", tt.expected)
+				if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+					t.Fatalf("failed to create test file: %v", err)
+				}
+			} else {
+				path = createTempFile(t, tt.content)
+			}
+
+			result, err := lxio.CountLines(path)
+
+			if tt.shouldErr && err == nil {
+				t.Errorf("expected error but got nil")
+			}
+			if !tt.shouldErr && err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+
+			if !tt.shouldErr && result != tt.expected {
+				t.Errorf("expected %d lines, got %d", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestCountLines_NonExistentFile(t *testing.T) {
+	result, err := lxio.CountLines("/nonexistent/path/file.txt")
+	if err == nil {
+		t.Errorf("expected error for nonexistent file, got nil")
+	}
+	if result != 0 {
+		t.Errorf("expected 0 lines for nonexistent file, got %d", result)
+	}
+}
+
+// Benchmark ReadLastN with a large file to demonstrate memory efficiency
+func BenchmarkReadLastN_Large(b *testing.B) {
+	testDir := b.TempDir()
+	path := filepath.Join(testDir, "large_bench.txt")
+
+	// Create a file with 100,000 lines
+	sb := &strings.Builder{}
+	for i := 0; i < 100000; i++ {
+		sb.WriteString("line " + strconv.Itoa(i) + "\n")
+	}
+	if err := os.WriteFile(path, []byte(sb.String()), 0644); err != nil {
+		b.Fatalf("failed to create bench file: %v", err)
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := lxio.ReadLastN(path, 100)
+		if err != nil {
+			b.Fatalf("unexpected error: %v", err)
+		}
+	}
+}
+
+// Benchmark ReadLastN with varying tail sizes
+func BenchmarkReadLastN_Various(b *testing.B) {
+	testDir := b.TempDir()
+	path := filepath.Join(testDir, "bench.txt")
+
+	// Create file with 50,000 lines
+	sb := &strings.Builder{}
+	for i := 0; i < 50000; i++ {
+		sb.WriteString("line " + strconv.Itoa(i) + "\n")
+	}
+	if err := os.WriteFile(path, []byte(sb.String()), 0644); err != nil {
+		b.Fatalf("failed to create bench file: %v", err)
+	}
+
+	sizes := []int{10, 100, 1000}
+	for _, size := range sizes {
+		b.Run(fmt.Sprintf("LastN_%d", size), func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				_, err := lxio.ReadLastN(path, size)
+				if err != nil {
+					b.Fatalf("unexpected error: %v", err)
+				}
+			}
+		})
+	}
 }
