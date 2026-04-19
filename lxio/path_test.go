@@ -601,3 +601,96 @@ func TestClean(t *testing.T) {
 		})
 	}
 }
+
+func TestIsAbs(t *testing.T) {
+	tests := []struct {
+		name     string
+		path     string
+		expected bool
+	}{
+		{
+			name:     "absolute path with leading slash",
+			path:     "/path/to/file.txt",
+			expected: true,
+		},
+		{
+			name:     "relative path with filename",
+			path:     "file.txt",
+			expected: false,
+		},
+		{
+			name:     "relative path with current directory",
+			path:     "./file.txt",
+			expected: false,
+		},
+		{
+			name:     "relative path with parent directory",
+			path:     "../file.txt",
+			expected: false,
+		},
+		{
+			name:     "empty path",
+			path:     "",
+			expected: false,
+		},
+		{
+			name:     "root path",
+			path:     "/",
+			expected: true,
+		},
+		{
+			name:     "absolute path with trailing slash",
+			path:     "/path/to/dir/",
+			expected: true,
+		},
+		{
+			name:     "relative path with multiple levels",
+			path:     "dir/subdir/file.txt",
+			expected: false,
+		},
+		{
+			name:     "absolute path with multiple slashes",
+			path:     "//path//to//file.txt",
+			expected: true,
+		},
+		{
+			name:     "dot only",
+			path:     ".",
+			expected: false,
+		},
+		{
+			name:     "double dot only",
+			path:     "..",
+			expected: false,
+		},
+		{
+			name:     "absolute path with unicode",
+			path:     "/路径/到/文件.txt",
+			expected: true,
+		},
+		{
+			name:     "relative path with unicode",
+			path:     "路径/到/文件.txt",
+			expected: false,
+		},
+		{
+			name:     "absolute path with spaces",
+			path:     "/path with spaces/file.txt",
+			expected: true,
+		},
+		{
+			name:     "relative path with spaces",
+			path:     "path with spaces/file.txt",
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := lxio.IsAbs(tt.path)
+			if result != tt.expected {
+				t.Errorf("IsAbs(%q) expected %v, got %v", tt.path, tt.expected, result)
+			}
+		})
+	}
+}

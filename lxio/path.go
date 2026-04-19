@@ -110,3 +110,18 @@ func Abs(path string) (string, error) {
 func Clean(path string) string {
 	return filepath.Clean(path)
 }
+
+// IsAbs reports whether the path is absolute.
+// It returns true if the path begins with a root (e.g., "/" on Unix, "C:\" on Windows).
+// The check is purely lexical; no filesystem access is performed.
+// IsAbs(path) is equivalent to filepath.IsAbs(path).
+//
+// Example:
+//
+//	IsAbs("/path/to/file")   // true
+//	IsAbs("./relative")      // false
+//	IsAbs("file.txt")        // false
+//	IsAbs("C:\\Windows")     // true (Windows)
+func IsAbs(path string) bool {
+	return filepath.IsAbs(path)
+}
