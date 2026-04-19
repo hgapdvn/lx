@@ -211,3 +211,30 @@ func IsEmptyOK(path string) bool {
 	ok, _ := IsEmpty(path)
 	return ok
 }
+
+// ---------------------------------------------- Size Stats  ----------------------------------------------------------
+
+// Size returns the size of the file in bytes.
+// It returns an error for ambiguous failures (like Permission Denied).
+// For directories, it returns the size of the directory itself, not the size of its contents.
+func Size(path string) (int64, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			// Path doesn't exist, return 0 with no error
+			return 0, nil
+		}
+		// We can't access it, bubble up the error
+		return 0, err
+	}
+
+	return info.Size(), nil
+}
+
+// SizeOK returns the size of the file in bytes.
+// It ignores any errors and safely returns 0.
+// For directories, it returns the size of the directory itself, not the size of its contents.
+func SizeOK(path string) int64 {
+	size, _ := Size(path)
+	return size
+}

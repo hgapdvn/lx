@@ -1380,3 +1380,225 @@ func TestIsEmptyOK(t *testing.T) {
 		})
 	}
 }
+
+// ======================================== Size Tests ========================================
+
+func TestSize(t *testing.T) {
+	testDir := t.TempDir()
+
+	// Create test files with specific sizes
+	emptyFile := filepath.Join(testDir, "empty.txt")
+	if err := os.WriteFile(emptyFile, []byte{}, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	smallFile := filepath.Join(testDir, "small.txt")
+	content := "hello"
+	if err := os.WriteFile(smallFile, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	largeFile := filepath.Join(testDir, "large.txt")
+	largeContent := string(make([]byte, 1024)) // 1024 bytes
+	if err := os.WriteFile(largeFile, []byte(largeContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	testSubDir := filepath.Join(testDir, "sub_dir")
+	if err := os.Mkdir(testSubDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	missingPath := filepath.Join(testDir, "nonexistent.txt")
+
+	tests := []struct {
+		name              string
+		pathSetup         func() string
+		skipOnWindows     bool
+		expectedSize      int64
+		isDirectory       bool
+		expectedErr       bool
+		shouldHavePermErr bool
+	}{
+		{
+			name:         "empty file",
+			pathSetup:    func() string { return emptyFile },
+			expectedSize: 0,
+			isDirectory:  false,
+			expectedErr:  false,
+		},
+		{
+			name:         "small file",
+			pathSetup:    func() string { return smallFile },
+			expectedSize: int64(len(content)),
+			isDirectory:  false,
+			expectedErr:  false,
+		},
+		{
+			name:         "large file",
+			pathSetup:    func() string { return largeFile },
+			expectedSize: 1024,
+			isDirectory:  false,
+			expectedErr:  false,
+		},
+		{
+			name:         "directory",
+			pathSetup:    func() string { return testSubDir },
+			expectedSize: 0,
+			isDirectory:  true,
+			expectedErr:  false,
+		},
+		{
+			name:         "nonexistent path",
+			pathSetup:    func() string { return missingPath },
+			expectedSize: 0,
+			isDirectory:  false,
+			expectedErr:  false,
+		},
+		{
+			name:              "permission error",
+			skipOnWindows:     true,
+			expectedSize:      0,
+			expectedErr:       true,
+			shouldHavePermErr: true,
+			pathSetup: func() string {
+				secureDir := t.TempDir()
+				secretFile := filepath.Join(secureDir, "secret.txt")
+				if err := os.WriteFile(secretFile, []byte("secret"), 0644); err != nil {
+					t.Fatalf("failed to create secret file: %v", err)
+				}
+				if err := os.Chmod(secureDir, 0000); err != nil {
+					t.Fatalf("failed to change permissions: %v", err)
+				}
+				t.Cleanup(func() {
+					_ = os.Chmod(secureDir, 0755)
+				})
+				return secretFile
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.skipOnWindows && runtime.GOOS == "windows" {
+				t.Skip("Skipping permission tests on Windows")
+			}
+
+			path := tt.pathSetup()
+			size, err := lxio.Size(path)
+			hasErr := err != nil
+
+			if hasErr != tt.expectedErr {
+				t.Errorf("Size(%q) error expectation failed: expected error=%v, got error=%v (%v)", path, tt.expectedErr, hasErr, err)
+			}
+
+			if tt.shouldHavePermErr && (err == nil || !errors.Is(err, os.ErrPermission)) {
+				t.Errorf("Size(%q) expected permission error, got: %v", path, err)
+			}
+
+			if !hasErr {
+				if tt.isDirectory {
+					// Directories have platform-specific size values, just check non-negative
+					if size < 0 {
+						t.Errorf("Size(%q) directory should have non-negative size, got %d", path, size)
+					}
+				} else if size != tt.expectedSize {
+					t.Errorf("Size(%q) expected %d, got %d", path, tt.expectedSize, size)
+				}
+			}
+		})
+	}
+}
+
+func TestSizeOK(t *testing.T) {
+	testDir := t.TempDir()
+
+	// Create test files with specific sizes
+	emptyFile := filepath.Join(testDir, "empty.txt")
+	if err := os.WriteFile(emptyFile, []byte{}, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	smallFile := filepath.Join(testDir, "small.txt")
+	content := "hello"
+	if err := os.WriteFile(smallFile, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	largeFile := filepath.Join(testDir, "large.txt")
+	largeContent := string(make([]byte, 1024)) // 1024 bytes
+	if err := os.WriteFile(largeFile, []byte(largeContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	missingPath := filepath.Join(testDir, "nonexistent.txt")
+
+	tests := []struct {
+		name          string
+		pathSetup     func() string
+		skipOnWindows bool
+		expectedSize  int64
+		isDirectory   bool
+	}{
+		{
+			name:         "empty file",
+			pathSetup:    func() string { return emptyFile },
+			expectedSize: 0,
+			isDirectory:  false,
+		},
+		{
+			name:         "small file",
+			pathSetup:    func() string { return smallFile },
+			expectedSize: int64(len(content)),
+			isDirectory:  false,
+		},
+		{
+			name:         "large file",
+			pathSetup:    func() string { return largeFile },
+			expectedSize: 1024,
+			isDirectory:  false,
+		},
+		{
+			name:         "nonexistent path",
+			pathSetup:    func() string { return missingPath },
+			expectedSize: 0,
+			isDirectory:  false,
+		},
+		{
+			name:          "permission error is swallowed",
+			skipOnWindows: true,
+			expectedSize:  0,
+			pathSetup: func() string {
+				secureDir := t.TempDir()
+				secretFile := filepath.Join(secureDir, "secret.txt")
+				if err := os.WriteFile(secretFile, []byte("secret"), 0644); err != nil {
+					t.Fatalf("failed to create secret file: %v", err)
+				}
+				if err := os.Chmod(secureDir, 0000); err != nil {
+					t.Fatalf("failed to change permissions: %v", err)
+				}
+				t.Cleanup(func() {
+					_ = os.Chmod(secureDir, 0755)
+				})
+				return secretFile
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.skipOnWindows && runtime.GOOS == "windows" {
+				t.Skip("Skipping permission tests on Windows")
+			}
+
+			path := tt.pathSetup()
+			size := lxio.SizeOK(path)
+			if !tt.isDirectory && size != tt.expectedSize {
+				t.Errorf("SizeOK(%q) expected %d, got %d", path, tt.expectedSize, size)
+			}
+			if tt.isDirectory && size < 0 {
+				t.Errorf("SizeOK(%q) directory should have non-negative size, got %d", path, size)
+			}
+		})
+	}
+}
