@@ -93,3 +93,20 @@ func WithoutExtension(path string) string {
 func Abs(path string) (string, error) {
 	return filepath.Abs(path)
 }
+
+// Clean returns the shortest path name equivalent to path by purely lexical processing.
+// It removes all `.` and `..` elements, multiple consecutive slashes are replaced by a single slash,
+// and any trailing slashes are removed (except for the root path "/").
+// If the result is an empty string, Clean returns ".".
+// Clean(path) is equivalent to filepath.Clean(path).
+//
+// Example:
+//
+//	Clean("/path/to/../file.txt")      // "/path/file.txt"
+//	Clean("/path//to///file.txt")      // "/path/to/file.txt"
+//	Clean("./file.txt")                // "file.txt"
+//	Clean("/path/to/dir/")             // "/path/to/dir"
+//	Clean("../../file.txt")            // "../../file.txt"
+func Clean(path string) string {
+	return filepath.Clean(path)
+}

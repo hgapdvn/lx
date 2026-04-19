@@ -493,3 +493,111 @@ func TestAbs(t *testing.T) {
 		})
 	}
 }
+
+func TestClean(t *testing.T) {
+	tests := []struct {
+		name     string
+		path     string
+		expected string
+	}{
+		{
+			name:     "empty path returns dot",
+			path:     "",
+			expected: ".",
+		},
+		{
+			name:     "root path unchanged",
+			path:     "/",
+			expected: "/",
+		},
+		{
+			name:     "absolute path with trailing slash removed",
+			path:     "/path/to/dir/",
+			expected: "/path/to/dir",
+		},
+		{
+			name:     "removes dot current directory reference",
+			path:     "./file.txt",
+			expected: "file.txt",
+		},
+		{
+			name:     "removes multiple consecutive slashes",
+			path:     "/path//to///file.txt",
+			expected: filepath.Join("/path/to/file.txt"),
+		},
+		{
+			name:     "resolves parent directory reference",
+			path:     "/path/to/../file.txt",
+			expected: filepath.Join("/path/file.txt"),
+		},
+		{
+			name:     "resolves multiple parent directory references",
+			path:     "/path/to/../../file.txt",
+			expected: filepath.Join("/file.txt"),
+		},
+		{
+			name:     "relative path with dot",
+			path:     "./subdir/file.txt",
+			expected: filepath.Join("subdir/file.txt"),
+		},
+		{
+			name:     "relative path with parent directory",
+			path:     "dir/../file.txt",
+			expected: "file.txt",
+		},
+		{
+			name:     "leading parent directory references preserved",
+			path:     "../../file.txt",
+			expected: filepath.Join("../../file.txt"),
+		},
+		{
+			name:     "complex path normalization",
+			path:     "/path/./to/../to/file.txt",
+			expected: filepath.Join("/path/to/file.txt"),
+		},
+		{
+			name:     "path with only dots",
+			path:     ".",
+			expected: ".",
+		},
+		{
+			name:     "path with only parent references",
+			path:     "..",
+			expected: "..",
+		},
+		{
+			name:     "multiple slashes at start",
+			path:     "///path/to/file.txt",
+			expected: filepath.Join("/path/to/file.txt"),
+		},
+		{
+			name:     "trailing slashes removed",
+			path:     "/path/to/dir///",
+			expected: filepath.Join("/path/to/dir"),
+		},
+		{
+			name:     "unicode path normalized",
+			path:     "/路径//to/文件.txt",
+			expected: filepath.Join("/路径/to/文件.txt"),
+		},
+		{
+			name:     "path with spaces normalized",
+			path:     "/path/to //file name.txt",
+			expected: "/path/to /file name.txt",
+		},
+		{
+			name:     "deeply nested path normalized",
+			path:     "/a/b/c/d/e/f/g/h/../../../file.txt",
+			expected: filepath.Join("/a/b/c/d/e/file.txt"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := lxio.Clean(tt.path)
+			if result != tt.expected {
+				t.Errorf("Clean(%q) expected %q, got %q", tt.path, tt.expected, result)
+			}
+		})
+	}
+}
