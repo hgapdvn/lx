@@ -694,3 +694,180 @@ func TestIsAbs(t *testing.T) {
 		})
 	}
 }
+
+func TestIsRel(t *testing.T) {
+	tests := []struct {
+		name     string
+		path     string
+		expected bool
+	}{
+		{
+			name:     "relative path with filename",
+			path:     "file.txt",
+			expected: true,
+		},
+		{
+			name:     "relative path with current directory",
+			path:     "./file.txt",
+			expected: true,
+		},
+		{
+			name:     "relative path with parent directory",
+			path:     "../file.txt",
+			expected: true,
+		},
+		{
+			name:     "relative path with multiple levels",
+			path:     "dir/subdir/file.txt",
+			expected: true,
+		},
+		{
+			name:     "absolute path with leading slash",
+			path:     "/path/to/file.txt",
+			expected: false,
+		},
+		{
+			name:     "root path",
+			path:     "/",
+			expected: false,
+		},
+		{
+			name:     "empty path",
+			path:     "",
+			expected: true,
+		},
+		{
+			name:     "dot only",
+			path:     ".",
+			expected: true,
+		},
+		{
+			name:     "double dot only",
+			path:     "..",
+			expected: true,
+		},
+		{
+			name:     "relative path with unicode",
+			path:     "路径/到/文件.txt",
+			expected: true,
+		},
+		{
+			name:     "absolute path with unicode",
+			path:     "/路径/到/文件.txt",
+			expected: false,
+		},
+		{
+			name:     "relative path with spaces",
+			path:     "path with spaces/file.txt",
+			expected: true,
+		},
+		{
+			name:     "absolute path with spaces",
+			path:     "/path with spaces/file.txt",
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := lxio.IsRel(tt.path)
+			if result != tt.expected {
+				t.Errorf("IsRel(%q) expected %v, got %v", tt.path, tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestRel(t *testing.T) {
+	tests := []struct {
+		name        string
+		basepath    string
+		targpath    string
+		expected    string
+		expectedErr bool
+	}{
+		{
+			name:        "same directory",
+			basepath:    "/home/user",
+			targpath:    "/home/user/file.txt",
+			expected:    "file.txt",
+			expectedErr: false,
+		},
+		{
+			name:        "nested target",
+			basepath:    "/home/user",
+			targpath:    "/home/user/docs/file.txt",
+			expected:    filepath.Join("docs/file.txt"),
+			expectedErr: false,
+		},
+		{
+			name:        "parent directory",
+			basepath:    "/home/user/docs",
+			targpath:    "/home/user/file.txt",
+			expected:    filepath.Join("../file.txt"),
+			expectedErr: false,
+		},
+		{
+			name:        "sibling directories",
+			basepath:    "/home/user/docs",
+			targpath:    "/home/user/downloads/file.txt",
+			expected:    filepath.Join("../downloads/file.txt"),
+			expectedErr: false,
+		},
+		{
+			name:        "relative to relative path",
+			basepath:    "a/b",
+			targpath:    "a/b/c/d",
+			expected:    filepath.Join("c/d"),
+			expectedErr: false,
+		},
+		{
+			name:        "relative base with parent reference",
+			basepath:    "a/b/c",
+			targpath:    "a/b/file.txt",
+			expected:    filepath.Join("../file.txt"),
+			expectedErr: false,
+		},
+		{
+			name:        "same path",
+			basepath:    "/home/user/file.txt",
+			targpath:    "/home/user/file.txt",
+			expected:    ".",
+			expectedErr: false,
+		},
+		{
+			name:        "root to absolute path",
+			basepath:    "/",
+			targpath:    "/home/user/file.txt",
+			expected:    filepath.Join("home/user/file.txt"),
+			expectedErr: false,
+		},
+		{
+			name:        "deep nesting",
+			basepath:    "/a/b/c/d/e",
+			targpath:    "/a/b/c/x/y/z",
+			expected:    filepath.Join("../../x/y/z"),
+			expectedErr: false,
+		},
+		{
+			name:        "with unicode paths",
+			basepath:    "/home/user/文件",
+			targpath:    "/home/user/文件/file.txt",
+			expected:    "file.txt",
+			expectedErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := lxio.Rel(tt.basepath, tt.targpath)
+			hasErr := err != nil
+			if hasErr != tt.expectedErr {
+				t.Errorf("Rel(%q, %q) error expectation failed: expected error=%v, got error=%v (%v)", tt.basepath, tt.targpath, tt.expectedErr, hasErr, err)
+			}
+			if !hasErr && result != tt.expected {
+				t.Errorf("Rel(%q, %q) expected %q, got %q", tt.basepath, tt.targpath, tt.expected, result)
+			}
+		})
+	}
+}

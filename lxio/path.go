@@ -125,3 +125,32 @@ func Clean(path string) string {
 func IsAbs(path string) bool {
 	return filepath.IsAbs(path)
 }
+
+// IsRel reports whether the path is relative.
+// It returns true if the path is not absolute (i.e., does not begin with a root).
+// The check is purely lexical; no filesystem access is performed.
+// IsRel(path) is equivalent to !IsAbs(path).
+//
+// Example:
+//
+//	IsRel("./file.txt")     // true
+//	IsRel("file.txt")       // true
+//	IsRel("/path/to/file")  // false
+//	IsRel("C:\\Windows")    // false (Windows)
+func IsRel(path string) bool {
+	return !IsAbs(path)
+}
+
+// Rel returns a relative path from basepath to targpath.
+// It computes a path relative to basepath that refers to the same location as targpath.
+// If the paths cannot be made relative (e.g., on different drives on Windows), it returns an error.
+// Rel(basepath, targpath) is equivalent to filepath.Rel(basepath, targpath).
+//
+// Example:
+//
+//	Rel("/home/user/docs", "/home/user/docs/file.txt")  // "file.txt"
+//	Rel("/home/user/docs", "/home/user/file.txt")       // "../file.txt"
+//	Rel("a/b", "a/b/c/d")                               // "c/d"
+func Rel(basepath, targpath string) (string, error) {
+	return filepath.Rel(basepath, targpath)
+}
