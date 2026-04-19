@@ -79,3 +79,17 @@ func WithoutExtension(path string) string {
 	}
 	return strings.TrimSuffix(path, ext)
 }
+
+// Abs returns an absolute representation of the path.
+// If the path is not absolute, it is joined with the current working directory.
+// If there is an error retrieving the working directory, the error is returned.
+// Abs(path) is equivalent to filepath.Abs(path).
+//
+// Example:
+//
+//	Abs("file.txt")     // "/current/working/directory/file.txt" (Unix)
+//	Abs("/path/to/file") // "/path/to/file"
+//	Abs("./dir/file")   // "/current/working/directory/dir/file" (Unix)
+func Abs(path string) (string, error) {
+	return filepath.Abs(path)
+}

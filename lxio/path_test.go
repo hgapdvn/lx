@@ -405,3 +405,91 @@ func TestPathOperationsCombined(t *testing.T) {
 		})
 	}
 }
+
+func TestAbs(t *testing.T) {
+	tests := []struct {
+		name        string
+		path        string
+		expectedErr bool
+		expectAbs   bool
+	}{
+		// Success cases: All return absolute paths
+		{
+			name:        "absolute path unchanged",
+			path:        "/path/to/file.txt",
+			expectedErr: false,
+			expectAbs:   true,
+		},
+		{
+			name:        "relative path converted to absolute",
+			path:        "file.txt",
+			expectedErr: false,
+			expectAbs:   true,
+		},
+		{
+			name:        "relative path with dot",
+			path:        "./file.txt",
+			expectedErr: false,
+			expectAbs:   true,
+		},
+		{
+			name:        "relative path with dot slash",
+			path:        "dir/subdir/file.txt",
+			expectedErr: false,
+			expectAbs:   true,
+		},
+		{
+			name:        "parent directory reference",
+			path:        "../file.txt",
+			expectedErr: false,
+			expectAbs:   true,
+		},
+		{
+			name:        "current directory",
+			path:        ".",
+			expectedErr: false,
+			expectAbs:   true,
+		},
+		{
+			name:        "empty path returns current directory",
+			path:        "",
+			expectedErr: false,
+			expectAbs:   true,
+		},
+		{
+			name:        "path with unicode characters",
+			path:        "文件/路径/file.txt",
+			expectedErr: false,
+			expectAbs:   true,
+		},
+		{
+			name:        "path with spaces",
+			path:        "dir with spaces/file name.txt",
+			expectedErr: false,
+			expectAbs:   true,
+		},
+		{
+			name:        "deeply nested relative path",
+			path:        "a/b/c/d/e/f/g/h/file.txt",
+			expectedErr: false,
+			expectAbs:   true,
+		},
+		// Note: expectAbs: false is not applicable for Abs() because:
+		// - On success: Abs() always returns an absolute path (that's its purpose)
+		// - On error: We don't validate the path format
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := lxio.Abs(tt.path)
+			hasErr := err != nil
+			if hasErr != tt.expectedErr {
+				t.Errorf("Abs(%q) error expectation failed: expected error=%v, got error=%v", tt.path, tt.expectedErr, hasErr)
+			}
+			isAbs := filepath.IsAbs(result)
+			if !hasErr && isAbs != tt.expectAbs {
+				t.Errorf("Abs(%q) absolute path expectation failed: expected absolute=%v, got absolute=%v, result=%q", tt.path, tt.expectAbs, isAbs, result)
+			}
+		})
+	}
+}
