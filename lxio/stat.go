@@ -3,6 +3,28 @@ package lxio
 import (
 	"errors"
 	"os"
+	"time"
+)
+
+// Permission mode constants for Unix file permissions (informational only).
+// These represent standard Unix permission bits and are provided for reference,
+// but should not be relied upon to determine actual file access permissions.
+//
+// ⚠️  IMPORTANT: These constants reflect only permission bits, not actual capabilities.
+// Actual file access depends on:
+// - Process effective UID/GID and group membership
+// - ACLs (Linux/macOS)
+// - Filesystem type and mount options (NFS, Docker volumes, etc.)
+// - SELinux or AppArmor policies
+// - Process capabilities (Linux)
+// - Platform-specific security models (Windows uses ACLs, not bits)
+//
+// For checking actual access capability, use the IsReadable/IsWritable functions
+// which attempt actual file operations instead of checking bits.
+const (
+	PermExec  = 1 // Unix execute permission bit (--x) — informational only
+	PermWrite = 2 // Unix write permission bit (-w-) — informational only
+	PermRead  = 4 // Unix read permission bit (r--) — informational only
 )
 
 // ----------------------------------------------- Exists Stats -------------------------------------------------------
@@ -237,4 +259,107 @@ func Size(path string) (int64, error) {
 func SizeOK(path string) int64 {
 	size, _ := Size(path)
 	return size
+}
+
+// ---------------------------------------------- ModTime Stats  -------------------------------------------------------
+
+// ModTime returns the last modification time of the file or directory.
+// It returns an error for ambiguous failures (like Permission Denied).
+// For nonexistent paths, it returns zero time with nil error.
+func ModTime(path string) (time.Time, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			// Path doesn't exist, return zero time with no error
+			return time.Time{}, nil
+		}
+		// We can't access it, bubble up the error
+		return time.Time{}, err
+	}
+
+	return info.ModTime(), nil
+}
+
+// ---------------------------------------------- Permissions Stats  ---------------------------------------------------
+
+// IsReadable attempts to open the path for reading.
+// Returns true if the operation succeeds, false otherwise.
+// This reflects actual read permission taking into account effective UID/GID,
+// group membership, ACLs, filesystem type, and platform-specific access controls.
+// This is more reliable than checking permission bits directly.
+//
+// Note: This performs an actual file operation and is subject to TOCTOU races.
+// For security-critical operations, re-check or use atomic operations.
+func IsReadable(path string) bool {
+	f, err := os.Open(path)
+	if err != nil {
+		return false
+	}
+	f.Close()
+	return true
+}
+
+// IsWritable attempts to determine if the path is writable.
+// For files: attempts to open for writing without truncating.
+// For directories: checks if we can create a temporary file in the directory.
+// Returns true if the operation succeeds, false otherwise.
+// This reflects actual write permission taking into account effective UID/GID,
+// group membership, ACLs, filesystem type, and platform-specific access controls.
+// This is more reliable than checking permission bits directly.
+//
+// Note: This performs actual file operations and is subject to TOCTOU races.
+// For security-critical operations, re-check or use atomic operations.
+func IsWritable(path string) bool {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+
+	// For directories, try to create a temporary file
+	if info.IsDir() {
+		tempFile, err := os.CreateTemp(path, ".write-check-")
+		if err != nil {
+			return false
+		}
+		tempFile.Close()
+		os.Remove(tempFile.Name())
+		return true
+	}
+
+	// For files, try to open for writing
+	f, err := os.OpenFile(path, os.O_WRONLY, 0)
+	if err != nil {
+		return false
+	}
+	f.Close()
+	return true
+}
+
+// IsExecutable checks if the path exists and the executable bit is set in owner permissions.
+// Warning: This only checks permission bits, not actual execute capability.
+// On Unix: checks owner execute bit
+// On Windows: returns true if path exists and is a regular file (Windows doesn't use execute bits)
+//
+// This is a limited check. In real systems, execute permission depends on:
+// - Filesystem capabilities and mount options
+// - SELinux/AppArmor policies
+// - Process capabilities and sandboxing
+// The only reliable way to check if something is executable is to attempt execution.
+func IsExecutable(path string) bool {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+
+	// On Windows, execute permission doesn't apply; just check if it's a regular file
+	// os.Stat returns a mode that reflects file type but not Windows ACLs
+	if os.PathSeparator == '\\' {
+		// Windows: no execute bit model, just check file exists
+		return info.Mode().IsRegular()
+	}
+
+	// Unix: check if owner has execute permission (simplified check)
+	// This is just a best-guess based on permission bits
+	ownerPerm := (info.Mode() >> 6) & 07
+	return (ownerPerm & 1) != 0
 }

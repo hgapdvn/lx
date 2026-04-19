@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/hgapdvn/lx/lxio"
 )
@@ -1598,6 +1599,298 @@ func TestSizeOK(t *testing.T) {
 			}
 			if tt.isDirectory && size < 0 {
 				t.Errorf("SizeOK(%q) directory should have non-negative size, got %d", path, size)
+			}
+		})
+	}
+}
+
+// ======================================== ModTime Tests ========================================
+
+func TestModTime(t *testing.T) {
+	testDir := t.TempDir()
+
+	// Create a test file
+	testFile := filepath.Join(testDir, "test.txt")
+	if err := os.WriteFile(testFile, []byte("test"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a test directory
+	testSubDir := filepath.Join(testDir, "sub_dir")
+	if err := os.Mkdir(testSubDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	missingPath := filepath.Join(testDir, "nonexistent.txt")
+
+	tests := []struct {
+		name              string
+		pathSetup         func() string
+		skipOnWindows     bool
+		expectedErr       bool
+		shouldHavePermErr bool
+		shouldBeNonZero   bool
+	}{
+		{
+			name:            "file modtime",
+			pathSetup:       func() string { return testFile },
+			expectedErr:     false,
+			shouldBeNonZero: true,
+		},
+		{
+			name:            "directory modtime",
+			pathSetup:       func() string { return testSubDir },
+			expectedErr:     false,
+			shouldBeNonZero: true,
+		},
+		{
+			name:            "nonexistent path",
+			pathSetup:       func() string { return missingPath },
+			expectedErr:     false,
+			shouldBeNonZero: false,
+		},
+		{
+			name:              "permission error",
+			skipOnWindows:     true,
+			expectedErr:       true,
+			shouldHavePermErr: true,
+			pathSetup: func() string {
+				secureDir := t.TempDir()
+				secretFile := filepath.Join(secureDir, "secret.txt")
+				if err := os.WriteFile(secretFile, []byte("secret"), 0644); err != nil {
+					t.Fatalf("failed to create secret file: %v", err)
+				}
+				if err := os.Chmod(secureDir, 0000); err != nil {
+					t.Fatalf("failed to change permissions: %v", err)
+				}
+				t.Cleanup(func() {
+					_ = os.Chmod(secureDir, 0755)
+				})
+				return secretFile
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.skipOnWindows && runtime.GOOS == "windows" {
+				t.Skip("Skipping permission tests on Windows")
+			}
+
+			path := tt.pathSetup()
+			modTime, err := lxio.ModTime(path)
+			hasErr := err != nil
+
+			if hasErr != tt.expectedErr {
+				t.Errorf("ModTime(%q) error expectation failed: expected error=%v, got error=%v (%v)", path, tt.expectedErr, hasErr, err)
+			}
+
+			if tt.shouldHavePermErr && (err == nil || !errors.Is(err, os.ErrPermission)) {
+				t.Errorf("ModTime(%q) expected permission error, got: %v", path, err)
+			}
+
+			if !hasErr {
+				if tt.shouldBeNonZero && modTime == (time.Time{}) {
+					t.Errorf("ModTime(%q) expected non-zero time, got zero time", path)
+				}
+				if !tt.shouldBeNonZero && modTime != (time.Time{}) {
+					t.Errorf("ModTime(%q) expected zero time, got %v", path, modTime)
+				}
+			}
+		})
+	}
+}
+
+// ======================================== IsReadable Tests ========================================
+
+func TestIsReadable(t *testing.T) {
+	testDir := t.TempDir()
+
+	// Create a readable file
+	readableFile := filepath.Join(testDir, "readable.txt")
+	if err := os.WriteFile(readableFile, []byte("content"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create an unreadable file (if possible)
+	unreadableFile := filepath.Join(testDir, "unreadable.txt")
+	if err := os.WriteFile(unreadableFile, []byte("content"), 0000); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_ = os.Chmod(unreadableFile, 0644)
+	})
+
+	missingPath := filepath.Join(testDir, "nonexistent.txt")
+
+	tests := []struct {
+		name          string
+		pathSetup     func() string
+		skipOnWindows bool
+		expected      bool
+	}{
+		{
+			name:      "readable file",
+			pathSetup: func() string { return readableFile },
+			expected:  true,
+		},
+		{
+			name:          "unreadable file",
+			pathSetup:     func() string { return unreadableFile },
+			skipOnWindows: true,
+			expected:      false,
+		},
+		{
+			name:      "nonexistent path",
+			pathSetup: func() string { return missingPath },
+			expected:  false,
+		},
+		{
+			name:      "readable directory",
+			pathSetup: func() string { return testDir },
+			expected:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.skipOnWindows && runtime.GOOS == "windows" {
+				t.Skip("Skipping permission tests on Windows")
+			}
+
+			path := tt.pathSetup()
+			result := lxio.IsReadable(path)
+			if result != tt.expected {
+				t.Errorf("IsReadable(%q) expected %v, got %v", path, tt.expected, result)
+			}
+		})
+	}
+}
+
+// ======================================== IsWritable Tests ========================================
+
+func TestIsWritable(t *testing.T) {
+	testDir := t.TempDir()
+
+	// Create a writable file
+	writableFile := filepath.Join(testDir, "writable.txt")
+	if err := os.WriteFile(writableFile, []byte("content"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a read-only file
+	readOnlyFile := filepath.Join(testDir, "readonly.txt")
+	if err := os.WriteFile(readOnlyFile, []byte("content"), 0444); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_ = os.Chmod(readOnlyFile, 0644)
+	})
+
+	missingPath := filepath.Join(testDir, "nonexistent.txt")
+
+	tests := []struct {
+		name          string
+		pathSetup     func() string
+		skipOnWindows bool
+		expected      bool
+	}{
+		{
+			name:      "writable file",
+			pathSetup: func() string { return writableFile },
+			expected:  true,
+		},
+		{
+			name:          "read-only file",
+			pathSetup:     func() string { return readOnlyFile },
+			skipOnWindows: true,
+			expected:      false,
+		},
+		{
+			name:      "nonexistent path",
+			pathSetup: func() string { return missingPath },
+			expected:  false,
+		},
+		{
+			name:      "writable directory",
+			pathSetup: func() string { return testDir },
+			expected:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.skipOnWindows && runtime.GOOS == "windows" {
+				t.Skip("Skipping permission tests on Windows")
+			}
+
+			path := tt.pathSetup()
+			result := lxio.IsWritable(path)
+			if result != tt.expected {
+				t.Errorf("IsWritable(%q) expected %v, got %v", path, tt.expected, result)
+			}
+		})
+	}
+}
+
+// ======================================== IsExecutable Tests ========================================
+
+func TestIsExecutable(t *testing.T) {
+	testDir := t.TempDir()
+
+	// Create an executable file
+	execFile := filepath.Join(testDir, "executable")
+	if err := os.WriteFile(execFile, []byte("#!/bin/bash\necho test"), 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a non-executable file
+	nonExecFile := filepath.Join(testDir, "nonexecutable.txt")
+	if err := os.WriteFile(nonExecFile, []byte("content"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	missingPath := filepath.Join(testDir, "nonexistent.txt")
+
+	tests := []struct {
+		name          string
+		pathSetup     func() string
+		skipOnWindows bool
+		expected      bool
+	}{
+		{
+			name:      "executable file (owner bit set)",
+			pathSetup: func() string { return execFile },
+			expected:  true,
+		},
+		{
+			name:          "non-executable file (owner bit not set)",
+			pathSetup:     func() string { return nonExecFile },
+			skipOnWindows: true,
+			expected:      false,
+		},
+		{
+			name:      "nonexistent path",
+			pathSetup: func() string { return missingPath },
+			expected:  false,
+		},
+		{
+			name:      "directory (traversable)",
+			pathSetup: func() string { return testDir },
+			expected:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.skipOnWindows && runtime.GOOS == "windows" {
+				t.Skip("Skipping permission tests on Windows")
+			}
+
+			path := tt.pathSetup()
+			result := lxio.IsExecutable(path)
+			if result != tt.expected {
+				t.Errorf("IsExecutable(%q) expected %v, got %v", path, tt.expected, result)
 			}
 		})
 	}
