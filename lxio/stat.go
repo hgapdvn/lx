@@ -199,15 +199,15 @@ func MustBeSymlink(path string) bool {
 // ---------------------------------------------- Empty Stats  ----------------------------------------------------------
 
 // IsEmpty returns true if the path is empty (file is 0 bytes or directory has no entries).
-// Returns an error for ambiguous failures (like Permission Denied).
+// Returns an error for nonexistent paths or ambiguous failures (like Permission Denied).
 // For files: returns true if size is 0.
 // For directories: returns true if there are no entries.
 func IsEmpty(path string) (bool, error) {
 	info, err := os.Stat(path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			// Path doesn't exist, so we can't determine if it's empty
-			return false, nil
+			// Path doesn't exist
+			return false, err
 		}
 		// We can't access it, bubble up the error
 		return false, err
@@ -237,14 +237,14 @@ func IsEmptyOK(path string) bool {
 // ---------------------------------------------- Size Stats  ----------------------------------------------------------
 
 // Size returns the size of the file in bytes.
-// It returns an error for ambiguous failures (like Permission Denied).
+// It returns an error for nonexistent paths or ambiguous failures (like Permission Denied).
 // For directories, it returns the size of the directory itself, not the size of its contents.
 func Size(path string) (int64, error) {
 	info, err := os.Stat(path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			// Path doesn't exist, return 0 with no error
-			return 0, nil
+			// Path doesn't exist, return error
+			return 0, err
 		}
 		// We can't access it, bubble up the error
 		return 0, err
@@ -264,14 +264,13 @@ func SizeOK(path string) int64 {
 // ---------------------------------------------- ModTime Stats  -------------------------------------------------------
 
 // ModTime returns the last modification time of the file or directory.
-// It returns an error for ambiguous failures (like Permission Denied).
-// For nonexistent paths, it returns zero time with nil error.
+// It returns an error for nonexistent paths or ambiguous failures (like Permission Denied).
 func ModTime(path string) (time.Time, error) {
 	info, err := os.Stat(path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			// Path doesn't exist, return zero time with no error
-			return time.Time{}, nil
+			// Path doesn't exist, return error
+			return time.Time{}, err
 		}
 		// We can't access it, bubble up the error
 		return time.Time{}, err

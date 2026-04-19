@@ -1198,7 +1198,7 @@ func TestIsEmpty(t *testing.T) {
 			name:        "nonexistent path",
 			pathSetup:   func() string { return filepath.Join(testDir, "nonexistent") },
 			expected:    false,
-			expectedErr: false,
+			expectedErr: true,
 		},
 		{
 			name:              "permission error on file",
@@ -1454,7 +1454,7 @@ func TestSize(t *testing.T) {
 			pathSetup:    func() string { return missingPath },
 			expectedSize: 0,
 			isDirectory:  false,
-			expectedErr:  false,
+			expectedErr:  true,
 		},
 		{
 			name:              "permission error",
@@ -1646,7 +1646,7 @@ func TestModTime(t *testing.T) {
 		{
 			name:            "nonexistent path",
 			pathSetup:       func() string { return missingPath },
-			expectedErr:     false,
+			expectedErr:     true,
 			shouldBeNonZero: false,
 		},
 		{
@@ -1875,9 +1875,10 @@ func TestIsExecutable(t *testing.T) {
 			expected:  false,
 		},
 		{
-			name:      "directory (traversable)",
-			pathSetup: func() string { return testDir },
-			expected:  true,
+			name:          "directory (traversable)",
+			pathSetup:     func() string { return testDir },
+			skipOnWindows: true,
+			expected:      true,
 		},
 	}
 
