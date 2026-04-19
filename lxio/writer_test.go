@@ -911,3 +911,433 @@ func TestAppendLine(t *testing.T) {
 		}
 	})
 }
+
+// ========================= WriteWithPerm Tests =========================
+
+func TestWriteWithPerm(t *testing.T) {
+	t.Run("write with custom permissions (0755)", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "perm755.bin")
+
+		err := lxio.WriteWithPerm(path, []byte("content"), 0755)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		got, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("failed to read file: %v", err)
+		}
+		if !bytes.Equal(got, []byte("content")) {
+			t.Errorf("expected 'content', got %v", got)
+		}
+
+		// Verify permissions
+		info, err := os.Stat(path)
+		if err != nil {
+			t.Fatalf("failed to stat file: %v", err)
+		}
+		if info.Mode().Perm() != 0755 {
+			t.Errorf("expected permissions 0755, got %o", info.Mode().Perm())
+		}
+	})
+
+	t.Run("write with read-only permissions (0444)", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "readonly.bin")
+
+		err := lxio.WriteWithPerm(path, []byte("readonly"), 0444)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		got, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("failed to read file: %v", err)
+		}
+		if !bytes.Equal(got, []byte("readonly")) {
+			t.Errorf("expected 'readonly', got %v", got)
+		}
+
+		// Verify permissions
+		info, err := os.Stat(path)
+		if err != nil {
+			t.Fatalf("failed to stat file: %v", err)
+		}
+		if info.Mode().Perm() != 0444 {
+			t.Errorf("expected permissions 0444, got %o", info.Mode().Perm())
+		}
+	})
+
+	t.Run("write with executable permissions (0755)", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "executable.bin")
+
+		err := lxio.WriteWithPerm(path, []byte("#!/bin/bash"), 0755)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		info, err := os.Stat(path)
+		if err != nil {
+			t.Fatalf("failed to stat file: %v", err)
+		}
+		if info.Mode()&0100 == 0 {
+			t.Error("expected file to be executable by owner")
+		}
+	})
+
+	t.Run("overwrite with different permissions", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "changeperm.bin")
+
+		_ = lxio.WriteWithPerm(path, []byte("first"), 0644)
+		err := lxio.WriteWithPerm(path, []byte("second"), 0755)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		got, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("failed to read file: %v", err)
+		}
+		if !bytes.Equal(got, []byte("second")) {
+			t.Errorf("expected 'second', got %v", got)
+		}
+	})
+
+	t.Run("error on invalid path", func(t *testing.T) {
+		invalidPath := "/invalid/nonexistent/deeply/nested/path/file.bin"
+		err := lxio.WriteWithPerm(invalidPath, []byte("data"), 0644)
+		if err == nil {
+			t.Error("expected error for invalid path, got nil")
+		}
+	})
+}
+
+// ========================= WriteStringf Tests =========================
+
+func TestWriteStringf(t *testing.T) {
+	t.Run("write formatted string with multiple types", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "formatted.txt")
+
+		err := lxio.WriteStringf(path, "User: %s, Age: %d, Score: %.2f", "Alice", 30, 95.5)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		got, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("failed to read file: %v", err)
+		}
+		expected := "User: Alice, Age: 30, Score: 95.50"
+		if string(got) != expected {
+			t.Errorf("expected %q, got %q", expected, string(got))
+		}
+	})
+
+	t.Run("write formatted string with no arguments", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "static.txt")
+
+		err := lxio.WriteStringf(path, "static text")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		got, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("failed to read file: %v", err)
+		}
+		if string(got) != "static text" {
+			t.Errorf("expected 'static text', got %q", string(got))
+		}
+	})
+
+	t.Run("write formatted string with single argument", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "single.txt")
+
+		err := lxio.WriteStringf(path, "Number: %d", 42)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		got, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("failed to read file: %v", err)
+		}
+		if string(got) != "Number: 42" {
+			t.Errorf("expected 'Number: 42', got %q", string(got))
+		}
+	})
+
+	t.Run("overwrite with formatted string", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "overwrite.txt")
+
+		_ = lxio.WriteString(path, "old content")
+		err := lxio.WriteStringf(path, "Version: %s", "1.0.0")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		got, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("failed to read file: %v", err)
+		}
+		if string(got) != "Version: 1.0.0" {
+			t.Errorf("expected 'Version: 1.0.0', got %q", string(got))
+		}
+	})
+
+	t.Run("write formatted string with percent sign", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "percent.txt")
+
+		err := lxio.WriteStringf(path, "Progress: %d%%", 75)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		got, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("failed to read file: %v", err)
+		}
+		if string(got) != "Progress: 75%" {
+			t.Errorf("expected 'Progress: 75%%', got %q", string(got))
+		}
+	})
+
+	t.Run("error on invalid path", func(t *testing.T) {
+		invalidPath := "/invalid/nonexistent/deeply/nested/path/file.txt"
+		err := lxio.WriteStringf(invalidPath, "format %s", "test")
+		if err == nil {
+			t.Error("expected error for invalid path, got nil")
+		}
+	})
+}
+
+// ========================= AppendLines Tests =========================
+
+func TestAppendLines(t *testing.T) {
+	t.Run("append multiple lines to new file", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "new_lines.txt")
+		lines := []string{"line1", "line2", "line3"}
+
+		err := lxio.AppendLines(path, lines)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		got, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("failed to read file: %v", err)
+		}
+
+		newline := "\n"
+		if runtime.GOOS == "windows" {
+			newline = "\r\n"
+		}
+
+		expected := "line1" + newline + "line2" + newline + "line3" + newline
+		if string(got) != expected {
+			t.Errorf("expected %q, got %q", expected, string(got))
+		}
+	})
+
+	t.Run("append multiple lines to existing file", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "append_lines.txt")
+
+		_ = lxio.AppendLine(path, "existing")
+		err := lxio.AppendLines(path, []string{"new1", "new2"})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		got, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("failed to read file: %v", err)
+		}
+
+		newline := "\n"
+		if runtime.GOOS == "windows" {
+			newline = "\r\n"
+		}
+
+		expected := "existing" + newline + "new1" + newline + "new2" + newline
+		if string(got) != expected {
+			t.Errorf("expected %q, got %q", expected, string(got))
+		}
+	})
+
+	t.Run("append empty lines slice", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "empty_append.txt")
+
+		_ = lxio.WriteString(path, "original")
+		err := lxio.AppendLines(path, []string{})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		got, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("failed to read file: %v", err)
+		}
+		if string(got) != "original" {
+			t.Errorf("expected 'original', got %q", string(got))
+		}
+	})
+
+	t.Run("append lines with empty strings", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "empty_strings.txt")
+
+		err := lxio.AppendLines(path, []string{"first", "", "third"})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		got, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("failed to read file: %v", err)
+		}
+
+		newline := "\n"
+		if runtime.GOOS == "windows" {
+			newline = "\r\n"
+		}
+
+		expected := "first" + newline + newline + "third" + newline
+		if string(got) != expected {
+			t.Errorf("expected %q, got %q", expected, string(got))
+		}
+	})
+
+	t.Run("append lines with unicode", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "unicode_lines.txt")
+
+		err := lxio.AppendLines(path, []string{"hello", "世界", "🌍"})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		got, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("failed to read file: %v", err)
+		}
+
+		newline := "\n"
+		if runtime.GOOS == "windows" {
+			newline = "\r\n"
+		}
+
+		expected := "hello" + newline + "世界" + newline + "🌍" + newline
+		if string(got) != expected {
+			t.Errorf("expected %q, got %q", expected, string(got))
+		}
+	})
+
+	t.Run("error on invalid path", func(t *testing.T) {
+		invalidPath := "/invalid/nonexistent/deeply/nested/path/file.txt"
+		err := lxio.AppendLines(invalidPath, []string{"data"})
+		if err == nil {
+			t.Error("expected error for invalid path, got nil")
+		}
+	})
+}
+
+// ========================= Truncate Tests =========================
+
+func TestTruncate(t *testing.T) {
+	t.Run("truncate existing file with content", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "truncate.txt")
+
+		_ = lxio.WriteString(path, "lots of content here")
+		err := lxio.Truncate(path)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		got, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("failed to read file: %v", err)
+		}
+		if len(got) != 0 {
+			t.Errorf("expected empty file, got %q", string(got))
+		}
+	})
+
+	t.Run("truncate creates file if not exists", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "new_truncate.txt")
+
+		err := lxio.Truncate(path)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		// Verify file was created and is empty
+		info, err := os.Stat(path)
+		if err != nil {
+			t.Fatalf("file should exist: %v", err)
+		}
+		if info.Size() != 0 {
+			t.Errorf("expected file size 0, got %d", info.Size())
+		}
+	})
+
+	t.Run("truncate multiple times", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "multi_truncate.txt")
+
+		_ = lxio.WriteString(path, "first content")
+		_ = lxio.Truncate(path)
+		_ = lxio.AppendString(path, "new content")
+		err := lxio.Truncate(path)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		got, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("failed to read file: %v", err)
+		}
+		if len(got) != 0 {
+			t.Errorf("expected empty file, got %q", string(got))
+		}
+	})
+
+	t.Run("truncate large file", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "large_truncate.bin")
+
+		_ = lxio.Write(path, bytes.Repeat([]byte("x"), 100000))
+		err := lxio.Truncate(path)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		info, err := os.Stat(path)
+		if err != nil {
+			t.Fatalf("failed to stat file: %v", err)
+		}
+		if info.Size() != 0 {
+			t.Errorf("expected file size 0, got %d", info.Size())
+		}
+	})
+
+	t.Run("error on invalid path", func(t *testing.T) {
+		invalidPath := "/invalid/nonexistent/deeply/nested/path/file.txt"
+		err := lxio.Truncate(invalidPath)
+		if err == nil {
+			t.Error("expected error for invalid path, got nil")
+		}
+	})
+}
