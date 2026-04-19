@@ -50,332 +50,416 @@ func TestExists(t *testing.T) {
 	testDir, testFile, testSymlink, missingPath := setupTestEnvironment(t)
 	defer os.RemoveAll(testDir)
 
-	t.Run("file exists", func(t *testing.T) {
-		ok, err := lxio.Exists(testFile)
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-		if !ok {
-			t.Errorf("Exists() = %v, want true", ok)
-		}
-	})
+	tests := []struct {
+		name              string
+		pathSetup         func() string
+		skipOnWindows     bool
+		expected          bool
+		expectedErr       bool
+		shouldHavePermErr bool
+	}{
+		{
+			name:        "file exists",
+			pathSetup:   func() string { return testFile },
+			expected:    true,
+			expectedErr: false,
+		},
+		{
+			name:        "directory exists",
+			pathSetup:   func() string { return testDir },
+			expected:    true,
+			expectedErr: false,
+		},
+		{
+			name:        "path does not exist",
+			pathSetup:   func() string { return missingPath },
+			expected:    false,
+			expectedErr: false,
+		},
+		{
+			name:        "symlink exists",
+			pathSetup:   func() string { return testSymlink },
+			expected:    true,
+			expectedErr: false,
+		},
+		{
+			name:              "permission error",
+			skipOnWindows:     true,
+			expected:          false,
+			expectedErr:       true,
+			shouldHavePermErr: true,
+			pathSetup: func() string {
+				secureDir := t.TempDir()
+				secretFile := filepath.Join(secureDir, "secret.txt")
+				if err := os.WriteFile(secretFile, []byte("secret"), 0644); err != nil {
+					t.Fatalf("failed to create secret file: %v", err)
+				}
+				if err := os.Chmod(secureDir, 0000); err != nil {
+					t.Fatalf("failed to change permissions: %v", err)
+				}
+				t.Cleanup(func() {
+					_ = os.Chmod(secureDir, 0755)
+				})
+				return secretFile
+			},
+		},
+	}
 
-	t.Run("directory exists", func(t *testing.T) {
-		ok, err := lxio.Exists(testDir)
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-		if !ok {
-			t.Errorf("Exists() = %v, want true", ok)
-		}
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.name == "symlink exists" && runtime.GOOS == "windows" {
+				if _, err := os.Lstat(testSymlink); err != nil {
+					t.Skip("Symlink not created (normal on Windows)")
+				}
+			}
 
-	t.Run("path does not exist", func(t *testing.T) {
-		ok, err := lxio.Exists(missingPath)
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-		if ok {
-			t.Errorf("Exists() = %v, want false", ok)
-		}
-	})
+			if tt.skipOnWindows && runtime.GOOS == "windows" {
+				t.Skip("Skipping permission tests on Windows")
+			}
 
-	t.Run("symlink exists", func(t *testing.T) {
-		// Check if symlink was created
-		if _, err := os.Lstat(testSymlink); err != nil {
-			t.Skip("Symlink not created (normal on Windows)")
-		}
+			path := tt.pathSetup()
+			result, err := lxio.Exists(path)
+			hasErr := err != nil
 
-		// Exists uses os.Stat, which follows symlinks to the target
-		ok, err := lxio.Exists(testSymlink)
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-		if !ok {
-			t.Errorf("Exists() = %v, want true (symlink target exists)", ok)
-		}
-	})
+			if hasErr != tt.expectedErr {
+				t.Errorf("Exists(%q) error expectation failed: expected error=%v, got error=%v (%v)", path, tt.expectedErr, hasErr, err)
+			}
 
-	t.Run("permission error", func(t *testing.T) {
-		if runtime.GOOS == "windows" {
-			t.Skip("Skipping permission tests on Windows")
-		}
+			if tt.shouldHavePermErr && (err == nil || !errors.Is(err, os.ErrPermission)) {
+				t.Errorf("Exists(%q) expected permission error, got: %v", path, err)
+			}
 
-		secureDir := t.TempDir()
-		secretFile := filepath.Join(secureDir, "secret.txt")
-		err := os.WriteFile(secretFile, []byte("secret"), 0644)
-		if err != nil {
-			t.Fatalf("failed to create secret file: %v", err)
-		}
-
-		err = os.Chmod(secureDir, 0000)
-		if err != nil {
-			t.Fatalf("failed to change permissions: %v", err)
-		}
-		t.Cleanup(func() {
-			_ = os.Chmod(secureDir, 0755)
+			if !hasErr && result != tt.expected {
+				t.Errorf("Exists(%q) expected %v, got %v", path, tt.expected, result)
+			}
 		})
-
-		// Exists returns error on permission denied
-		ok, err := lxio.Exists(secretFile)
-		if ok {
-			t.Errorf("Exists() = %v, want false", ok)
-		}
-		if err == nil || errors.Is(err, os.ErrNotExist) {
-			t.Errorf("Exists() expected a permission error, got: %v", err)
-		}
-	})
+	}
 }
 
 func TestExistsOK(t *testing.T) {
 	testDir, testFile, _, missingPath := setupTestEnvironment(t)
 	defer os.RemoveAll(testDir)
 
-	t.Run("file exists", func(t *testing.T) {
-		ok := lxio.ExistsOK(testFile)
-		if !ok {
-			t.Errorf("ExistsOK() = %v, want true", ok)
-		}
-	})
+	tests := []struct {
+		name          string
+		pathSetup     func() string
+		skipOnWindows bool
+		expected      bool
+	}{
+		{
+			name:      "file exists",
+			pathSetup: func() string { return testFile },
+			expected:  true,
+		},
+		{
+			name:      "path does not exist",
+			pathSetup: func() string { return missingPath },
+			expected:  false,
+		},
+		{
+			name:          "permission error is swallowed",
+			skipOnWindows: true,
+			expected:      false,
+			pathSetup: func() string {
+				secureDir := t.TempDir()
+				secretFile := filepath.Join(secureDir, "secret.txt")
+				if err := os.WriteFile(secretFile, []byte("secret"), 0644); err != nil {
+					t.Fatalf("failed to create secret file: %v", err)
+				}
+				if err := os.Chmod(secureDir, 0000); err != nil {
+					t.Fatalf("failed to change permissions: %v", err)
+				}
+				t.Cleanup(func() {
+					_ = os.Chmod(secureDir, 0755)
+				})
+				return secretFile
+			},
+		},
+	}
 
-	t.Run("path does not exist", func(t *testing.T) {
-		ok := lxio.ExistsOK(missingPath)
-		if ok {
-			t.Errorf("ExistsOK() = %v, want false", ok)
-		}
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.skipOnWindows && runtime.GOOS == "windows" {
+				t.Skip("Skipping permission tests on Windows")
+			}
 
-	t.Run("permission error is swallowed", func(t *testing.T) {
-		if runtime.GOOS == "windows" {
-			t.Skip("Skipping permission tests on Windows")
-		}
-
-		secureDir := t.TempDir()
-		secretFile := filepath.Join(secureDir, "secret.txt")
-		err := os.WriteFile(secretFile, []byte("secret"), 0644)
-		if err != nil {
-			t.Fatalf("failed to create secret file: %v", err)
-		}
-
-		err = os.Chmod(secureDir, 0000)
-		if err != nil {
-			t.Fatalf("failed to change permissions: %v", err)
-		}
-		t.Cleanup(func() {
-			_ = os.Chmod(secureDir, 0755)
+			path := tt.pathSetup()
+			result := lxio.ExistsOK(path)
+			if result != tt.expected {
+				t.Errorf("ExistsOK(%q) expected %v, got %v", path, tt.expected, result)
+			}
 		})
-
-		// ExistsOK swallows permission errors and returns false
-		ok := lxio.ExistsOK(secretFile)
-		if ok {
-			t.Errorf("ExistsOK() = %v, want false", ok)
-		}
-	})
+	}
 }
 
 func TestMustExist(t *testing.T) {
 	testDir, testFile, _, _ := setupTestEnvironment(t)
 	defer os.RemoveAll(testDir)
 
-	t.Run("file exists", func(t *testing.T) {
-		ok := lxio.MustExist(testFile)
-		if !ok {
-			t.Errorf("MustExist() = %v, want true", ok)
-		}
-	})
+	tests := []struct {
+		name          string
+		pathSetup     func() string
+		skipOnWindows bool
+		expected      bool
+		shouldPanic   bool
+	}{
+		{
+			name:        "file exists",
+			pathSetup:   func() string { return testFile },
+			expected:    true,
+			shouldPanic: false,
+		},
+		{
+			name:        "path does not exist",
+			pathSetup:   func() string { return filepath.Join(testDir, "nonexistent.txt") },
+			expected:    false,
+			shouldPanic: false,
+		},
+		{
+			name:          "panics on permission error",
+			skipOnWindows: true,
+			shouldPanic:   true,
+			pathSetup: func() string {
+				secureDir := t.TempDir()
+				secretFile := filepath.Join(secureDir, "secret.txt")
+				if err := os.WriteFile(secretFile, []byte("secret"), 0644); err != nil {
+					t.Fatalf("failed to create secret file: %v", err)
+				}
+				if err := os.Chmod(secureDir, 0000); err != nil {
+					t.Fatalf("failed to change permissions: %v", err)
+				}
+				t.Cleanup(func() {
+					_ = os.Chmod(secureDir, 0755)
+				})
+				return secretFile
+			},
+		},
+	}
 
-	t.Run("path does not exist returns false", func(t *testing.T) {
-		missingPath := filepath.Join(testDir, "nonexistent.txt")
-		ok := lxio.MustExist(missingPath)
-		if ok {
-			t.Errorf("MustExist() = %v, want false", ok)
-		}
-	})
-
-	t.Run("panics on permission error", func(t *testing.T) {
-		if runtime.GOOS == "windows" {
-			t.Skip("Skipping permission tests on Windows")
-		}
-
-		secureDir := t.TempDir()
-		secretFile := filepath.Join(secureDir, "secret.txt")
-		err := os.WriteFile(secretFile, []byte("secret"), 0644)
-		if err != nil {
-			t.Fatalf("failed to create secret file: %v", err)
-		}
-
-		err = os.Chmod(secureDir, 0000)
-		if err != nil {
-			t.Fatalf("failed to change permissions: %v", err)
-		}
-		t.Cleanup(func() {
-			_ = os.Chmod(secureDir, 0755)
-		})
-
-		defer func() {
-			if recover() == nil {
-				t.Errorf("MustExist() should panic on permission error")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.skipOnWindows && runtime.GOOS == "windows" {
+				t.Skip("Skipping permission tests on Windows")
 			}
-		}()
-		lxio.MustExist(secretFile)
-	})
+
+			path := tt.pathSetup()
+
+			if tt.shouldPanic {
+				defer func() {
+					if recover() == nil {
+						t.Errorf("MustExist(%q) should panic", path)
+					}
+				}()
+			}
+
+			result := lxio.MustExist(path)
+			if !tt.shouldPanic && result != tt.expected {
+				t.Errorf("MustExist(%q) expected %v, got %v", path, tt.expected, result)
+			}
+		})
+	}
 }
 
 func TestNotExists(t *testing.T) {
 	testDir, testFile, _, missingPath := setupTestEnvironment(t)
 	defer os.RemoveAll(testDir)
 
-	t.Run("file exists", func(t *testing.T) {
-		ok, err := lxio.NotExists(testFile)
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-		if ok {
-			t.Errorf("NotExists() = %v, want false", ok)
-		}
-	})
+	tests := []struct {
+		name              string
+		pathSetup         func() string
+		skipOnWindows     bool
+		expected          bool
+		expectedErr       bool
+		shouldHavePermErr bool
+	}{
+		{
+			name:        "file exists",
+			pathSetup:   func() string { return testFile },
+			expected:    false,
+			expectedErr: false,
+		},
+		{
+			name:        "path does not exist",
+			pathSetup:   func() string { return missingPath },
+			expected:    true,
+			expectedErr: false,
+		},
+		{
+			name:              "permission error",
+			skipOnWindows:     true,
+			expected:          false,
+			expectedErr:       true,
+			shouldHavePermErr: true,
+			pathSetup: func() string {
+				secureDir := t.TempDir()
+				secretFile := filepath.Join(secureDir, "secret.txt")
+				if err := os.WriteFile(secretFile, []byte("secret"), 0644); err != nil {
+					t.Fatalf("failed to create secret file: %v", err)
+				}
+				if err := os.Chmod(secureDir, 0000); err != nil {
+					t.Fatalf("failed to change permissions: %v", err)
+				}
+				t.Cleanup(func() {
+					_ = os.Chmod(secureDir, 0755)
+				})
+				return secretFile
+			},
+		},
+	}
 
-	t.Run("path does not exist", func(t *testing.T) {
-		ok, err := lxio.NotExists(missingPath)
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-		if !ok {
-			t.Errorf("NotExists() = %v, want true", ok)
-		}
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.skipOnWindows && runtime.GOOS == "windows" {
+				t.Skip("Skipping permission tests on Windows")
+			}
 
-	t.Run("permission error", func(t *testing.T) {
-		if runtime.GOOS == "windows" {
-			t.Skip("Skipping permission tests on Windows")
-		}
+			path := tt.pathSetup()
+			result, err := lxio.NotExists(path)
+			hasErr := err != nil
 
-		secureDir := t.TempDir()
-		secretFile := filepath.Join(secureDir, "secret.txt")
-		err := os.WriteFile(secretFile, []byte("secret"), 0644)
-		if err != nil {
-			t.Fatalf("failed to create secret file: %v", err)
-		}
+			if hasErr != tt.expectedErr {
+				t.Errorf("NotExists(%q) error expectation failed: expected error=%v, got error=%v (%v)", path, tt.expectedErr, hasErr, err)
+			}
 
-		err = os.Chmod(secureDir, 0000)
-		if err != nil {
-			t.Fatalf("failed to change permissions: %v", err)
-		}
-		t.Cleanup(func() {
-			_ = os.Chmod(secureDir, 0755)
+			if tt.shouldHavePermErr && (err == nil || !errors.Is(err, os.ErrPermission)) {
+				t.Errorf("NotExists(%q) expected permission error, got: %v", path, err)
+			}
+
+			if !hasErr && result != tt.expected {
+				t.Errorf("NotExists(%q) expected %v, got %v", path, tt.expected, result)
+			}
 		})
-
-		// NotExists returns error on permission denied
-		// Returns (false, error)—conservative when existence is ambiguous
-		ok, err := lxio.NotExists(secretFile)
-		if ok {
-			t.Errorf("NotExists() = %v, want false", ok)
-		}
-		if err == nil || errors.Is(err, os.ErrNotExist) {
-			t.Errorf("NotExists() expected a permission error, got: %v", err)
-		}
-	})
+	}
 }
 
 func TestNotExistsOK(t *testing.T) {
 	testDir, testFile, _, missingPath := setupTestEnvironment(t)
 	defer os.RemoveAll(testDir)
 
-	t.Run("file exists", func(t *testing.T) {
-		ok := lxio.NotExistsOK(testFile)
-		if ok {
-			t.Errorf("NotExistsOK() = %v, want false", ok)
-		}
-	})
+	tests := []struct {
+		name          string
+		pathSetup     func() string
+		skipOnWindows bool
+		expected      bool
+	}{
+		{
+			name:      "file exists",
+			pathSetup: func() string { return testFile },
+			expected:  false,
+		},
+		{
+			name:      "path does not exist",
+			pathSetup: func() string { return missingPath },
+			expected:  true,
+		},
+		{
+			name:          "permission error is swallowed",
+			skipOnWindows: true,
+			expected:      false,
+			pathSetup: func() string {
+				secureDir := t.TempDir()
+				secretFile := filepath.Join(secureDir, "secret.txt")
+				if err := os.WriteFile(secretFile, []byte("secret"), 0644); err != nil {
+					t.Fatalf("failed to create secret file: %v", err)
+				}
+				if err := os.Chmod(secureDir, 0000); err != nil {
+					t.Fatalf("failed to change permissions: %v", err)
+				}
+				t.Cleanup(func() {
+					_ = os.Chmod(secureDir, 0755)
+				})
+				return secretFile
+			},
+		},
+	}
 
-	t.Run("path does not exist", func(t *testing.T) {
-		ok := lxio.NotExistsOK(missingPath)
-		if !ok {
-			t.Errorf("NotExistsOK() = %v, want true", ok)
-		}
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.skipOnWindows && runtime.GOOS == "windows" {
+				t.Skip("Skipping permission tests on Windows")
+			}
 
-	t.Run("permission error is swallowed", func(t *testing.T) {
-		if runtime.GOOS == "windows" {
-			t.Skip("Skipping permission tests on Windows")
-		}
-
-		secureDir := t.TempDir()
-		secretFile := filepath.Join(secureDir, "secret.txt")
-		err := os.WriteFile(secretFile, []byte("secret"), 0644)
-		if err != nil {
-			t.Fatalf("failed to create secret file: %v", err)
-		}
-
-		err = os.Chmod(secureDir, 0000)
-		if err != nil {
-			t.Fatalf("failed to change permissions: %v", err)
-		}
-		t.Cleanup(func() {
-			_ = os.Chmod(secureDir, 0755)
+			path := tt.pathSetup()
+			result := lxio.NotExistsOK(path)
+			if result != tt.expected {
+				t.Errorf("NotExistsOK(%q) expected %v, got %v", path, tt.expected, result)
+			}
 		})
-
-		// NotExistsOK swallows permission errors and returns false
-		// Conservative: when we can't determine existence, assume the file exists or is inaccessible
-		ok := lxio.NotExistsOK(secretFile)
-		if ok {
-			t.Errorf("NotExistsOK() = %v, want false", ok)
-		}
-	})
+	}
 }
 
 func TestMustNotExist(t *testing.T) {
 	testDir, testFile, _, missingPath := setupTestEnvironment(t)
 	defer os.RemoveAll(testDir)
 
-	t.Run("path does not exist returns true", func(t *testing.T) {
-		ok := lxio.MustNotExist(missingPath)
-		if !ok {
-			t.Errorf("MustNotExist() = %v, want true", ok)
-		}
-	})
+	tests := []struct {
+		name          string
+		pathSetup     func() string
+		skipOnWindows bool
+		expected      bool
+		shouldPanic   bool
+	}{
+		{
+			name:        "path does not exist",
+			pathSetup:   func() string { return missingPath },
+			expected:    true,
+			shouldPanic: false,
+		},
+		{
+			name:        "file exists",
+			pathSetup:   func() string { return testFile },
+			expected:    false,
+			shouldPanic: false,
+		},
+		{
+			name:        "directory exists",
+			pathSetup:   func() string { return testDir },
+			expected:    false,
+			shouldPanic: false,
+		},
+		{
+			name:          "panics on permission error",
+			skipOnWindows: true,
+			shouldPanic:   true,
+			pathSetup: func() string {
+				secureDir := t.TempDir()
+				secretFile := filepath.Join(secureDir, "secret.txt")
+				if err := os.WriteFile(secretFile, []byte("secret"), 0644); err != nil {
+					t.Fatalf("failed to create secret file: %v", err)
+				}
+				if err := os.Chmod(secureDir, 0000); err != nil {
+					t.Fatalf("failed to change permissions: %v", err)
+				}
+				t.Cleanup(func() {
+					_ = os.Chmod(secureDir, 0755)
+				})
+				return secretFile
+			},
+		},
+	}
 
-	t.Run("file exists returns false", func(t *testing.T) {
-		ok := lxio.MustNotExist(testFile)
-		if ok {
-			t.Errorf("MustNotExist() = %v, want false", ok)
-		}
-	})
-
-	t.Run("directory exists returns false", func(t *testing.T) {
-		ok := lxio.MustNotExist(testDir)
-		if ok {
-			t.Errorf("MustNotExist() = %v, want false", ok)
-		}
-	})
-
-	t.Run("panics on permission error", func(t *testing.T) {
-		if runtime.GOOS == "windows" {
-			t.Skip("Skipping permission tests on Windows")
-		}
-
-		secureDir := t.TempDir()
-		secretFile := filepath.Join(secureDir, "secret.txt")
-		err := os.WriteFile(secretFile, []byte("secret"), 0644)
-		if err != nil {
-			t.Fatalf("failed to create secret file: %v", err)
-		}
-
-		err = os.Chmod(secureDir, 0000)
-		if err != nil {
-			t.Fatalf("failed to change permissions: %v", err)
-		}
-		t.Cleanup(func() {
-			_ = os.Chmod(secureDir, 0755)
-		})
-
-		defer func() {
-			if recover() == nil {
-				t.Errorf("MustNotExist() should panic on permission error")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.skipOnWindows && runtime.GOOS == "windows" {
+				t.Skip("Skipping permission tests on Windows")
 			}
-		}()
-		lxio.MustNotExist(secretFile)
-	})
+
+			path := tt.pathSetup()
+
+			if tt.shouldPanic {
+				defer func() {
+					if recover() == nil {
+						t.Errorf("MustNotExist(%q) should panic", path)
+					}
+				}()
+			}
+
+			result := lxio.MustNotExist(path)
+			if !tt.shouldPanic && result != tt.expected {
+				t.Errorf("MustNotExist(%q) expected %v, got %v", path, tt.expected, result)
+			}
+		})
+	}
 }
 
 // ======================================== IsDir Tests ========================================
@@ -384,165 +468,208 @@ func TestIsDir(t *testing.T) {
 	testDir, testFile, _, missingPath := setupTestEnvironment(t)
 	defer os.RemoveAll(testDir)
 
-	t.Run("directory returns true", func(t *testing.T) {
-		ok, err := lxio.IsDir(testDir)
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-		if !ok {
-			t.Errorf("IsDir() = %v, want true", ok)
-		}
-	})
+	tests := []struct {
+		name              string
+		pathSetup         func() string
+		skipOnWindows     bool
+		expected          bool
+		expectedErr       bool
+		shouldHavePermErr bool
+	}{
+		{
+			name:        "directory returns true",
+			pathSetup:   func() string { return testDir },
+			expected:    true,
+			expectedErr: false,
+		},
+		{
+			name:        "file returns false",
+			pathSetup:   func() string { return testFile },
+			expected:    false,
+			expectedErr: false,
+		},
+		{
+			name:        "missing path returns false",
+			pathSetup:   func() string { return missingPath },
+			expected:    false,
+			expectedErr: false,
+		},
+		{
+			name:              "permission error",
+			skipOnWindows:     true,
+			expected:          false,
+			expectedErr:       true,
+			shouldHavePermErr: true,
+			pathSetup: func() string {
+				secureDir := t.TempDir()
+				secretFile := filepath.Join(secureDir, "secret.txt")
+				if err := os.WriteFile(secretFile, []byte("secret"), 0644); err != nil {
+					t.Fatalf("failed to create secret file: %v", err)
+				}
+				if err := os.Chmod(secureDir, 0000); err != nil {
+					t.Fatalf("failed to change permissions: %v", err)
+				}
+				t.Cleanup(func() {
+					_ = os.Chmod(secureDir, 0755)
+				})
+				return secretFile
+			},
+		},
+	}
 
-	t.Run("file returns false", func(t *testing.T) {
-		ok, err := lxio.IsDir(testFile)
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-		if ok {
-			t.Errorf("IsDir() = %v, want false", ok)
-		}
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.skipOnWindows && runtime.GOOS == "windows" {
+				t.Skip("Skipping permission tests on Windows")
+			}
 
-	t.Run("missing path returns false", func(t *testing.T) {
-		ok, err := lxio.IsDir(missingPath)
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-		if ok {
-			t.Errorf("IsDir() = %v, want false", ok)
-		}
-	})
+			path := tt.pathSetup()
+			result, err := lxio.IsDir(path)
+			hasErr := err != nil
 
-	t.Run("permission error", func(t *testing.T) {
-		if runtime.GOOS == "windows" {
-			t.Skip("Skipping permission tests on Windows")
-		}
+			if hasErr != tt.expectedErr {
+				t.Errorf("IsDir(%q) error expectation failed: expected error=%v, got error=%v (%v)", path, tt.expectedErr, hasErr, err)
+			}
 
-		secureDir := t.TempDir()
-		secretFile := filepath.Join(secureDir, "secret.txt")
-		err := os.WriteFile(secretFile, []byte("secret"), 0644)
-		if err != nil {
-			t.Fatalf("failed to create secret file: %v", err)
-		}
+			if tt.shouldHavePermErr && (err == nil || !errors.Is(err, os.ErrPermission)) {
+				t.Errorf("IsDir(%q) expected permission error, got: %v", path, err)
+			}
 
-		err = os.Chmod(secureDir, 0000)
-		if err != nil {
-			t.Fatalf("failed to change permissions: %v", err)
-		}
-		t.Cleanup(func() {
-			_ = os.Chmod(secureDir, 0755)
+			if !hasErr && result != tt.expected {
+				t.Errorf("IsDir(%q) expected %v, got %v", path, tt.expected, result)
+			}
 		})
-
-		// IsDir returns error on permission denied
-		ok, err := lxio.IsDir(secretFile)
-		if ok {
-			t.Errorf("IsDir() = %v, want false", ok)
-		}
-		if err == nil || errors.Is(err, os.ErrNotExist) {
-			t.Errorf("IsDir() expected a permission error, got: %v", err)
-		}
-	})
+	}
 }
 
 func TestIsDirOK(t *testing.T) {
 	testDir, testFile, _, _ := setupTestEnvironment(t)
 	defer os.RemoveAll(testDir)
 
-	t.Run("directory returns true", func(t *testing.T) {
-		ok := lxio.IsDirOK(testDir)
-		if !ok {
-			t.Errorf("IsDirOK() = %v, want true", ok)
-		}
-	})
+	tests := []struct {
+		name          string
+		pathSetup     func() string
+		skipOnWindows bool
+		expected      bool
+	}{
+		{
+			name:      "directory returns true",
+			pathSetup: func() string { return testDir },
+			expected:  true,
+		},
+		{
+			name:      "file returns false",
+			pathSetup: func() string { return testFile },
+			expected:  false,
+		},
+		{
+			name:          "permission error is swallowed",
+			skipOnWindows: true,
+			expected:      false,
+			pathSetup: func() string {
+				secureDir := t.TempDir()
+				secretFile := filepath.Join(secureDir, "secret.txt")
+				if err := os.WriteFile(secretFile, []byte("secret"), 0644); err != nil {
+					t.Fatalf("failed to create secret file: %v", err)
+				}
+				if err := os.Chmod(secureDir, 0000); err != nil {
+					t.Fatalf("failed to change permissions: %v", err)
+				}
+				t.Cleanup(func() {
+					_ = os.Chmod(secureDir, 0755)
+				})
+				return secretFile
+			},
+		},
+	}
 
-	t.Run("file returns false", func(t *testing.T) {
-		ok := lxio.IsDirOK(testFile)
-		if ok {
-			t.Errorf("IsDirOK() = %v, want false", ok)
-		}
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.skipOnWindows && runtime.GOOS == "windows" {
+				t.Skip("Skipping permission tests on Windows")
+			}
 
-	t.Run("permission error is swallowed", func(t *testing.T) {
-		if runtime.GOOS == "windows" {
-			t.Skip("Skipping permission tests on Windows")
-		}
-
-		secureDir := t.TempDir()
-		secretFile := filepath.Join(secureDir, "secret.txt")
-		err := os.WriteFile(secretFile, []byte("secret"), 0644)
-		if err != nil {
-			t.Fatalf("failed to create secret file: %v", err)
-		}
-
-		err = os.Chmod(secureDir, 0000)
-		if err != nil {
-			t.Fatalf("failed to change permissions: %v", err)
-		}
-		t.Cleanup(func() {
-			_ = os.Chmod(secureDir, 0755)
+			path := tt.pathSetup()
+			result := lxio.IsDirOK(path)
+			if result != tt.expected {
+				t.Errorf("IsDirOK(%q) expected %v, got %v", path, tt.expected, result)
+			}
 		})
-
-		// IsDirOK swallows permission errors and returns false
-		ok := lxio.IsDirOK(secretFile)
-		if ok {
-			t.Errorf("IsDirOK() = %v, want false", ok)
-		}
-	})
+	}
 }
 
 func TestMustBeDir(t *testing.T) {
 	testDir, testFile, _, missingPath := setupTestEnvironment(t)
 	defer os.RemoveAll(testDir)
 
-	t.Run("directory returns true", func(t *testing.T) {
-		ok := lxio.MustBeDir(testDir)
-		if !ok {
-			t.Errorf("MustBeDir() = %v, want true", ok)
-		}
-	})
+	tests := []struct {
+		name          string
+		pathSetup     func() string
+		skipOnWindows bool
+		expected      bool
+		shouldPanic   bool
+	}{
+		{
+			name:        "directory returns true",
+			pathSetup:   func() string { return testDir },
+			expected:    true,
+			shouldPanic: false,
+		},
+		{
+			name:        "file returns false",
+			pathSetup:   func() string { return testFile },
+			expected:    false,
+			shouldPanic: false,
+		},
+		{
+			name:        "missing path returns false",
+			pathSetup:   func() string { return missingPath },
+			expected:    false,
+			shouldPanic: false,
+		},
+		{
+			name:          "panics on permission error",
+			skipOnWindows: true,
+			shouldPanic:   true,
+			pathSetup: func() string {
+				secureDir := t.TempDir()
+				secretFile := filepath.Join(secureDir, "secret.txt")
+				if err := os.WriteFile(secretFile, []byte("secret"), 0644); err != nil {
+					t.Fatalf("failed to create secret file: %v", err)
+				}
+				if err := os.Chmod(secureDir, 0000); err != nil {
+					t.Fatalf("failed to change permissions: %v", err)
+				}
+				t.Cleanup(func() {
+					_ = os.Chmod(secureDir, 0755)
+				})
+				return secretFile
+			},
+		},
+	}
 
-	t.Run("file returns false", func(t *testing.T) {
-		ok := lxio.MustBeDir(testFile)
-		if ok {
-			t.Errorf("MustBeDir() = %v, want false", ok)
-		}
-	})
-
-	t.Run("missing path returns false", func(t *testing.T) {
-		ok := lxio.MustBeDir(missingPath)
-		if ok {
-			t.Errorf("MustBeDir() = %v, want false", ok)
-		}
-	})
-
-	t.Run("panics on permission error", func(t *testing.T) {
-		if runtime.GOOS == "windows" {
-			t.Skip("Skipping permission tests on Windows")
-		}
-
-		secureDir := t.TempDir()
-		secretFile := filepath.Join(secureDir, "secret.txt")
-		err := os.WriteFile(secretFile, []byte("secret"), 0644)
-		if err != nil {
-			t.Fatalf("failed to create secret file: %v", err)
-		}
-
-		err = os.Chmod(secureDir, 0000)
-		if err != nil {
-			t.Fatalf("failed to change permissions: %v", err)
-		}
-		t.Cleanup(func() {
-			_ = os.Chmod(secureDir, 0755)
-		})
-
-		defer func() {
-			if recover() == nil {
-				t.Errorf("MustBeDir() should panic on permission error")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.skipOnWindows && runtime.GOOS == "windows" {
+				t.Skip("Skipping permission tests on Windows")
 			}
-		}()
-		lxio.MustBeDir(secretFile)
-	})
+
+			path := tt.pathSetup()
+
+			if tt.shouldPanic {
+				defer func() {
+					if recover() == nil {
+						t.Errorf("MustBeDir(%q) should panic", path)
+					}
+				}()
+			}
+
+			result := lxio.MustBeDir(path)
+			if !tt.shouldPanic && result != tt.expected {
+				t.Errorf("MustBeDir(%q) expected %v, got %v", path, tt.expected, result)
+			}
+		})
+	}
 }
 
 // ======================================== IsFile Tests ========================================
@@ -551,181 +678,220 @@ func TestIsFile(t *testing.T) {
 	testDir, testFile, testSymlink, missingPath := setupTestEnvironment(t)
 	defer os.RemoveAll(testDir)
 
-	t.Run("file returns true", func(t *testing.T) {
-		ok, err := lxio.IsFile(testFile)
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-		if !ok {
-			t.Errorf("IsFile() = %v, want true", ok)
-		}
-	})
+	tests := []struct {
+		name              string
+		pathSetup         func() string
+		skipOnWindows     bool
+		expected          bool
+		expectedErr       bool
+		shouldHavePermErr bool
+	}{
+		{
+			name:        "file returns true",
+			pathSetup:   func() string { return testFile },
+			expected:    true,
+			expectedErr: false,
+		},
+		{
+			name:        "directory returns false",
+			pathSetup:   func() string { return testDir },
+			expected:    false,
+			expectedErr: false,
+		},
+		{
+			name:        "missing path returns false",
+			pathSetup:   func() string { return missingPath },
+			expected:    false,
+			expectedErr: false,
+		},
+		{
+			name:        "symlink returns true",
+			pathSetup:   func() string { return testSymlink },
+			expected:    true,
+			expectedErr: false,
+		},
+		{
+			name:              "permission error",
+			skipOnWindows:     true,
+			expected:          false,
+			expectedErr:       true,
+			shouldHavePermErr: true,
+			pathSetup: func() string {
+				secureDir := t.TempDir()
+				secretFile := filepath.Join(secureDir, "secret.txt")
+				if err := os.WriteFile(secretFile, []byte("secret"), 0644); err != nil {
+					t.Fatalf("failed to create secret file: %v", err)
+				}
+				if err := os.Chmod(secureDir, 0000); err != nil {
+					t.Fatalf("failed to change permissions: %v", err)
+				}
+				t.Cleanup(func() {
+					_ = os.Chmod(secureDir, 0755)
+				})
+				return secretFile
+			},
+		},
+	}
 
-	t.Run("directory returns false", func(t *testing.T) {
-		ok, err := lxio.IsFile(testDir)
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-		if ok {
-			t.Errorf("IsFile() = %v, want false", ok)
-		}
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.name == "symlink returns true" && runtime.GOOS == "windows" {
+				if _, err := os.Lstat(testSymlink); err != nil {
+					t.Skip("Symlink not created (normal on Windows)")
+				}
+			}
 
-	t.Run("missing path returns false", func(t *testing.T) {
-		ok, err := lxio.IsFile(missingPath)
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-		if ok {
-			t.Errorf("IsFile() = %v, want false", ok)
-		}
-	})
+			if tt.skipOnWindows && runtime.GOOS == "windows" {
+				t.Skip("Skipping permission tests on Windows")
+			}
 
-	t.Run("symlink returns true", func(t *testing.T) {
-		// Check if symlink was created
-		if _, err := os.Lstat(testSymlink); err != nil {
-			t.Skip("Symlink not created (normal on Windows)")
-		}
+			path := tt.pathSetup()
+			result, err := lxio.IsFile(path)
+			hasErr := err != nil
 
-		// IsFile uses os.Stat, which follows symlinks to the target file
-		ok, err := lxio.IsFile(testSymlink)
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-		if !ok {
-			t.Errorf("IsFile() = %v, want true (symlink target is a file)", ok)
-		}
-	})
+			if hasErr != tt.expectedErr {
+				t.Errorf("IsFile(%q) error expectation failed: expected error=%v, got error=%v (%v)", path, tt.expectedErr, hasErr, err)
+			}
 
-	t.Run("permission error", func(t *testing.T) {
-		if runtime.GOOS == "windows" {
-			t.Skip("Skipping permission tests on Windows")
-		}
+			if tt.shouldHavePermErr && (err == nil || !errors.Is(err, os.ErrPermission)) {
+				t.Errorf("IsFile(%q) expected permission error, got: %v", path, err)
+			}
 
-		secureDir := t.TempDir()
-		secretFile := filepath.Join(secureDir, "secret.txt")
-		err := os.WriteFile(secretFile, []byte("secret"), 0644)
-		if err != nil {
-			t.Fatalf("failed to create secret file: %v", err)
-		}
-
-		err = os.Chmod(secureDir, 0000)
-		if err != nil {
-			t.Fatalf("failed to change permissions: %v", err)
-		}
-		t.Cleanup(func() {
-			_ = os.Chmod(secureDir, 0755)
+			if !hasErr && result != tt.expected {
+				t.Errorf("IsFile(%q) expected %v, got %v", path, tt.expected, result)
+			}
 		})
-
-		// IsFile returns error on permission denied
-		ok, err := lxio.IsFile(secretFile)
-		if ok {
-			t.Errorf("IsFile() = %v, want false", ok)
-		}
-		if err == nil || errors.Is(err, os.ErrNotExist) {
-			t.Errorf("IsFile() expected a permission error, got: %v", err)
-		}
-	})
+	}
 }
 
 func TestIsFileOK(t *testing.T) {
 	testDir, testFile, _, _ := setupTestEnvironment(t)
 	defer os.RemoveAll(testDir)
 
-	t.Run("file returns true", func(t *testing.T) {
-		ok := lxio.IsFileOK(testFile)
-		if !ok {
-			t.Errorf("IsFileOK() = %v, want true", ok)
-		}
-	})
+	tests := []struct {
+		name          string
+		pathSetup     func() string
+		skipOnWindows bool
+		expected      bool
+	}{
+		{
+			name:      "file returns true",
+			pathSetup: func() string { return testFile },
+			expected:  true,
+		},
+		{
+			name:      "directory returns false",
+			pathSetup: func() string { return testDir },
+			expected:  false,
+		},
+		{
+			name:          "permission error is swallowed",
+			skipOnWindows: true,
+			expected:      false,
+			pathSetup: func() string {
+				secureDir := t.TempDir()
+				secretFile := filepath.Join(secureDir, "secret.txt")
+				if err := os.WriteFile(secretFile, []byte("secret"), 0644); err != nil {
+					t.Fatalf("failed to create secret file: %v", err)
+				}
+				if err := os.Chmod(secureDir, 0000); err != nil {
+					t.Fatalf("failed to change permissions: %v", err)
+				}
+				t.Cleanup(func() {
+					_ = os.Chmod(secureDir, 0755)
+				})
+				return secretFile
+			},
+		},
+	}
 
-	t.Run("directory returns false", func(t *testing.T) {
-		ok := lxio.IsFileOK(testDir)
-		if ok {
-			t.Errorf("IsFileOK() = %v, want false", ok)
-		}
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.skipOnWindows && runtime.GOOS == "windows" {
+				t.Skip("Skipping permission tests on Windows")
+			}
 
-	t.Run("permission error is swallowed", func(t *testing.T) {
-		if runtime.GOOS == "windows" {
-			t.Skip("Skipping permission tests on Windows")
-		}
-
-		secureDir := t.TempDir()
-		secretFile := filepath.Join(secureDir, "secret.txt")
-		err := os.WriteFile(secretFile, []byte("secret"), 0644)
-		if err != nil {
-			t.Fatalf("failed to create secret file: %v", err)
-		}
-
-		err = os.Chmod(secureDir, 0000)
-		if err != nil {
-			t.Fatalf("failed to change permissions: %v", err)
-		}
-		t.Cleanup(func() {
-			_ = os.Chmod(secureDir, 0755)
+			path := tt.pathSetup()
+			result := lxio.IsFileOK(path)
+			if result != tt.expected {
+				t.Errorf("IsFileOK(%q) expected %v, got %v", path, tt.expected, result)
+			}
 		})
-
-		// IsFileOK swallows permission errors and returns false
-		ok := lxio.IsFileOK(secretFile)
-		if ok {
-			t.Errorf("IsFileOK() = %v, want false", ok)
-		}
-	})
+	}
 }
 
 func TestMustBeFile(t *testing.T) {
 	testDir, testFile, _, missingPath := setupTestEnvironment(t)
 	defer os.RemoveAll(testDir)
 
-	t.Run("file returns true", func(t *testing.T) {
-		ok := lxio.MustBeFile(testFile)
-		if !ok {
-			t.Errorf("MustBeFile() = %v, want true", ok)
-		}
-	})
+	tests := []struct {
+		name          string
+		pathSetup     func() string
+		skipOnWindows bool
+		expected      bool
+		shouldPanic   bool
+	}{
+		{
+			name:        "file returns true",
+			pathSetup:   func() string { return testFile },
+			expected:    true,
+			shouldPanic: false,
+		},
+		{
+			name:        "directory returns false",
+			pathSetup:   func() string { return testDir },
+			expected:    false,
+			shouldPanic: false,
+		},
+		{
+			name:        "missing path returns false",
+			pathSetup:   func() string { return missingPath },
+			expected:    false,
+			shouldPanic: false,
+		},
+		{
+			name:          "panics on permission error",
+			skipOnWindows: true,
+			shouldPanic:   true,
+			pathSetup: func() string {
+				secureDir := t.TempDir()
+				secretFile := filepath.Join(secureDir, "secret.txt")
+				if err := os.WriteFile(secretFile, []byte("secret"), 0644); err != nil {
+					t.Fatalf("failed to create secret file: %v", err)
+				}
+				if err := os.Chmod(secureDir, 0000); err != nil {
+					t.Fatalf("failed to change permissions: %v", err)
+				}
+				t.Cleanup(func() {
+					_ = os.Chmod(secureDir, 0755)
+				})
+				return secretFile
+			},
+		},
+	}
 
-	t.Run("directory returns false", func(t *testing.T) {
-		ok := lxio.MustBeFile(testDir)
-		if ok {
-			t.Errorf("MustBeFile() = %v, want false", ok)
-		}
-	})
-
-	t.Run("missing path returns false", func(t *testing.T) {
-		ok := lxio.MustBeFile(missingPath)
-		if ok {
-			t.Errorf("MustBeFile() = %v, want false", ok)
-		}
-	})
-
-	t.Run("panics on permission error", func(t *testing.T) {
-		if runtime.GOOS == "windows" {
-			t.Skip("Skipping permission tests on Windows")
-		}
-
-		secureDir := t.TempDir()
-		secretFile := filepath.Join(secureDir, "secret.txt")
-		err := os.WriteFile(secretFile, []byte("secret"), 0644)
-		if err != nil {
-			t.Fatalf("failed to create secret file: %v", err)
-		}
-
-		err = os.Chmod(secureDir, 0000)
-		if err != nil {
-			t.Fatalf("failed to change permissions: %v", err)
-		}
-		t.Cleanup(func() {
-			_ = os.Chmod(secureDir, 0755)
-		})
-
-		defer func() {
-			if recover() == nil {
-				t.Errorf("MustBeFile() should panic on permission error")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.skipOnWindows && runtime.GOOS == "windows" {
+				t.Skip("Skipping permission tests on Windows")
 			}
-		}()
-		lxio.MustBeFile(secretFile)
-	})
+
+			path := tt.pathSetup()
+
+			if tt.shouldPanic {
+				defer func() {
+					if recover() == nil {
+						t.Errorf("MustBeFile(%q) should panic", path)
+					}
+				}()
+			}
+
+			result := lxio.MustBeFile(path)
+			if !tt.shouldPanic && result != tt.expected {
+				t.Errorf("MustBeFile(%q) expected %v, got %v", path, tt.expected, result)
+			}
+		})
+	}
 }
 
 // ======================================== IsSymlink Tests ========================================
@@ -734,195 +900,483 @@ func TestIsSymlink(t *testing.T) {
 	testDir, testFile, testSymlink, missingPath := setupTestEnvironment(t)
 	defer os.RemoveAll(testDir)
 
-	t.Run("symlink returns true", func(t *testing.T) {
-		// Check if symlink was created
-		if _, err := os.Lstat(testSymlink); err != nil {
-			t.Skip("Symlink not created (normal on Windows)")
-		}
+	tests := []struct {
+		name              string
+		pathSetup         func() string
+		skipOnWindows     bool
+		expected          bool
+		expectedErr       bool
+		shouldHavePermErr bool
+	}{
+		{
+			name:        "symlink returns true",
+			pathSetup:   func() string { return testSymlink },
+			expected:    true,
+			expectedErr: false,
+		},
+		{
+			name:        "file returns false",
+			pathSetup:   func() string { return testFile },
+			expected:    false,
+			expectedErr: false,
+		},
+		{
+			name:        "directory returns false",
+			pathSetup:   func() string { return testDir },
+			expected:    false,
+			expectedErr: false,
+		},
+		{
+			name:        "missing path returns false",
+			pathSetup:   func() string { return missingPath },
+			expected:    false,
+			expectedErr: false,
+		},
+		{
+			name:              "permission error",
+			skipOnWindows:     true,
+			expected:          false,
+			expectedErr:       true,
+			shouldHavePermErr: true,
+			pathSetup: func() string {
+				secureDir := t.TempDir()
+				secretFile := filepath.Join(secureDir, "secret.txt")
+				if err := os.WriteFile(secretFile, []byte("secret"), 0644); err != nil {
+					t.Fatalf("failed to create secret file: %v", err)
+				}
+				if err := os.Chmod(secureDir, 0000); err != nil {
+					t.Fatalf("failed to change permissions: %v", err)
+				}
+				t.Cleanup(func() {
+					_ = os.Chmod(secureDir, 0755)
+				})
+				return secretFile
+			},
+		},
+	}
 
-		ok, err := lxio.IsSymlink(testSymlink)
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-		if !ok {
-			t.Errorf("IsSymlink() = %v, want true", ok)
-		}
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.name == "symlink returns true" && runtime.GOOS == "windows" {
+				if _, err := os.Lstat(testSymlink); err != nil {
+					t.Skip("Symlink not created (normal on Windows)")
+				}
+			}
 
-	t.Run("file returns false", func(t *testing.T) {
-		ok, err := lxio.IsSymlink(testFile)
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-		if ok {
-			t.Errorf("IsSymlink() = %v, want false", ok)
-		}
-	})
+			if tt.skipOnWindows && runtime.GOOS == "windows" {
+				t.Skip("Skipping permission tests on Windows")
+			}
 
-	t.Run("directory returns false", func(t *testing.T) {
-		ok, err := lxio.IsSymlink(testDir)
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-		if ok {
-			t.Errorf("IsSymlink() = %v, want false", ok)
-		}
-	})
+			path := tt.pathSetup()
+			result, err := lxio.IsSymlink(path)
+			hasErr := err != nil
 
-	t.Run("missing path returns false", func(t *testing.T) {
-		ok, err := lxio.IsSymlink(missingPath)
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-		if ok {
-			t.Errorf("IsSymlink() = %v, want false", ok)
-		}
-	})
+			if hasErr != tt.expectedErr {
+				t.Errorf("IsSymlink(%q) error expectation failed: expected error=%v, got error=%v (%v)", path, tt.expectedErr, hasErr, err)
+			}
 
-	t.Run("permission error", func(t *testing.T) {
-		if runtime.GOOS == "windows" {
-			t.Skip("Skipping permission tests on Windows")
-		}
+			if tt.shouldHavePermErr && (err == nil || !errors.Is(err, os.ErrPermission)) {
+				t.Errorf("IsSymlink(%q) expected permission error, got: %v", path, err)
+			}
 
-		secureDir := t.TempDir()
-		secretFile := filepath.Join(secureDir, "secret.txt")
-		err := os.WriteFile(secretFile, []byte("secret"), 0644)
-		if err != nil {
-			t.Fatalf("failed to create secret file: %v", err)
-		}
-
-		err = os.Chmod(secureDir, 0000)
-		if err != nil {
-			t.Fatalf("failed to change permissions: %v", err)
-		}
-		t.Cleanup(func() {
-			_ = os.Chmod(secureDir, 0755)
+			if !hasErr && result != tt.expected {
+				t.Errorf("IsSymlink(%q) expected %v, got %v", path, tt.expected, result)
+			}
 		})
-
-		// IsSymlink returns error on permission denied
-		ok, err := lxio.IsSymlink(secretFile)
-		if ok {
-			t.Errorf("IsSymlink() = %v, want false", ok)
-		}
-		if err == nil || errors.Is(err, os.ErrNotExist) {
-			t.Errorf("IsSymlink() expected a permission error, got: %v", err)
-		}
-	})
+	}
 }
 
 func TestIsSymlinkOK(t *testing.T) {
 	testDir, testFile, testSymlink, _ := setupTestEnvironment(t)
 	defer os.RemoveAll(testDir)
 
-	t.Run("symlink returns true", func(t *testing.T) {
-		// Check if symlink was created
-		if _, err := os.Lstat(testSymlink); err != nil {
-			t.Skip("Symlink not created (normal on Windows)")
-		}
+	tests := []struct {
+		name          string
+		pathSetup     func() string
+		skipOnWindows bool
+		expected      bool
+	}{
+		{
+			name:      "symlink returns true",
+			pathSetup: func() string { return testSymlink },
+			expected:  true,
+		},
+		{
+			name:      "file returns false",
+			pathSetup: func() string { return testFile },
+			expected:  false,
+		},
+		{
+			name:          "permission error is swallowed",
+			skipOnWindows: true,
+			expected:      false,
+			pathSetup: func() string {
+				secureDir := t.TempDir()
+				secretFile := filepath.Join(secureDir, "secret.txt")
+				if err := os.WriteFile(secretFile, []byte("secret"), 0644); err != nil {
+					t.Fatalf("failed to create secret file: %v", err)
+				}
+				if err := os.Chmod(secureDir, 0000); err != nil {
+					t.Fatalf("failed to change permissions: %v", err)
+				}
+				t.Cleanup(func() {
+					_ = os.Chmod(secureDir, 0755)
+				})
+				return secretFile
+			},
+		},
+	}
 
-		ok := lxio.IsSymlinkOK(testSymlink)
-		if !ok {
-			t.Errorf("IsSymlinkOK() = %v, want true", ok)
-		}
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.name == "symlink returns true" && runtime.GOOS == "windows" {
+				if _, err := os.Lstat(testSymlink); err != nil {
+					t.Skip("Symlink not created (normal on Windows)")
+				}
+			}
 
-	t.Run("file returns false", func(t *testing.T) {
-		ok := lxio.IsSymlinkOK(testFile)
-		if ok {
-			t.Errorf("IsSymlinkOK() = %v, want false", ok)
-		}
-	})
+			if tt.skipOnWindows && runtime.GOOS == "windows" {
+				t.Skip("Skipping permission tests on Windows")
+			}
 
-	t.Run("permission error is swallowed", func(t *testing.T) {
-		if runtime.GOOS == "windows" {
-			t.Skip("Skipping permission tests on Windows")
-		}
-
-		secureDir := t.TempDir()
-		secretFile := filepath.Join(secureDir, "secret.txt")
-		err := os.WriteFile(secretFile, []byte("secret"), 0644)
-		if err != nil {
-			t.Fatalf("failed to create secret file: %v", err)
-		}
-
-		err = os.Chmod(secureDir, 0000)
-		if err != nil {
-			t.Fatalf("failed to change permissions: %v", err)
-		}
-		t.Cleanup(func() {
-			_ = os.Chmod(secureDir, 0755)
+			path := tt.pathSetup()
+			result := lxio.IsSymlinkOK(path)
+			if result != tt.expected {
+				t.Errorf("IsSymlinkOK(%q) expected %v, got %v", path, tt.expected, result)
+			}
 		})
-
-		// IsSymlinkOK swallows permission errors and returns false
-		ok := lxio.IsSymlinkOK(secretFile)
-		if ok {
-			t.Errorf("IsSymlinkOK() = %v, want false", ok)
-		}
-	})
+	}
 }
 
 func TestMustBeSymlink(t *testing.T) {
 	testDir, testFile, testSymlink, missingPath := setupTestEnvironment(t)
 	defer os.RemoveAll(testDir)
 
-	t.Run("symlink returns true", func(t *testing.T) {
-		// Check if symlink was created
-		if _, err := os.Lstat(testSymlink); err != nil {
-			t.Skip("Symlink not created (normal on Windows)")
-		}
+	tests := []struct {
+		name          string
+		pathSetup     func() string
+		skipOnWindows bool
+		expected      bool
+		shouldPanic   bool
+	}{
+		{
+			name:        "symlink returns true",
+			pathSetup:   func() string { return testSymlink },
+			expected:    true,
+			shouldPanic: false,
+		},
+		{
+			name:        "file returns false",
+			pathSetup:   func() string { return testFile },
+			expected:    false,
+			shouldPanic: false,
+		},
+		{
+			name:        "directory returns false",
+			pathSetup:   func() string { return testDir },
+			expected:    false,
+			shouldPanic: false,
+		},
+		{
+			name:        "missing path returns false",
+			pathSetup:   func() string { return missingPath },
+			expected:    false,
+			shouldPanic: false,
+		},
+		{
+			name:          "panics on permission error",
+			skipOnWindows: true,
+			shouldPanic:   true,
+			pathSetup: func() string {
+				secureDir := t.TempDir()
+				secretFile := filepath.Join(secureDir, "secret.txt")
+				if err := os.WriteFile(secretFile, []byte("secret"), 0644); err != nil {
+					t.Fatalf("failed to create secret file: %v", err)
+				}
+				if err := os.Chmod(secureDir, 0000); err != nil {
+					t.Fatalf("failed to change permissions: %v", err)
+				}
+				t.Cleanup(func() {
+					_ = os.Chmod(secureDir, 0755)
+				})
+				return secretFile
+			},
+		},
+	}
 
-		ok := lxio.MustBeSymlink(testSymlink)
-		if !ok {
-			t.Errorf("MustBeSymlink() = %v, want true", ok)
-		}
-	})
-
-	t.Run("file returns false", func(t *testing.T) {
-		ok := lxio.MustBeSymlink(testFile)
-		if ok {
-			t.Errorf("MustBeSymlink() = %v, want false", ok)
-		}
-	})
-
-	t.Run("directory returns false", func(t *testing.T) {
-		ok := lxio.MustBeSymlink(testDir)
-		if ok {
-			t.Errorf("MustBeSymlink() = %v, want false", ok)
-		}
-	})
-
-	t.Run("missing path returns false", func(t *testing.T) {
-		ok := lxio.MustBeSymlink(missingPath)
-		if ok {
-			t.Errorf("MustBeSymlink() = %v, want false", ok)
-		}
-	})
-
-	t.Run("panics on permission error", func(t *testing.T) {
-		if runtime.GOOS == "windows" {
-			t.Skip("Skipping permission tests on Windows")
-		}
-
-		secureDir := t.TempDir()
-		secretFile := filepath.Join(secureDir, "secret.txt")
-		err := os.WriteFile(secretFile, []byte("secret"), 0644)
-		if err != nil {
-			t.Fatalf("failed to create secret file: %v", err)
-		}
-
-		err = os.Chmod(secureDir, 0000)
-		if err != nil {
-			t.Fatalf("failed to change permissions: %v", err)
-		}
-		t.Cleanup(func() {
-			_ = os.Chmod(secureDir, 0755)
-		})
-
-		defer func() {
-			if recover() == nil {
-				t.Errorf("MustBeSymlink() should panic on permission error")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.name == "symlink returns true" && runtime.GOOS == "windows" {
+				if _, err := os.Lstat(testSymlink); err != nil {
+					t.Skip("Symlink not created (normal on Windows)")
+				}
 			}
-		}()
-		lxio.MustBeSymlink(secretFile)
-	})
+
+			if tt.skipOnWindows && runtime.GOOS == "windows" {
+				t.Skip("Skipping permission tests on Windows")
+			}
+
+			path := tt.pathSetup()
+
+			if tt.shouldPanic {
+				defer func() {
+					if recover() == nil {
+						t.Errorf("MustBeSymlink(%q) should panic", path)
+					}
+				}()
+			}
+
+			result := lxio.MustBeSymlink(path)
+			if !tt.shouldPanic && result != tt.expected {
+				t.Errorf("MustBeSymlink(%q) expected %v, got %v", path, tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestIsEmpty(t *testing.T) {
+	testDir := t.TempDir()
+
+	// Create test files and directories
+	emptyFile := filepath.Join(testDir, "empty.txt")
+	if err := os.WriteFile(emptyFile, []byte{}, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	nonEmptyFile := filepath.Join(testDir, "nonempty.txt")
+	if err := os.WriteFile(nonEmptyFile, []byte("content"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	emptyDir := filepath.Join(testDir, "empty_dir")
+	if err := os.Mkdir(emptyDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	nonEmptyDir := filepath.Join(testDir, "nonempty_dir")
+	if err := os.Mkdir(nonEmptyDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(nonEmptyDir, "file.txt"), []byte("content"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		name              string
+		pathSetup         func() string
+		skipOnWindows     bool
+		expected          bool
+		expectedErr       bool
+		shouldHavePermErr bool
+	}{
+		{
+			name:        "empty file",
+			pathSetup:   func() string { return emptyFile },
+			expected:    true,
+			expectedErr: false,
+		},
+		{
+			name:        "nonempty file",
+			pathSetup:   func() string { return nonEmptyFile },
+			expected:    false,
+			expectedErr: false,
+		},
+		{
+			name:        "empty directory",
+			pathSetup:   func() string { return emptyDir },
+			expected:    true,
+			expectedErr: false,
+		},
+		{
+			name:        "nonempty directory",
+			pathSetup:   func() string { return nonEmptyDir },
+			expected:    false,
+			expectedErr: false,
+		},
+		{
+			name:        "nonexistent path",
+			pathSetup:   func() string { return filepath.Join(testDir, "nonexistent") },
+			expected:    false,
+			expectedErr: false,
+		},
+		{
+			name:              "permission error on file",
+			skipOnWindows:     true,
+			expected:          false,
+			expectedErr:       true,
+			shouldHavePermErr: true,
+			pathSetup: func() string {
+				secureDir := t.TempDir()
+				secretFile := filepath.Join(secureDir, "secret.txt")
+				if err := os.WriteFile(secretFile, []byte("secret"), 0644); err != nil {
+					t.Fatalf("failed to create secret file: %v", err)
+				}
+				if err := os.Chmod(secureDir, 0000); err != nil {
+					t.Fatalf("failed to change permissions: %v", err)
+				}
+				t.Cleanup(func() {
+					_ = os.Chmod(secureDir, 0755)
+				})
+				return secretFile
+			},
+		},
+		{
+			name:              "permission error on directory",
+			skipOnWindows:     true,
+			expected:          false,
+			expectedErr:       true,
+			shouldHavePermErr: true,
+			pathSetup: func() string {
+				secureDir := t.TempDir()
+				secretSubDir := filepath.Join(secureDir, "secret_dir")
+				if err := os.Mkdir(secretSubDir, 0755); err != nil {
+					t.Fatalf("failed to create secret directory: %v", err)
+				}
+				if err := os.Chmod(secureDir, 0000); err != nil {
+					t.Fatalf("failed to change permissions: %v", err)
+				}
+				t.Cleanup(func() {
+					_ = os.Chmod(secureDir, 0755)
+				})
+				return secretSubDir
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.skipOnWindows && runtime.GOOS == "windows" {
+				t.Skip("Skipping permission tests on Windows")
+			}
+
+			path := tt.pathSetup()
+			result, err := lxio.IsEmpty(path)
+			hasErr := err != nil
+
+			if hasErr != tt.expectedErr {
+				t.Errorf("IsEmpty(%q) error expectation failed: expected error=%v, got error=%v (%v)", path, tt.expectedErr, hasErr, err)
+			}
+
+			if tt.shouldHavePermErr && (err == nil || !errors.Is(err, os.ErrPermission)) {
+				t.Errorf("IsEmpty(%q) expected permission error, got: %v", path, err)
+			}
+
+			if !hasErr && result != tt.expected {
+				t.Errorf("IsEmpty(%q) expected %v, got %v", path, tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestIsEmptyOK(t *testing.T) {
+	testDir := t.TempDir()
+
+	// Create test files and directories
+	emptyFile := filepath.Join(testDir, "empty.txt")
+	if err := os.WriteFile(emptyFile, []byte{}, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	nonEmptyFile := filepath.Join(testDir, "nonempty.txt")
+	if err := os.WriteFile(nonEmptyFile, []byte("content"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	emptyDir := filepath.Join(testDir, "empty_dir")
+	if err := os.Mkdir(emptyDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	nonEmptyDir := filepath.Join(testDir, "nonempty_dir")
+	if err := os.Mkdir(nonEmptyDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(nonEmptyDir, "file.txt"), []byte("content"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		name          string
+		pathSetup     func() string
+		skipOnWindows bool
+		expected      bool
+	}{
+		{
+			name:      "empty file",
+			pathSetup: func() string { return emptyFile },
+			expected:  true,
+		},
+		{
+			name:      "nonempty file",
+			pathSetup: func() string { return nonEmptyFile },
+			expected:  false,
+		},
+		{
+			name:      "empty directory",
+			pathSetup: func() string { return emptyDir },
+			expected:  true,
+		},
+		{
+			name:      "nonempty directory",
+			pathSetup: func() string { return nonEmptyDir },
+			expected:  false,
+		},
+		{
+			name:      "nonexistent path returns false",
+			pathSetup: func() string { return filepath.Join(testDir, "nonexistent") },
+			expected:  false,
+		},
+		{
+			name:          "permission error is swallowed on file",
+			skipOnWindows: true,
+			expected:      false,
+			pathSetup: func() string {
+				secureDir := t.TempDir()
+				secretFile := filepath.Join(secureDir, "secret.txt")
+				if err := os.WriteFile(secretFile, []byte("secret"), 0644); err != nil {
+					t.Fatalf("failed to create secret file: %v", err)
+				}
+				if err := os.Chmod(secureDir, 0000); err != nil {
+					t.Fatalf("failed to change permissions: %v", err)
+				}
+				t.Cleanup(func() {
+					_ = os.Chmod(secureDir, 0755)
+				})
+				return secretFile
+			},
+		},
+		{
+			name:          "permission error is swallowed on directory",
+			skipOnWindows: true,
+			expected:      false,
+			pathSetup: func() string {
+				secureDir := t.TempDir()
+				secretSubDir := filepath.Join(secureDir, "secret_dir")
+				if err := os.Mkdir(secretSubDir, 0755); err != nil {
+					t.Fatalf("failed to create secret directory: %v", err)
+				}
+				if err := os.Chmod(secureDir, 0000); err != nil {
+					t.Fatalf("failed to change permissions: %v", err)
+				}
+				t.Cleanup(func() {
+					_ = os.Chmod(secureDir, 0755)
+				})
+				return secretSubDir
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.skipOnWindows && runtime.GOOS == "windows" {
+				t.Skip("Skipping permission tests on Windows")
+			}
+
+			path := tt.pathSetup()
+			result := lxio.IsEmptyOK(path)
+			if result != tt.expected {
+				t.Errorf("IsEmptyOK(%q) expected %v, got %v", path, tt.expected, result)
+			}
+		})
+	}
 }

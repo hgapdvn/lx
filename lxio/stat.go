@@ -173,3 +173,41 @@ func MustBeSymlink(path string) bool {
 	}
 	return isSymlink
 }
+
+// ---------------------------------------------- Empty Stats  ----------------------------------------------------------
+
+// IsEmpty returns true if the path is empty (file is 0 bytes or directory has no entries).
+// Returns an error for ambiguous failures (like Permission Denied).
+// For files: returns true if size is 0.
+// For directories: returns true if there are no entries.
+func IsEmpty(path string) (bool, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			// Path doesn't exist, so we can't determine if it's empty
+			return false, nil
+		}
+		// We can't access it, bubble up the error
+		return false, err
+	}
+
+	// Check if it's a directory
+	if info.IsDir() {
+		// For directories, check if it has any entries
+		entries, err := os.ReadDir(path)
+		if err != nil {
+			return false, err
+		}
+		return len(entries) == 0, nil
+	}
+
+	// For files, check if size is 0
+	return info.Size() == 0, nil
+}
+
+// IsEmptyOK returns true if the path is empty (file is 0 bytes or directory has no entries).
+// It ignores any errors and safely returns false.
+func IsEmptyOK(path string) bool {
+	ok, _ := IsEmpty(path)
+	return ok
+}
