@@ -871,3 +871,133 @@ func TestRel(t *testing.T) {
 		})
 	}
 }
+
+func TestSplitExtension(t *testing.T) {
+	tests := []struct {
+		name         string
+		path         string
+		expectedBase string
+		expectedExt  string
+	}{
+		{
+			name:         "file with single extension",
+			path:         "/path/to/file.txt",
+			expectedBase: "/path/to/file",
+			expectedExt:  ".txt",
+		},
+		{
+			name:         "file with no extension",
+			path:         "/path/to/README",
+			expectedBase: "/path/to/README",
+			expectedExt:  "",
+		},
+		{
+			name:         "hidden file with extension",
+			path:         "/path/to/.bashrc",
+			expectedBase: "/path/to/",
+			expectedExt:  ".bashrc",
+		},
+		{
+			name:         "file with double extension",
+			path:         "/path/to/archive.tar.gz",
+			expectedBase: "/path/to/archive.tar",
+			expectedExt:  ".gz",
+		},
+		{
+			name:         "file with multiple dots",
+			path:         "file.backup.2024.bak",
+			expectedBase: "file.backup.2024",
+			expectedExt:  ".bak",
+		},
+		{
+			name:         "file with numeric extension",
+			path:         "file.7z",
+			expectedBase: "file",
+			expectedExt:  ".7z",
+		},
+		{
+			name:         "uppercase extension",
+			path:         "FILE.TXT",
+			expectedBase: "FILE",
+			expectedExt:  ".TXT",
+		},
+		{
+			name:         "file in current directory with extension",
+			path:         "file.go",
+			expectedBase: "file",
+			expectedExt:  ".go",
+		},
+		{
+			name:         "empty path",
+			path:         "",
+			expectedBase: "",
+			expectedExt:  "",
+		},
+		{
+			name:         "path with only dot",
+			path:         ".",
+			expectedBase: "",
+			expectedExt:  ".",
+		},
+		{
+			name:         "path with only double dot",
+			path:         "..",
+			expectedBase: ".",
+			expectedExt:  ".",
+		},
+		{
+			name:         "unicode filename with extension",
+			path:         "/path/to/文件.txt",
+			expectedBase: "/path/to/文件",
+			expectedExt:  ".txt",
+		},
+		{
+			name:         "unicode filename without extension",
+			path:         "/path/to/文件",
+			expectedBase: "/path/to/文件",
+			expectedExt:  "",
+		},
+		{
+			name:         "filename with spaces and extension",
+			path:         "/path/to/my file.txt",
+			expectedBase: "/path/to/my file",
+			expectedExt:  ".txt",
+		},
+		{
+			name:         "filename with spaces no extension",
+			path:         "/path/to/my file",
+			expectedBase: "/path/to/my file",
+			expectedExt:  "",
+		},
+		{
+			name:         "deeply nested path with extension",
+			path:         "/a/b/c/d/e/f/file.tar.bz2",
+			expectedBase: "/a/b/c/d/e/f/file.tar",
+			expectedExt:  ".bz2",
+		},
+		{
+			name:         "relative path with extension",
+			path:         "./subdir/file.txt",
+			expectedBase: "./subdir/file",
+			expectedExt:  ".txt",
+		},
+		{
+			name:         "parent reference path with extension",
+			path:         "../file.txt",
+			expectedBase: "../file",
+			expectedExt:  ".txt",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			base, ext := lxio.SplitExtension(tt.path)
+			if base != tt.expectedBase {
+				t.Errorf("SplitExtension(%q) base expected %q, got %q", tt.path, tt.expectedBase, base)
+			}
+			if ext != tt.expectedExt {
+				t.Errorf("SplitExtension(%q) ext expected %q, got %q", tt.path, tt.expectedExt, ext)
+			}
+		})
+	}
+}

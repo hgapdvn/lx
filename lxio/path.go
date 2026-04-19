@@ -154,3 +154,23 @@ func IsRel(path string) bool {
 func Rel(basepath, targpath string) (string, error) {
 	return filepath.Rel(basepath, targpath)
 }
+
+// SplitExtension splits a path into its base (without extension) and extension parts.
+// It returns the path without extension and the extension separately in a single operation.
+// More efficient than calling both Extension() and WithoutExtension() separately.
+// The extension includes the leading dot; if there is no extension, ext is an empty string.
+//
+// Example:
+//
+//	SplitExtension("/path/to/file.txt")    // ("/path/to/file", ".txt")
+//	SplitExtension("/path/to/file.tar.gz") // ("/path/to/file.tar", ".gz")
+//	SplitExtension("README")               // ("README", "")
+//	SplitExtension(".bashrc")              // ("/path/to/", ".bashrc")
+//	SplitExtension("")                     // ("", "")
+func SplitExtension(path string) (base, ext string) {
+	ext = filepath.Ext(path)
+	if ext == "" {
+		return path, ""
+	}
+	return strings.TrimSuffix(path, ext), ext
+}
