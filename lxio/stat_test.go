@@ -244,6 +244,37 @@ func TestNotExists(t *testing.T) {
 			t.Errorf("NotExists() = %v, want true", ok)
 		}
 	})
+
+	t.Run("permission error", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			t.Skip("Skipping permission tests on Windows")
+		}
+
+		secureDir := t.TempDir()
+		secretFile := filepath.Join(secureDir, "secret.txt")
+		err := os.WriteFile(secretFile, []byte("secret"), 0644)
+		if err != nil {
+			t.Fatalf("failed to create secret file: %v", err)
+		}
+
+		err = os.Chmod(secureDir, 0000)
+		if err != nil {
+			t.Fatalf("failed to change permissions: %v", err)
+		}
+		t.Cleanup(func() {
+			_ = os.Chmod(secureDir, 0755)
+		})
+
+		// NotExists returns error on permission denied
+		// Returns (false, error)—conservative when existence is ambiguous
+		ok, err := lxio.NotExists(secretFile)
+		if ok {
+			t.Errorf("NotExists() = %v, want false", ok)
+		}
+		if err == nil || errors.Is(err, os.ErrNotExist) {
+			t.Errorf("NotExists() expected a permission error, got: %v", err)
+		}
+	})
 }
 
 func TestNotExistsOK(t *testing.T) {
@@ -261,6 +292,34 @@ func TestNotExistsOK(t *testing.T) {
 		ok := lxio.NotExistsOK(missingPath)
 		if !ok {
 			t.Errorf("NotExistsOK() = %v, want true", ok)
+		}
+	})
+
+	t.Run("permission error is swallowed", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			t.Skip("Skipping permission tests on Windows")
+		}
+
+		secureDir := t.TempDir()
+		secretFile := filepath.Join(secureDir, "secret.txt")
+		err := os.WriteFile(secretFile, []byte("secret"), 0644)
+		if err != nil {
+			t.Fatalf("failed to create secret file: %v", err)
+		}
+
+		err = os.Chmod(secureDir, 0000)
+		if err != nil {
+			t.Fatalf("failed to change permissions: %v", err)
+		}
+		t.Cleanup(func() {
+			_ = os.Chmod(secureDir, 0755)
+		})
+
+		// NotExistsOK swallows permission errors and returns false
+		// Conservative: when we can't determine existence, assume the file exists or is inaccessible
+		ok := lxio.NotExistsOK(secretFile)
+		if ok {
+			t.Errorf("NotExistsOK() = %v, want false", ok)
 		}
 	})
 }

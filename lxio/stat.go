@@ -39,13 +39,17 @@ func MustExist(path string) bool {
 
 // NotExists returns true if the file does not exist, false if it explicitly does.
 // It returns an error for ambiguous failures (like Permission Denied).
+// When an error occurs, returns (false, error)—conservative assumption that existence cannot be determined.
 func NotExists(path string) (bool, error) {
 	exists, err := Exists(path)
-	return !exists, err
+	if err != nil {
+		return false, err
+	}
+	return !exists, nil
 }
 
 // NotExistsOK returns true if the file does not exist, false if it explicitly does.
-// It swallows any errors and safely defaults to false.
+// It swallows any errors and safely defaults to false (conservative: assume file exists or is inaccessible).
 func NotExistsOK(path string) bool {
 	ok, _ := NotExists(path)
 	return ok
@@ -53,6 +57,10 @@ func NotExistsOK(path string) bool {
 
 // MustNotExist return true if the file does not exist, false if it explicitly does.
 // It panics if an error for ambiguous failures (like Permission Denied).
+//
+// WARNING: When MustNotExist panics, the file existence state is ambiguous.
+// This function is suitable for scenarios where you expect either the file to definitely not exist,
+// or to panic on any access issues. Use NotExists() if you need explicit error handling.
 func MustNotExist(path string) bool {
 	exists, err := NotExists(path)
 	if err != nil {
