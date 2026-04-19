@@ -174,3 +174,33 @@ func SplitExtension(path string) (base, ext string) {
 	}
 	return strings.TrimSuffix(path, ext), ext
 }
+
+// HasExtension reports whether the path has one of the given extensions.
+// The comparison is case-sensitive. Extensions should include the leading dot (e.g., ".go", ".txt").
+// Returns false if no extensions are provided or if the path has no extension.
+// Returns true if the path's extension matches any of the provided extensions.
+//
+// Example:
+//
+//	HasExtension("file.txt", ".txt", ".md")       // true
+//	HasExtension("file.go", ".js", ".ts")         // false
+//	HasExtension("README", ".txt", ".md")         // false
+//	HasExtension("archive.tar.gz", ".gz", ".zip") // true
+//	HasExtension("file.txt")                      // false (no extensions provided)
+func HasExtension(path string, exts ...string) bool {
+	if len(exts) == 0 {
+		return false
+	}
+
+	pathExt := Extension(path)
+	if pathExt == "" {
+		return false
+	}
+
+	for _, ext := range exts {
+		if pathExt == ext {
+			return true
+		}
+	}
+	return false
+}

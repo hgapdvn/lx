@@ -1001,3 +1001,142 @@ func TestSplitExtension(t *testing.T) {
 		})
 	}
 }
+
+func TestHasExtension(t *testing.T) {
+	tests := []struct {
+		name     string
+		path     string
+		exts     []string
+		expected bool
+	}{
+		{
+			name:     "single matching extension",
+			path:     "file.txt",
+			exts:     []string{".txt"},
+			expected: true,
+		},
+		{
+			name:     "multiple extensions with match",
+			path:     "file.txt",
+			exts:     []string{".txt", ".md", ".go"},
+			expected: true,
+		},
+		{
+			name:     "multiple extensions no match",
+			path:     "file.go",
+			exts:     []string{".txt", ".md", ".js"},
+			expected: false,
+		},
+		{
+			name:     "no extensions provided",
+			path:     "file.txt",
+			exts:     []string{},
+			expected: false,
+		},
+		{
+			name:     "file with no extension",
+			path:     "README",
+			exts:     []string{".txt", ".md"},
+			expected: false,
+		},
+		{
+			name:     "double extension match last part",
+			path:     "archive.tar.gz",
+			exts:     []string{".gz", ".zip"},
+			expected: true,
+		},
+		{
+			name:     "double extension no match",
+			path:     "archive.tar.gz",
+			exts:     []string{".tar", ".zip"},
+			expected: false,
+		},
+		{
+			name:     "case sensitive match",
+			path:     "FILE.TXT",
+			exts:     []string{".txt"},
+			expected: false,
+		},
+		{
+			name:     "case sensitive uppercase extension",
+			path:     "FILE.TXT",
+			exts:     []string{".TXT"},
+			expected: true,
+		},
+		{
+			name:     "hidden file match",
+			path:     ".bashrc",
+			exts:     []string{".bashrc"},
+			expected: true,
+		},
+		{
+			name:     "hidden file no match",
+			path:     ".bashrc",
+			exts:     []string{".txt"},
+			expected: false,
+		},
+		{
+			name:     "numeric extension match",
+			path:     "file.7z",
+			exts:     []string{".7z", ".zip"},
+			expected: true,
+		},
+		{
+			name:     "with full path",
+			path:     "/path/to/file.txt",
+			exts:     []string{".txt"},
+			expected: true,
+		},
+		{
+			name:     "with relative path",
+			path:     "./dir/file.go",
+			exts:     []string{".go", ".js"},
+			expected: true,
+		},
+		{
+			name:     "unicode extension",
+			path:     "文件.txt",
+			exts:     []string{".txt"},
+			expected: true,
+		},
+		{
+			name:     "path with spaces",
+			path:     "/path/to/my file.txt",
+			exts:     []string{".txt"},
+			expected: true,
+		},
+		{
+			name:     "empty path",
+			path:     "",
+			exts:     []string{".txt"},
+			expected: false,
+		},
+		{
+			name:     "multiple matches returns true on first match",
+			path:     "file.md",
+			exts:     []string{".txt", ".md", ".go", ".js"},
+			expected: true,
+		},
+		{
+			name:     "match at end of list",
+			path:     "file.go",
+			exts:     []string{".txt", ".md", ".js", ".go"},
+			expected: true,
+		},
+		{
+			name:     "many extensions no match",
+			path:     "file.rs",
+			exts:     []string{".go", ".js", ".ts", ".py", ".java", ".cpp"},
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := lxio.HasExtension(tt.path, tt.exts...)
+			if result != tt.expected {
+				t.Errorf("HasExtension(%q, %v) expected %v, got %v", tt.path, tt.exts, tt.expected, result)
+			}
+		})
+	}
+}
