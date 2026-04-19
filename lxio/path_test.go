@@ -2,6 +2,7 @@ package lxio_test
 
 import (
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/hgapdvn/lx/lxio"
@@ -508,12 +509,12 @@ func TestClean(t *testing.T) {
 		{
 			name:     "root path unchanged",
 			path:     "/",
-			expected: "/",
+			expected: filepath.FromSlash("/"),
 		},
 		{
 			name:     "absolute path with trailing slash removed",
 			path:     "/path/to/dir/",
-			expected: "/path/to/dir",
+			expected: filepath.FromSlash("/path/to/dir"),
 		},
 		{
 			name:     "removes dot current directory reference",
@@ -583,7 +584,7 @@ func TestClean(t *testing.T) {
 		{
 			name:     "path with spaces normalized",
 			path:     "/path/to //file name.txt",
-			expected: "/path/to /file name.txt",
+			expected: filepath.FromSlash("/path/to /file name.txt"),
 		},
 		{
 			name:     "deeply nested path normalized",
@@ -604,14 +605,16 @@ func TestClean(t *testing.T) {
 
 func TestIsAbs(t *testing.T) {
 	tests := []struct {
-		name     string
-		path     string
-		expected bool
+		name          string
+		path          string
+		expected      bool
+		skipOnWindows bool
 	}{
 		{
-			name:     "absolute path with leading slash",
-			path:     "/path/to/file.txt",
-			expected: true,
+			name:          "absolute path with leading slash",
+			path:          "/path/to/file.txt",
+			expected:      true,
+			skipOnWindows: true,
 		},
 		{
 			name:     "relative path with filename",
@@ -634,14 +637,16 @@ func TestIsAbs(t *testing.T) {
 			expected: false,
 		},
 		{
-			name:     "root path",
-			path:     "/",
-			expected: true,
+			name:          "root path",
+			path:          "/",
+			expected:      true,
+			skipOnWindows: true,
 		},
 		{
-			name:     "absolute path with trailing slash",
-			path:     "/path/to/dir/",
-			expected: true,
+			name:          "absolute path with trailing slash",
+			path:          "/path/to/dir/",
+			expected:      true,
+			skipOnWindows: true,
 		},
 		{
 			name:     "relative path with multiple levels",
@@ -649,9 +654,10 @@ func TestIsAbs(t *testing.T) {
 			expected: false,
 		},
 		{
-			name:     "absolute path with multiple slashes",
-			path:     "//path//to//file.txt",
-			expected: true,
+			name:          "absolute path with multiple slashes",
+			path:          "//path//to//file.txt",
+			expected:      true,
+			skipOnWindows: true,
 		},
 		{
 			name:     "dot only",
@@ -664,9 +670,10 @@ func TestIsAbs(t *testing.T) {
 			expected: false,
 		},
 		{
-			name:     "absolute path with unicode",
-			path:     "/路径/到/文件.txt",
-			expected: true,
+			name:          "absolute path with unicode",
+			path:          "/路径/到/文件.txt",
+			expected:      true,
+			skipOnWindows: true,
 		},
 		{
 			name:     "relative path with unicode",
@@ -674,9 +681,10 @@ func TestIsAbs(t *testing.T) {
 			expected: false,
 		},
 		{
-			name:     "absolute path with spaces",
-			path:     "/path with spaces/file.txt",
-			expected: true,
+			name:          "absolute path with spaces",
+			path:          "/path with spaces/file.txt",
+			expected:      true,
+			skipOnWindows: true,
 		},
 		{
 			name:     "relative path with spaces",
@@ -687,6 +695,9 @@ func TestIsAbs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.skipOnWindows && runtime.GOOS == "windows" {
+				t.Skip("Unix-style absolute paths are not absolute on Windows")
+			}
 			result := lxio.IsAbs(tt.path)
 			if result != tt.expected {
 				t.Errorf("IsAbs(%q) expected %v, got %v", tt.path, tt.expected, result)
@@ -697,9 +708,10 @@ func TestIsAbs(t *testing.T) {
 
 func TestIsRel(t *testing.T) {
 	tests := []struct {
-		name     string
-		path     string
-		expected bool
+		name          string
+		path          string
+		expected      bool
+		skipOnWindows bool
 	}{
 		{
 			name:     "relative path with filename",
@@ -722,14 +734,16 @@ func TestIsRel(t *testing.T) {
 			expected: true,
 		},
 		{
-			name:     "absolute path with leading slash",
-			path:     "/path/to/file.txt",
-			expected: false,
+			name:          "absolute path with leading slash",
+			path:          "/path/to/file.txt",
+			expected:      false,
+			skipOnWindows: true,
 		},
 		{
-			name:     "root path",
-			path:     "/",
-			expected: false,
+			name:          "root path",
+			path:          "/",
+			expected:      false,
+			skipOnWindows: true,
 		},
 		{
 			name:     "empty path",
@@ -752,9 +766,10 @@ func TestIsRel(t *testing.T) {
 			expected: true,
 		},
 		{
-			name:     "absolute path with unicode",
-			path:     "/路径/到/文件.txt",
-			expected: false,
+			name:          "absolute path with unicode",
+			path:          "/路径/到/文件.txt",
+			expected:      false,
+			skipOnWindows: true,
 		},
 		{
 			name:     "relative path with spaces",
@@ -762,14 +777,18 @@ func TestIsRel(t *testing.T) {
 			expected: true,
 		},
 		{
-			name:     "absolute path with spaces",
-			path:     "/path with spaces/file.txt",
-			expected: false,
+			name:          "absolute path with spaces",
+			path:          "/path with spaces/file.txt",
+			expected:      false,
+			skipOnWindows: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.skipOnWindows && runtime.GOOS == "windows" {
+				t.Skip("Unix-style absolute paths are not absolute on Windows")
+			}
 			result := lxio.IsRel(tt.path)
 			if result != tt.expected {
 				t.Errorf("IsRel(%q) expected %v, got %v", tt.path, tt.expected, result)

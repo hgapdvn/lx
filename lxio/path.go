@@ -71,7 +71,7 @@ func Extension(path string) string {
 //	WithoutExtension("/path/to/file.txt")    // "/path/to/file"
 //	WithoutExtension("/path/to/file.tar.gz") // "/path/to/file.tar"
 //	WithoutExtension("README")               // "README"
-//	WithoutExtension(".bashrc")              // ".bashrc"
+//	WithoutExtension(".bashrc")              // ""
 func WithoutExtension(path string) string {
 	ext := filepath.Ext(path)
 	if ext == "" {
@@ -165,7 +165,7 @@ func Rel(basepath, targpath string) (string, error) {
 //	SplitExtension("/path/to/file.txt")    // ("/path/to/file", ".txt")
 //	SplitExtension("/path/to/file.tar.gz") // ("/path/to/file.tar", ".gz")
 //	SplitExtension("README")               // ("README", "")
-//	SplitExtension(".bashrc")              // ("/path/to/", ".bashrc")
+//	SplitExtension(".bashrc")              // ("", ".bashrc")
 //	SplitExtension("")                     // ("", "")
 func SplitExtension(path string) (base, ext string) {
 	ext = filepath.Ext(path)

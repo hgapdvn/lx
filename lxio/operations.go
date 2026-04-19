@@ -33,8 +33,13 @@ func CopyFile(src, dst string) error {
 	defer destination.Close()
 
 	// Copy contents
-	_, err = io.Copy(destination, source)
-	return err
+	if _, err = io.Copy(destination, source); err != nil {
+		return err
+	}
+
+	// Explicitly close to capture any deferred write errors (e.g., on NFS).
+	// The deferred Close above acts as a safety net for early returns.
+	return destination.Close()
 }
 
 // MoveFile moves a file from src to dst.
