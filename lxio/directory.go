@@ -233,6 +233,59 @@ func walkFilesInternal(currentPath string, relRoot string, fn func(path string) 
 	return nil
 }
 
+// WalkDirs recursively walks through the root directory and all subdirectories,
+// calling fn for each directory found (excluding the root directory itself).
+// The path passed to fn is relative to root and always uses forward slashes as separators,
+// regardless of the operating system.
+// If fn returns a non-nil error, the walk stops and that error is returned.
+// It returns an error if the root directory doesn't exist or cannot be read.
+//
+// Example:
+//
+//	err := lxio.WalkDirs("/path/to/dir", func(path string) error {
+//		fmt.Println(path) // e.g., "subdir", "subdir/nested"
+//		return nil
+//	})
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+func WalkDirs(root string, fn func(path string) error) error {
+	return walkDirsInternal(root, "", fn)
+}
+
+// walkDirsInternal is a helper function for WalkDirs.
+// relRoot tracks the relative path from the original root.
+func walkDirsInternal(currentPath string, relRoot string, fn func(path string) error) error {
+	entries, err := os.ReadDir(currentPath)
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			var relPath string
+			if relRoot == "" {
+				relPath = entry.Name()
+			} else {
+				relPath = relRoot + "/" + entry.Name()
+			}
+
+			// Call fn for this directory
+			if err := fn(relPath); err != nil {
+				return err
+			}
+
+			// Recurse into subdirectory
+			fullPath := filepath.Join(currentPath, entry.Name())
+			if err := walkDirsInternal(fullPath, relPath, fn); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 // ======================== Extension Filter Functions ========================
 
 // ListFilesByExt returns a sorted slice of file names that match any of the provided extensions.

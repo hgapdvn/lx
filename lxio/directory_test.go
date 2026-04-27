@@ -1,10 +1,12 @@
 package lxio_test
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/hgapdvn/lx/lxio"
@@ -459,6 +461,254 @@ func TestWalkFiles(t *testing.T) {
 		}
 		if !lxslices.Equal(files, expected) {
 			t.Errorf("expected %v, got %v", expected, files)
+		}
+	})
+}
+
+func TestWalkDirs(t *testing.T) {
+	t.Run("walk directories recursively", func(t *testing.T) {
+		dir := t.TempDir()
+
+		// Create structure:
+		// dir/
+		//   subdir/
+		//     nested/
+
+		_ = os.Mkdir(filepath.Join(dir, "subdir"), 0755)
+		_ = os.Mkdir(filepath.Join(dir, "subdir", "nested"), 0755)
+
+		var dirs []string
+		err := lxio.WalkDirs(dir, func(path string) error {
+			dirs = append(dirs, path)
+			return nil
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		sort.Strings(dirs)
+		expected := []string{"subdir", "subdir/nested"}
+		if !lxslices.Equal(dirs, expected) {
+			t.Errorf("expected %v, got %v", expected, dirs)
+		}
+	})
+
+	t.Run("walk directories from empty directory", func(t *testing.T) {
+		dir := t.TempDir()
+
+		var dirs []string
+		err := lxio.WalkDirs(dir, func(path string) error {
+			dirs = append(dirs, path)
+			return nil
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if len(dirs) != 0 {
+			t.Errorf("expected empty slice, got %v", dirs)
+		}
+	})
+
+	t.Run("walk directories ignores files", func(t *testing.T) {
+		dir := t.TempDir()
+
+		_ = os.WriteFile(filepath.Join(dir, "file1.txt"), []byte(""), 0644)
+		_ = os.Mkdir(filepath.Join(dir, "subdir"), 0755)
+		_ = os.WriteFile(filepath.Join(dir, "subdir", "file2.txt"), []byte(""), 0644)
+
+		var dirs []string
+		err := lxio.WalkDirs(dir, func(path string) error {
+			dirs = append(dirs, path)
+			return nil
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		expected := []string{"subdir"}
+		if !lxslices.Equal(dirs, expected) {
+			t.Errorf("expected %v, got %v", expected, dirs)
+		}
+	})
+
+	t.Run("walk directories stops on error", func(t *testing.T) {
+		dir := t.TempDir()
+
+		_ = os.Mkdir(filepath.Join(dir, "dir1"), 0755)
+		_ = os.Mkdir(filepath.Join(dir, "dir2"), 0755)
+
+		callCount := 0
+		testErr := os.ErrPermission
+		err := lxio.WalkDirs(dir, func(path string) error {
+			callCount++
+			if callCount == 1 {
+				return testErr
+			}
+			return nil
+		})
+
+		if err != testErr {
+			t.Errorf("expected error %v, got %v", testErr, err)
+		}
+		if callCount != 1 {
+			t.Errorf("expected 1 call before stop, got %d", callCount)
+		}
+	})
+
+	t.Run("error on non-existent directory", func(t *testing.T) {
+		nonExistentPath := "/nonexistent/path/that/does/not/exist"
+		err := lxio.WalkDirs(nonExistentPath, func(path string) error {
+			return nil
+		})
+		if err == nil {
+			t.Error("expected error for non-existent directory, got nil")
+		}
+	})
+
+	t.Run("walk directories with nested structure", func(t *testing.T) {
+		dir := t.TempDir()
+
+		// Create structure:
+		// dir/
+		//   a/
+		//     b/
+		//       c/
+		//   d/
+		//   e/
+		//     f/
+
+		_ = os.Mkdir(filepath.Join(dir, "a"), 0755)
+		_ = os.Mkdir(filepath.Join(dir, "a", "b"), 0755)
+		_ = os.Mkdir(filepath.Join(dir, "a", "b", "c"), 0755)
+		_ = os.Mkdir(filepath.Join(dir, "d"), 0755)
+		_ = os.Mkdir(filepath.Join(dir, "e"), 0755)
+		_ = os.Mkdir(filepath.Join(dir, "e", "f"), 0755)
+
+		var dirs []string
+		err := lxio.WalkDirs(dir, func(path string) error {
+			dirs = append(dirs, path)
+			return nil
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		sort.Strings(dirs)
+		expected := []string{
+			"a",
+			"a/b",
+			"a/b/c",
+			"d",
+			"e",
+			"e/f",
+		}
+		if !lxslices.Equal(dirs, expected) {
+			t.Errorf("expected %v, got %v", expected, dirs)
+		}
+	})
+
+	t.Run("walk directories with mixed files and directories", func(t *testing.T) {
+		dir := t.TempDir()
+
+		// Create structure:
+		// dir/
+		//   file1.txt
+		//   subdir1/
+		//     file2.txt
+		//     nested/
+		//       file3.txt
+		//   subdir2/
+		//   file4.txt
+
+		_ = os.WriteFile(filepath.Join(dir, "file1.txt"), []byte(""), 0644)
+		_ = os.Mkdir(filepath.Join(dir, "subdir1"), 0755)
+		_ = os.WriteFile(filepath.Join(dir, "subdir1", "file2.txt"), []byte(""), 0644)
+		_ = os.Mkdir(filepath.Join(dir, "subdir1", "nested"), 0755)
+		_ = os.WriteFile(filepath.Join(dir, "subdir1", "nested", "file3.txt"), []byte(""), 0644)
+		_ = os.Mkdir(filepath.Join(dir, "subdir2"), 0755)
+		_ = os.WriteFile(filepath.Join(dir, "file4.txt"), []byte(""), 0644)
+
+		var dirs []string
+		err := lxio.WalkDirs(dir, func(path string) error {
+			dirs = append(dirs, path)
+			return nil
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		sort.Strings(dirs)
+		expected := []string{
+			"subdir1",
+			"subdir1/nested",
+			"subdir2",
+		}
+		if !lxslices.Equal(dirs, expected) {
+			t.Errorf("expected %v, got %v", expected, dirs)
+		}
+	})
+
+	t.Run("walk directories uses forward slashes", func(t *testing.T) {
+		dir := t.TempDir()
+
+		// Create nested directories
+		_ = os.Mkdir(filepath.Join(dir, "a"), 0755)
+		_ = os.Mkdir(filepath.Join(dir, "a", "b"), 0755)
+		_ = os.Mkdir(filepath.Join(dir, "a", "b", "c"), 0755)
+
+		var dirs []string
+		err := lxio.WalkDirs(dir, func(path string) error {
+			dirs = append(dirs, path)
+			// Verify no backslashes (Windows separators)
+			if strings.Contains(path, "\\") {
+				return fmt.Errorf("path contains backslash: %s", path)
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		sort.Strings(dirs)
+		expected := []string{"a", "a/b", "a/b/c"}
+		if !lxslices.Equal(dirs, expected) {
+			t.Errorf("expected %v, got %v", expected, dirs)
+		}
+	})
+
+	t.Run("walk directories only direct subdirectories at each level", func(t *testing.T) {
+		dir := t.TempDir()
+
+		// Create structure to verify we don't duplicate subdirs:
+		// dir/
+		//   sub/
+		//     nested/
+
+		_ = os.Mkdir(filepath.Join(dir, "sub"), 0755)
+		_ = os.Mkdir(filepath.Join(dir, "sub", "nested"), 0755)
+
+		callCount := 0
+		dirCalls := make(map[string]int)
+
+		err := lxio.WalkDirs(dir, func(path string) error {
+			callCount++
+			dirCalls[path]++
+			return nil
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if callCount != 2 {
+			t.Errorf("expected 2 directory calls, got %d", callCount)
+		}
+
+		// Verify no duplicates
+		for path, count := range dirCalls {
+			if count > 1 {
+				t.Errorf("directory %q was called %d times, expected 1", path, count)
+			}
 		}
 	})
 }
