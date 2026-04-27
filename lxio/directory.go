@@ -327,7 +327,7 @@ func walkFilesInternal(currentPath string, relRoot string, fn func(path string) 
 				return err
 			}
 		}
-		// Symlinks to files are intentionally skipped to keep behaviour
+		// Symlinks to files are intentionally skipped to keep behavior
 		// consistent: we do not follow any symlinks.
 	}
 

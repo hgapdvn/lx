@@ -12,8 +12,8 @@ import (
 
 // Sentinel errors returned by CopyDir.
 var (
-	// ErrNotDirectory is returned when the source path is not a directory.
-	ErrNotDirectory = errors.New("lxio: source is not a directory")
+	// ErrSourceNotDirectory is returned when the source path is not a directory.
+	ErrSourceNotDirectory = errors.New("lxio: source path is not a directory")
 	// ErrDestinationExists is returned when the destination path already exists.
 	ErrDestinationExists = errors.New("lxio: destination already exists")
 )
@@ -178,7 +178,7 @@ func CopyDir(src, dst string) error {
 		return err
 	}
 	if !srcInfo.IsDir() {
-		return fmt.Errorf("%w: %q", ErrNotDirectory, src)
+		return fmt.Errorf("%w: %q", ErrSourceNotDirectory, src)
 	}
 
 	// Check if destination already exists
