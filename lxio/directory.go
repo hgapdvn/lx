@@ -181,6 +181,100 @@ func ListAll(dir string) ([]string, error) {
 	return names, nil
 }
 
+// CountFiles returns the number of files (not directories) in the given directory.
+// It does not recursively count files in subdirectories.
+// It returns an error if the directory doesn't exist or cannot be read.
+//
+// Example:
+//
+//	count, err := lxio.CountFiles("/path/to/dir")
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//	fmt.Printf("Files: %d\n", count)
+func CountFiles(dir string) (int, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return 0, err
+	}
+
+	count := 0
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			count++
+		}
+	}
+
+	return count, nil
+}
+
+// CountDirs returns the number of directories (not files) in the given directory.
+// It does not recursively count directories in subdirectories.
+// It returns an error if the directory doesn't exist or cannot be read.
+//
+// Example:
+//
+//	count, err := lxio.CountDirs("/path/to/dir")
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//	fmt.Printf("Directories: %d\n", count)
+func CountDirs(dir string) (int, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return 0, err
+	}
+
+	count := 0
+	for _, entry := range entries {
+		if entry.IsDir() {
+			count++
+		}
+	}
+
+	return count, nil
+}
+
+// CountFilesRecursive returns the total number of files in the root directory
+// and all subdirectories recursively.
+// It returns an error if the root directory doesn't exist or cannot be read.
+//
+// Example:
+//
+//	count, err := lxio.CountFilesRecursive("/path/to/dir")
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//	fmt.Printf("Total files: %d\n", count)
+func CountFilesRecursive(root string) (int, error) {
+	count := 0
+	err := WalkFiles(root, func(path string) error {
+		count++
+		return nil
+	})
+	return count, err
+}
+
+// CountDirsRecursive returns the total number of directories in the root directory
+// and all subdirectories recursively (excluding the root directory itself).
+// It returns an error if the root directory doesn't exist or cannot be read.
+//
+// Example:
+//
+//	count, err := lxio.CountDirsRecursive("/path/to/dir")
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//	fmt.Printf("Total directories: %d\n", count)
+func CountDirsRecursive(root string) (int, error) {
+	count := 0
+	err := WalkDirs(root, func(path string) error {
+		count++
+		return nil
+	})
+	return count, err
+}
+
 // WalkFiles recursively walks through the root directory and all subdirectories,
 // calling fn for each file found. The path passed to fn is relative to root
 // and always uses forward slashes as separators, regardless of the operating system.

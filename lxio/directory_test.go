@@ -713,6 +713,349 @@ func TestWalkDirs(t *testing.T) {
 	})
 }
 
+func TestCountFiles(t *testing.T) {
+	t.Run("count files in directory with mixed content", func(t *testing.T) {
+		dir := t.TempDir()
+
+		_ = os.WriteFile(filepath.Join(dir, "file1.txt"), []byte(""), 0644)
+		_ = os.WriteFile(filepath.Join(dir, "file2.txt"), []byte(""), 0644)
+		_ = os.WriteFile(filepath.Join(dir, "file3.go"), []byte(""), 0644)
+
+		// Create subdirectory (should be ignored)
+		_ = os.Mkdir(filepath.Join(dir, "subdir"), 0755)
+
+		count, err := lxio.CountFiles(dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if count != 3 {
+			t.Errorf("expected 3 files, got %d", count)
+		}
+	})
+
+	t.Run("count files in empty directory", func(t *testing.T) {
+		dir := t.TempDir()
+
+		count, err := lxio.CountFiles(dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if count != 0 {
+			t.Errorf("expected 0 files, got %d", count)
+		}
+	})
+
+	t.Run("count files ignores directories", func(t *testing.T) {
+		dir := t.TempDir()
+
+		_ = os.WriteFile(filepath.Join(dir, "file.txt"), []byte(""), 0644)
+		_ = os.Mkdir(filepath.Join(dir, "dir1"), 0755)
+		_ = os.Mkdir(filepath.Join(dir, "dir2"), 0755)
+
+		count, err := lxio.CountFiles(dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if count != 1 {
+			t.Errorf("expected 1 file, got %d", count)
+		}
+	})
+
+	t.Run("count files does not recurse", func(t *testing.T) {
+		dir := t.TempDir()
+
+		_ = os.WriteFile(filepath.Join(dir, "file1.txt"), []byte(""), 0644)
+		_ = os.Mkdir(filepath.Join(dir, "subdir"), 0755)
+		_ = os.WriteFile(filepath.Join(dir, "subdir", "file2.txt"), []byte(""), 0644)
+
+		count, err := lxio.CountFiles(dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if count != 1 {
+			t.Errorf("expected 1 file (not recursive), got %d", count)
+		}
+	})
+
+	t.Run("error on non-existent directory", func(t *testing.T) {
+		nonExistentPath := "/nonexistent/path/that/does/not/exist"
+		_, err := lxio.CountFiles(nonExistentPath)
+		if err == nil {
+			t.Error("expected error for non-existent directory, got nil")
+		}
+	})
+}
+
+func TestCountDirs(t *testing.T) {
+	t.Run("count directories in directory with mixed content", func(t *testing.T) {
+		dir := t.TempDir()
+
+		_ = os.Mkdir(filepath.Join(dir, "dir1"), 0755)
+		_ = os.Mkdir(filepath.Join(dir, "dir2"), 0755)
+		_ = os.Mkdir(filepath.Join(dir, "dir3"), 0755)
+
+		// Create files (should be ignored)
+		_ = os.WriteFile(filepath.Join(dir, "file.txt"), []byte(""), 0644)
+
+		count, err := lxio.CountDirs(dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if count != 3 {
+			t.Errorf("expected 3 directories, got %d", count)
+		}
+	})
+
+	t.Run("count directories in empty directory", func(t *testing.T) {
+		dir := t.TempDir()
+
+		count, err := lxio.CountDirs(dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if count != 0 {
+			t.Errorf("expected 0 directories, got %d", count)
+		}
+	})
+
+	t.Run("count directories ignores files", func(t *testing.T) {
+		dir := t.TempDir()
+
+		_ = os.WriteFile(filepath.Join(dir, "file1.txt"), []byte(""), 0644)
+		_ = os.WriteFile(filepath.Join(dir, "file2.txt"), []byte(""), 0644)
+		_ = os.Mkdir(filepath.Join(dir, "subdir"), 0755)
+
+		count, err := lxio.CountDirs(dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if count != 1 {
+			t.Errorf("expected 1 directory, got %d", count)
+		}
+	})
+
+	t.Run("count directories does not recurse", func(t *testing.T) {
+		dir := t.TempDir()
+
+		_ = os.Mkdir(filepath.Join(dir, "dir1"), 0755)
+		_ = os.Mkdir(filepath.Join(dir, "dir1", "nested"), 0755)
+
+		count, err := lxio.CountDirs(dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if count != 1 {
+			t.Errorf("expected 1 directory (not recursive), got %d", count)
+		}
+	})
+
+	t.Run("error on non-existent directory", func(t *testing.T) {
+		nonExistentPath := "/nonexistent/path/that/does/not/exist"
+		_, err := lxio.CountDirs(nonExistentPath)
+		if err == nil {
+			t.Error("expected error for non-existent directory, got nil")
+		}
+	})
+}
+
+func TestCountFilesRecursive(t *testing.T) {
+	t.Run("count files recursively", func(t *testing.T) {
+		dir := t.TempDir()
+
+		// Create structure:
+		// dir/
+		//   file1.txt
+		//   subdir/
+		//     file2.txt
+		//     nested/
+		//       file3.txt
+
+		_ = os.WriteFile(filepath.Join(dir, "file1.txt"), []byte(""), 0644)
+		_ = os.Mkdir(filepath.Join(dir, "subdir"), 0755)
+		_ = os.WriteFile(filepath.Join(dir, "subdir", "file2.txt"), []byte(""), 0644)
+		_ = os.Mkdir(filepath.Join(dir, "subdir", "nested"), 0755)
+		_ = os.WriteFile(filepath.Join(dir, "subdir", "nested", "file3.txt"), []byte(""), 0644)
+
+		count, err := lxio.CountFilesRecursive(dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if count != 3 {
+			t.Errorf("expected 3 files, got %d", count)
+		}
+	})
+
+	t.Run("count files recursively from empty directory", func(t *testing.T) {
+		dir := t.TempDir()
+
+		count, err := lxio.CountFilesRecursive(dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if count != 0 {
+			t.Errorf("expected 0 files, got %d", count)
+		}
+	})
+
+	t.Run("count files recursively ignores directories", func(t *testing.T) {
+		dir := t.TempDir()
+
+		_ = os.WriteFile(filepath.Join(dir, "file1.txt"), []byte(""), 0644)
+		_ = os.Mkdir(filepath.Join(dir, "emptydir"), 0755)
+		_ = os.WriteFile(filepath.Join(dir, "file2.txt"), []byte(""), 0644)
+
+		count, err := lxio.CountFilesRecursive(dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if count != 2 {
+			t.Errorf("expected 2 files, got %d", count)
+		}
+	})
+
+	t.Run("count files recursively with nested directories", func(t *testing.T) {
+		dir := t.TempDir()
+
+		// Create structure:
+		// dir/
+		//   a.txt
+		//   sub1/
+		//     b.txt
+		//     sub2/
+		//       c.txt
+		//       d.txt
+		//     e.txt
+		//   f.txt
+
+		_ = os.WriteFile(filepath.Join(dir, "a.txt"), []byte(""), 0644)
+		_ = os.Mkdir(filepath.Join(dir, "sub1"), 0755)
+		_ = os.WriteFile(filepath.Join(dir, "sub1", "b.txt"), []byte(""), 0644)
+		_ = os.Mkdir(filepath.Join(dir, "sub1", "sub2"), 0755)
+		_ = os.WriteFile(filepath.Join(dir, "sub1", "sub2", "c.txt"), []byte(""), 0644)
+		_ = os.WriteFile(filepath.Join(dir, "sub1", "sub2", "d.txt"), []byte(""), 0644)
+		_ = os.WriteFile(filepath.Join(dir, "sub1", "e.txt"), []byte(""), 0644)
+		_ = os.WriteFile(filepath.Join(dir, "f.txt"), []byte(""), 0644)
+
+		count, err := lxio.CountFilesRecursive(dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if count != 6 {
+			t.Errorf("expected 6 files, got %d", count)
+		}
+	})
+
+	t.Run("error on non-existent directory", func(t *testing.T) {
+		nonExistentPath := "/nonexistent/path/that/does/not/exist"
+		_, err := lxio.CountFilesRecursive(nonExistentPath)
+		if err == nil {
+			t.Error("expected error for non-existent directory, got nil")
+		}
+	})
+}
+
+func TestCountDirsRecursive(t *testing.T) {
+	t.Run("count directories recursively", func(t *testing.T) {
+		dir := t.TempDir()
+
+		// Create structure:
+		// dir/
+		//   subdir/
+		//     nested/
+
+		_ = os.Mkdir(filepath.Join(dir, "subdir"), 0755)
+		_ = os.Mkdir(filepath.Join(dir, "subdir", "nested"), 0755)
+
+		count, err := lxio.CountDirsRecursive(dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if count != 2 {
+			t.Errorf("expected 2 directories, got %d", count)
+		}
+	})
+
+	t.Run("count directories recursively from empty directory", func(t *testing.T) {
+		dir := t.TempDir()
+
+		count, err := lxio.CountDirsRecursive(dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if count != 0 {
+			t.Errorf("expected 0 directories, got %d", count)
+		}
+	})
+
+	t.Run("count directories recursively ignores files", func(t *testing.T) {
+		dir := t.TempDir()
+
+		_ = os.WriteFile(filepath.Join(dir, "file1.txt"), []byte(""), 0644)
+		_ = os.Mkdir(filepath.Join(dir, "subdir"), 0755)
+		_ = os.WriteFile(filepath.Join(dir, "subdir", "file2.txt"), []byte(""), 0644)
+
+		count, err := lxio.CountDirsRecursive(dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if count != 1 {
+			t.Errorf("expected 1 directory, got %d", count)
+		}
+	})
+
+	t.Run("count directories recursively with nested structure", func(t *testing.T) {
+		dir := t.TempDir()
+
+		// Create structure:
+		// dir/
+		//   a/
+		//     b/
+		//       c/
+		//   d/
+		//   e/
+		//     f/
+
+		_ = os.Mkdir(filepath.Join(dir, "a"), 0755)
+		_ = os.Mkdir(filepath.Join(dir, "a", "b"), 0755)
+		_ = os.Mkdir(filepath.Join(dir, "a", "b", "c"), 0755)
+		_ = os.Mkdir(filepath.Join(dir, "d"), 0755)
+		_ = os.Mkdir(filepath.Join(dir, "e"), 0755)
+		_ = os.Mkdir(filepath.Join(dir, "e", "f"), 0755)
+
+		count, err := lxio.CountDirsRecursive(dir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if count != 6 {
+			t.Errorf("expected 6 directories, got %d", count)
+		}
+	})
+
+	t.Run("error on non-existent directory", func(t *testing.T) {
+		nonExistentPath := "/nonexistent/path/that/does/not/exist"
+		_, err := lxio.CountDirsRecursive(nonExistentPath)
+		if err == nil {
+			t.Error("expected error for non-existent directory, got nil")
+		}
+	})
+}
+
 // ======================== ListFilesByExt Tests =========================
 
 func TestListFilesByExt(t *testing.T) {
