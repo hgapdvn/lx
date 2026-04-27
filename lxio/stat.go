@@ -205,11 +205,6 @@ func MustBeSymlink(path string) bool {
 func IsEmpty(path string) (bool, error) {
 	info, err := os.Stat(path)
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			// Path doesn't exist
-			return false, err
-		}
-		// We can't access it, bubble up the error
 		return false, err
 	}
 
@@ -242,11 +237,6 @@ func IsEmptyOK(path string) bool {
 func Size(path string) (int64, error) {
 	info, err := os.Stat(path)
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			// Path doesn't exist, return error
-			return 0, err
-		}
-		// We can't access it, bubble up the error
 		return 0, err
 	}
 
@@ -268,11 +258,6 @@ func SizeOK(path string) int64 {
 func ModTime(path string) (time.Time, error) {
 	info, err := os.Stat(path)
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			// Path doesn't exist, return error
-			return time.Time{}, err
-		}
-		// We can't access it, bubble up the error
 		return time.Time{}, err
 	}
 
@@ -321,7 +306,7 @@ func IsWritable(path string) bool {
 			return false
 		}
 		tempFile.Close()
-		os.Remove(tempFile.Name())
+		_ = os.Remove(tempFile.Name())
 		return true
 	}
 
