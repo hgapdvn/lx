@@ -59,15 +59,19 @@ func WriteStringf(path string, format string, args ...any) error {
 	return WriteString(path, fmt.Sprintf(format, args...))
 }
 
-// WriteLinesBytes writes a slice of byte slices to a file, separating them with standard newlines (\n).
-// If the file already exists, it is truncated.
+// WriteLinesBytes writes a slice of byte slices to a file, separating them with
+// Unix newlines (\n). If the file already exists, it is truncated.
+// Note: this always uses \n regardless of the operating system. Use AppendLines
+// if you need OS-native line endings (\r\n on Windows).
 func WriteLinesBytes(path string, lines [][]byte) error {
 	data := bytes.Join(lines, []byte("\n"))
 	return os.WriteFile(path, data, defaultFileMode)
 }
 
-// WriteLinesString writes a slice of strings to a file, separating them with standard newlines (\n).
-// If the file already exists, it is truncated.
+// WriteLinesString writes a slice of strings to a file, separating them with
+// Unix newlines (\n). If the file already exists, it is truncated.
+// Note: this always uses \n regardless of the operating system. Use AppendLines
+// if you need OS-native line endings (\r\n on Windows).
 func WriteLinesString(path string, lines []string) error {
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, defaultFileMode)
 	if err != nil {
@@ -124,9 +128,9 @@ func AppendLine(path string, line string) error {
 	return Append(path, data)
 }
 
-// AppendLines appends multiple lines to the file, each followed by a newline.
+// AppendLines appends multiple lines to the file, each terminated with the
+// OS-native newline (\r\n on Windows, \n on Unix).
 // If the file does not exist, it is created.
-// Each line is terminated with a newline character.
 //
 // Example:
 //

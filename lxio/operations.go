@@ -1,12 +1,21 @@
 package lxio
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"time"
+)
+
+// Sentinel errors returned by CopyDir.
+var (
+	// ErrNotDirectory is returned when the source path is not a directory.
+	ErrNotDirectory = errors.New("lxio: source is not a directory")
+	// ErrDestinationExists is returned when the destination path already exists.
+	ErrDestinationExists = errors.New("lxio: destination already exists")
 )
 
 // CopyFile copies the file from src to dst.
@@ -33,16 +42,16 @@ func CopyFile(src, dst string) error {
 	if err != nil {
 		return err
 	}
-	defer destination.Close()
 
-	// Copy contents
-	if _, err = io.Copy(destination, source); err != nil {
-		return err
+	// Copy contents; close explicitly (not via defer) to capture flush errors
+	// (e.g., on NFS or other remote filesystems).
+	_, copyErr := io.Copy(destination, source)
+	closeErr := destination.Close()
+
+	if copyErr != nil {
+		return copyErr
 	}
-
-	// Explicitly close to capture any deferred write errors (e.g., on NFS).
-	// The deferred Close above acts as a safety net for early returns.
-	return destination.Close()
+	return closeErr
 }
 
 // MoveFile moves a file from src to dst.
@@ -57,7 +66,7 @@ func CopyFile(src, dst string) error {
 //		log.Fatal(err)
 //	}
 func MoveFile(src, dst string) error {
-	return os.Rename(src, dst)
+	return Rename(src, dst)
 }
 
 // RemoveFile removes the file at the given path.
@@ -108,19 +117,13 @@ func CreateFile(path string, perm os.FileMode) error {
 		}
 	}
 
-	// Create the file
-	f, err := os.Create(path)
+	// Create (or truncate) the file with the requested permissions in a single
+	// syscall to avoid the TOCTOU race between os.Create and os.Chmod.
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, perm)
 	if err != nil {
 		return err
 	}
-	f.Close()
-
-	// Set permissions
-	if err := os.Chmod(path, perm); err != nil {
-		return err
-	}
-
-	return nil
+	return f.Close()
 }
 
 // RemoveAll removes the file or directory at the given path and any children it contains.
@@ -175,12 +178,12 @@ func CopyDir(src, dst string) error {
 		return err
 	}
 	if !srcInfo.IsDir() {
-		return fmt.Errorf("source is not a directory")
+		return fmt.Errorf("%w: %q", ErrNotDirectory, src)
 	}
 
 	// Check if destination already exists
 	if _, err := os.Stat(dst); err == nil {
-		return fmt.Errorf("destination %q already exists", dst)
+		return fmt.Errorf("%w: %q", ErrDestinationExists, dst)
 	}
 
 	if err := os.MkdirAll(dst, srcInfo.Mode().Perm()); err != nil {

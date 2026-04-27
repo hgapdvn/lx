@@ -281,6 +281,10 @@ func CountDirsRecursive(root string) (int, error) {
 // If fn returns a non-nil error, the walk stops and that error is returned.
 // It returns an error if the root directory doesn't exist or cannot be read.
 //
+// Symlinks to directories are not followed; only regular files and real
+// subdirectories are visited. This prevents infinite loops caused by
+// circular symlinks.
+//
 // Example:
 //
 //	err := lxio.WalkFiles("/path/to/dir", func(path string) error {
@@ -311,17 +315,20 @@ func walkFilesInternal(currentPath string, relRoot string, fn func(path string) 
 		}
 
 		if entry.IsDir() {
-			// Recurse into subdirectory
+			// Recurse into real subdirectory (not a symlink to a directory —
+			// following those could cause infinite loops on circular symlinks).
 			fullPath := filepath.Join(currentPath, entry.Name())
 			if err := walkFilesInternal(fullPath, relPath, fn); err != nil {
 				return err
 			}
-		} else {
-			// Call fn for this file
+		} else if entry.Type()&os.ModeSymlink == 0 {
+			// Regular file (not a symlink). Call fn for this file.
 			if err := fn(relPath); err != nil {
 				return err
 			}
 		}
+		// Symlinks to files are intentionally skipped to keep behaviour
+		// consistent: we do not follow any symlinks.
 	}
 
 	return nil
@@ -333,6 +340,9 @@ func walkFilesInternal(currentPath string, relRoot string, fn func(path string) 
 // regardless of the operating system.
 // If fn returns a non-nil error, the walk stops and that error is returned.
 // It returns an error if the root directory doesn't exist or cannot be read.
+//
+// Symlinks to directories are not followed; only real subdirectories are visited.
+// This prevents infinite loops caused by circular symlinks.
 //
 // Example:
 //
@@ -356,6 +366,8 @@ func walkDirsInternal(currentPath string, relRoot string, fn func(path string) e
 	}
 
 	for _, entry := range entries {
+		// Only descend into real directories; skip symlinks to directories to
+		// avoid infinite loops on circular symlinks.
 		if entry.IsDir() {
 			var relPath string
 			if relRoot == "" {
@@ -417,8 +429,10 @@ func ListFilesByExt(dir string, ext ...string) ([]string, error) {
 		if !entry.IsDir() {
 			fileName := strings.ToLower(entry.Name())
 			for _, e := range extLower {
-				// Check if file ends with the extension or matches single extension with filepath.Ext
-				if strings.HasSuffix(fileName, e) || strings.ToLower(filepath.Ext(entry.Name())) == e {
+				// Use HasSuffix so that multi-part extensions like ".tar.gz" are matched
+				// correctly. Using filepath.Ext alone would only see the last segment
+				// (".gz"), causing ".tar.gz" to match when only ".gz" was requested.
+				if strings.HasSuffix(fileName, e) {
 					files = append(files, entry.Name())
 					break
 				}
