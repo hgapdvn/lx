@@ -1,50 +1,119 @@
 // Package lxcrypto provides common cryptographic utilities built on top of Go's
 // standard library crypto packages.
 //
+// All functions follow a consistent naming convention:
+//
+//   - Plain name (e.g. MD5, HMAC256)      → accepts []byte
+//   - String suffix (e.g. MD5String)       → accepts / returns string
+//   - Stream suffix (e.g. MD5Stream)       → accepts io.Reader / io.Writer
+//
 // # Hashing (hash.go)
 //
-// Four hash functions are available, each accepting a []byte, string, or
-// io.Reader as input:
+// Four algorithms are available, each in three variants:
 //
-//	MD5(input any)    (string, error)
-//	SHA1(input any)   (string, error)
-//	SHA256(input any) (string, error)
-//	SHA512(input any) (string, error)
+//	MD5(data []byte) string
+//	MD5String(s string) string
+//	MD5Stream(src io.Reader) (string, error)
 //
-// All functions return a lowercase hex-encoded digest.
-// An error is returned only when input is an io.Reader and reading fails,
-// or when the input type is not one of the three supported types.
+//	SHA1(data []byte) string
+//	SHA1String(s string) string
+//	SHA1Stream(src io.Reader) (string, error)
 //
-// Supported input types:
+//	SHA256(data []byte) string
+//	SHA256String(s string) string
+//	SHA256Stream(src io.Reader) (string, error)
 //
-//   - []byte  — in-memory byte slice (never errors)
-//   - string  — plain text (never errors)
-//   - io.Reader — streamed chunk-by-chunk; suitable for large files or HTTP
-//     bodies without loading them into memory
+//	SHA512(data []byte) string
+//	SHA512String(s string) string
+//	SHA512Stream(src io.Reader) (string, error)
 //
-// Example ([]byte):
+// Bytes and string variants never return an error.
+// Stream variants return an error only when reading from src fails.
+// All return a lowercase hex-encoded digest.
 //
-//	sum, _ := lxcrypto.SHA256([]byte("hello"))
-//	// sum: "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+// Example:
 //
-// Example (string):
+//	lxcrypto.SHA256([]byte("hello"))  // "2cf24dba..."
+//	lxcrypto.SHA256String("hello")    // "2cf24dba..."
 //
-//	sum, _ := lxcrypto.SHA256("hello")
-//	// sum: "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
-//
-// Example (streaming a file):
-//
-//	f, err := os.Open("large.bin")
-//	if err != nil { ... }
+//	f, _ := os.Open("large.bin")
 //	defer f.Close()
-//	sum, err := lxcrypto.SHA256(f)
+//	sum, err := lxcrypto.SHA256Stream(f)
 //
-// Example (streaming an HTTP response body):
+// # HMAC (hmac.go)
 //
-//	resp, err := http.Get("https://example.com/file")
-//	if err != nil { ... }
-//	defer resp.Body.Close()
-//	sum, err := lxcrypto.SHA256(resp.Body)
+// Two algorithms, each in three variants:
+//
+//	HMAC256(data, key []byte) string
+//	HMAC256String(data, key string) string
+//	HMAC256Stream(src io.Reader, key []byte) (string, error)
+//
+//	HMAC512(data, key []byte) string
+//	HMAC512String(data, key string) string
+//	HMAC512Stream(src io.Reader, key []byte) (string, error)
+//
+// Example:
+//
+//	tag := lxcrypto.HMAC256([]byte("message"), []byte("secret"))
+//	tag := lxcrypto.HMAC256String("message", "secret")
+//
+//	f, _ := os.Open("large.bin")
+//	tag, err := lxcrypto.HMAC256Stream(f, []byte("secret"))
+//
+// # AES Encryption (aes.go)
+//
+// GCM mode (authenticated):
+//
+//	EncryptGCM(plaintext, key []byte) ([]byte, error)
+//	DecryptGCM(ciphertext, key []byte) ([]byte, error)
+//	EncryptGCMString(plaintext string, key []byte) (string, error)
+//	DecryptGCMString(ciphertext string, key []byte) (string, error)
+//
+// CBC mode (PKCS7-padded, no authentication):
+//
+//	EncryptCBC(plaintext, key []byte) ([]byte, error)
+//	DecryptCBC(ciphertext, key []byte) ([]byte, error)
+//	EncryptCBCString(plaintext string, key []byte) (string, error)
+//	DecryptCBCString(ciphertext string, key []byte) (string, error)
+//
+// key must be 16, 24, or 32 bytes (AES-128/192/256).
+// GCM String variants base64 URL-encode the ciphertext for safe transport.
+// Prefer GCM over CBC; CBC provides no tamper detection.
+//
+// # AES Streaming (aes_stream.go)
+//
+// For large data without loading it entirely into memory:
+//
+//	EncryptGCMStream(src io.Reader, dst io.Writer, key []byte) error
+//	DecryptGCMStream(src io.Reader, dst io.Writer, key []byte) error
+//
+// Data is processed in 64 KB chunks; each chunk is independently authenticated.
+//
+// Example:
+//
+//	in, _  := os.Open("large.bin")
+//	out, _ := os.Create("large.bin.enc")
+//	err := lxcrypto.EncryptGCMStream(in, out, key)
+//
+// # Base64 (base64.go)
+//
+// Standard and URL-safe encoding, each in three variants:
+//
+//	Base64Encode(data []byte) string
+//	Base64EncodeString(s string) string
+//	Base64EncodeStream(src io.Reader, dst io.Writer) error
+//
+//	Base64Decode(s string) ([]byte, error)
+//	Base64DecodeString(s string) (string, error)
+//	Base64DecodeStream(src io.Reader, dst io.Writer) error
+//
+//	Base64URLEncode(data []byte) string
+//	Base64URLEncodeString(s string) string
+//	Base64URLEncodeStream(src io.Reader, dst io.Writer) error
+//
+//	Base64URLDecode(s string) ([]byte, error)
+//	Base64URLDecodeString(s string) (string, error)
+//	Base64URLDecodeStream(src io.Reader, dst io.Writer) error
 //
 // # Random Generation (random.go)
 //
@@ -55,12 +124,12 @@
 //	RandomString(n int) (string, error)  – n-char alphanumeric string (A-Z a-z 0-9)
 //	SecureToken(n int) (string, error)   – URL-safe base64 token from n random bytes
 //
-// All three return an error when n ≤ 0 or when the OS random source fails.
+// All return an error when n ≤ 0 or when the OS random source fails.
 // RandomString uses rejection sampling to avoid modulo bias.
 //
 // Example:
 //
-//	b, _: = lxcrypto.RandomBytes(16)        // 16 raw bytes
-//	s, _: = lxcrypto.RandomString(24)       // "aB3kLmN9pQrS2tUvXyZ01234"
-//	token, _: = lxcrypto.SecureToken(32)        // URL-safe base64-encoded string
+//	b, _     := lxcrypto.RandomBytes(16)   // 16 raw bytes
+//	s, _     := lxcrypto.RandomString(24)  // "aB3kLmN9pQrS2tUvXyZ01234"
+//	token, _ := lxcrypto.SecureToken(32)   // URL-safe base64-encoded string
 package lxcrypto
