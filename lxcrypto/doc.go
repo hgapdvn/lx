@@ -45,4 +45,22 @@
 //	if err != nil { ... }
 //	defer resp.Body.Close()
 //	sum, err := lxcrypto.SHA256(resp.Body)
+//
+// # Random Generation (random.go)
+//
+// Three functions generate cryptographically secure random values using
+// crypto/rand as the underlying source:
+//
+//	RandomBytes(n int) ([]byte, error)   – n raw random bytes
+//	RandomString(n int) (string, error)  – n-char alphanumeric string (A-Z a-z 0-9)
+//	SecureToken(n int) (string, error)   – URL-safe base64 token from n random bytes
+//
+// All three return an error when n ≤ 0 or when the OS random source fails.
+// RandomString uses rejection sampling to avoid modulo bias.
+//
+// Example:
+//
+//	b, _: = lxcrypto.RandomBytes(16)        // 16 raw bytes
+//	s, _: = lxcrypto.RandomString(24)       // "aB3kLmN9pQrS2tUvXyZ01234"
+//	token, _: = lxcrypto.SecureToken(32)        // URL-safe base64-encoded string
 package lxcrypto
