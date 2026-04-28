@@ -11,7 +11,7 @@ import (
 
 const alphanumericCharset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 
-func TestRandomBytes(t *testing.T) {
+func TestRandom(t *testing.T) {
 	tests := []struct {
 		name    string
 		n       int
@@ -27,7 +27,7 @@ func TestRandomBytes(t *testing.T) {
 			n:       32,
 			wantLen: 32,
 			check: func(t *testing.T, b []byte) {
-				b2, err := lxcrypto.RandomBytes(32)
+				b2, err := lxcrypto.Random(32)
 				if err != nil {
 					t.Fatalf("second call failed: %v", err)
 				}
@@ -42,7 +42,7 @@ func TestRandomBytes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			b, err := lxcrypto.RandomBytes(tt.n)
+			b, err := lxcrypto.Random(tt.n)
 			if tt.wantErr {
 				if err == nil {
 					t.Errorf("expected error, got nil")

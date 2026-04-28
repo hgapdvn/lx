@@ -1,6 +1,9 @@
 package lxcrypto_test
 
 import (
+	"bytes"
+	"errors"
+	"strings"
 	"testing"
 
 	"github.com/hgapdvn/lx/lxcrypto"
@@ -239,6 +242,165 @@ func TestBase64URLDecodeString(t *testing.T) {
 			}
 			if result != tt.expected {
 				t.Errorf("Base64URLDecodeString() = %q; want %q", result, tt.expected)
+			}
+		})
+	}
+}
+
+// ── Base64EncodeStream ────────────────────────────────────────────────────────
+
+func TestBase64EncodeStream(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+		srcErr   bool
+	}{
+		{name: "empty", input: "", expected: ""},
+		{name: "hello", input: "hello", expected: "aGVsbG8="},
+		{name: "hello world", input: "hello world", expected: "aGVsbG8gd29ybGQ="},
+		{name: "Go", input: "Go", expected: "R28="},
+		{name: "reader error", srcErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var src interface{ Read([]byte) (int, error) }
+			if tt.srcErr {
+				src = errReader{err: errors.New("read error")}
+			} else {
+				src = strings.NewReader(tt.input)
+			}
+			var dst bytes.Buffer
+			err := lxcrypto.Base64EncodeStream(src, &dst)
+			if tt.srcErr {
+				if err == nil {
+					t.Error("Base64EncodeStream() expected error, got nil")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Base64EncodeStream() unexpected error: %v", err)
+			}
+			if dst.String() != tt.expected {
+				t.Errorf("Base64EncodeStream() = %q; want %q", dst.String(), tt.expected)
+			}
+			// must match non-stream variant
+			if dst.String() != lxcrypto.Base64Encode([]byte(tt.input)) {
+				t.Errorf("Base64EncodeStream() != Base64Encode() for input %q", tt.input)
+			}
+		})
+	}
+}
+
+// ── Base64DecodeStream ────────────────────────────────────────────────────────
+
+func TestBase64DecodeStream(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+		wantErr  bool
+	}{
+		{name: "empty", input: "", expected: ""},
+		{name: "hello", input: "aGVsbG8=", expected: "hello"},
+		{name: "hello world", input: "aGVsbG8gd29ybGQ=", expected: "hello world"},
+		{name: "Go", input: "R28=", expected: "Go"},
+		{name: "invalid base64", input: "not!valid@@", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var dst bytes.Buffer
+			err := lxcrypto.Base64DecodeStream(strings.NewReader(tt.input), &dst)
+			if tt.wantErr {
+				if err == nil {
+					t.Error("Base64DecodeStream() expected error, got nil")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Base64DecodeStream() unexpected error: %v", err)
+			}
+			if dst.String() != tt.expected {
+				t.Errorf("Base64DecodeStream() = %q; want %q", dst.String(), tt.expected)
+			}
+		})
+	}
+}
+
+// ── Base64URLEncodeStream ─────────────────────────────────────────────────────
+
+func TestBase64URLEncodeStream(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+		srcErr   bool
+	}{
+		{name: "empty", input: "", expected: ""},
+		{name: "hello", input: "hello", expected: "aGVsbG8="},
+		{name: "hello world", input: "hello world", expected: "aGVsbG8gd29ybGQ="},
+		{name: "url-safe chars", input: string([]byte{0xfb, 0xff}), expected: "-_8="},
+		{name: "reader error", srcErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var src interface{ Read([]byte) (int, error) }
+			if tt.srcErr {
+				src = errReader{err: errors.New("read error")}
+			} else {
+				src = strings.NewReader(tt.input)
+			}
+			var dst bytes.Buffer
+			err := lxcrypto.Base64URLEncodeStream(src, &dst)
+			if tt.srcErr {
+				if err == nil {
+					t.Error("Base64URLEncodeStream() expected error, got nil")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Base64URLEncodeStream() unexpected error: %v", err)
+			}
+			if dst.String() != tt.expected {
+				t.Errorf("Base64URLEncodeStream() = %q; want %q", dst.String(), tt.expected)
+			}
+			if dst.String() != lxcrypto.Base64URLEncode([]byte(tt.input)) {
+				t.Errorf("Base64URLEncodeStream() != Base64URLEncode() for input %q", tt.input)
+			}
+		})
+	}
+}
+
+// ── Base64URLDecodeStream ─────────────────────────────────────────────────────
+
+func TestBase64URLDecodeStream(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+		wantErr  bool
+	}{
+		{name: "empty", input: "", expected: ""},
+		{name: "hello", input: "aGVsbG8=", expected: "hello"},
+		{name: "hello world", input: "aGVsbG8gd29ybGQ=", expected: "hello world"},
+		{name: "url-safe chars", input: "-_8=", expected: string([]byte{0xfb, 0xff})},
+		{name: "invalid base64", input: "not!valid@@", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var dst bytes.Buffer
+			err := lxcrypto.Base64URLDecodeStream(strings.NewReader(tt.input), &dst)
+			if tt.wantErr {
+				if err == nil {
+					t.Error("Base64URLDecodeStream() expected error, got nil")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Base64URLDecodeStream() unexpected error: %v", err)
+			}
+			if dst.String() != tt.expected {
+				t.Errorf("Base64URLDecodeStream() = %q; want %q", dst.String(), tt.expected)
 			}
 		})
 	}

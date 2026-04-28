@@ -32,10 +32,7 @@ func TestMD5_Bytes(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := lxcrypto.MD5(tt.input)
-			if err != nil {
-				t.Fatalf("MD5() unexpected error: %v", err)
-			}
+			result := lxcrypto.MD5(tt.input)
 			if result != tt.expected {
 				t.Errorf("MD5() = %q; want %q", result, tt.expected)
 			}
@@ -46,7 +43,7 @@ func TestMD5_Bytes(t *testing.T) {
 	}
 }
 
-func TestMD5_String(t *testing.T) {
+func TestMD5String(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
@@ -59,23 +56,18 @@ func TestMD5_String(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := lxcrypto.MD5(tt.input)
-			if err != nil {
-				t.Fatalf("MD5() unexpected error: %v", err)
-			}
+			result := lxcrypto.MD5String(tt.input)
 			if result != tt.expected {
-				t.Errorf("MD5() = %q; want %q", result, tt.expected)
+				t.Errorf("MD5String() = %q; want %q", result, tt.expected)
 			}
-			// string and []byte must produce the same digest
-			byteResult, _ := lxcrypto.MD5([]byte(tt.input))
-			if result != byteResult {
-				t.Errorf("MD5(string) != MD5([]byte) for input %q", tt.input)
+			if result != lxcrypto.MD5([]byte(tt.input)) {
+				t.Errorf("MD5String() != MD5([]byte) for input %q", tt.input)
 			}
 		})
 	}
 }
 
-func TestMD5_Reader(t *testing.T) {
+func TestMD5Stream(t *testing.T) {
 	tests := []struct {
 		name     string
 		reader   io.Reader
@@ -91,27 +83,20 @@ func TestMD5_Reader(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := lxcrypto.MD5(tt.reader)
+			result, err := lxcrypto.MD5Stream(tt.reader)
 			if tt.wantErr {
 				if err == nil {
-					t.Error("MD5() expected error, got nil")
+					t.Error("MD5Stream() expected error, got nil")
 				}
 				return
 			}
 			if err != nil {
-				t.Fatalf("MD5() unexpected error: %v", err)
+				t.Fatalf("MD5Stream() unexpected error: %v", err)
 			}
 			if result != tt.expected {
-				t.Errorf("MD5() = %q; want %q", result, tt.expected)
+				t.Errorf("MD5Stream() = %q; want %q", result, tt.expected)
 			}
 		})
-	}
-}
-
-func TestMD5_InvalidType(t *testing.T) {
-	_, err := lxcrypto.MD5(12345)
-	if err == nil {
-		t.Error("MD5() expected error for unsupported type, got nil")
 	}
 }
 
@@ -131,10 +116,7 @@ func TestSHA1_Bytes(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := lxcrypto.SHA1(tt.input)
-			if err != nil {
-				t.Fatalf("SHA1() unexpected error: %v", err)
-			}
+			result := lxcrypto.SHA1(tt.input)
 			if result != tt.expected {
 				t.Errorf("SHA1() = %q; want %q", result, tt.expected)
 			}
@@ -145,7 +127,7 @@ func TestSHA1_Bytes(t *testing.T) {
 	}
 }
 
-func TestSHA1_String(t *testing.T) {
+func TestSHA1String(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
@@ -158,22 +140,18 @@ func TestSHA1_String(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := lxcrypto.SHA1(tt.input)
-			if err != nil {
-				t.Fatalf("SHA1() unexpected error: %v", err)
-			}
+			result := lxcrypto.SHA1String(tt.input)
 			if result != tt.expected {
-				t.Errorf("SHA1() = %q; want %q", result, tt.expected)
+				t.Errorf("SHA1String() = %q; want %q", result, tt.expected)
 			}
-			byteResult, _ := lxcrypto.SHA1([]byte(tt.input))
-			if result != byteResult {
-				t.Errorf("SHA1(string) != SHA1([]byte) for input %q", tt.input)
+			if result != lxcrypto.SHA1([]byte(tt.input)) {
+				t.Errorf("SHA1String() != SHA1([]byte) for input %q", tt.input)
 			}
 		})
 	}
 }
 
-func TestSHA1_Reader(t *testing.T) {
+func TestSHA1Stream(t *testing.T) {
 	tests := []struct {
 		name     string
 		reader   io.Reader
@@ -189,27 +167,20 @@ func TestSHA1_Reader(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := lxcrypto.SHA1(tt.reader)
+			result, err := lxcrypto.SHA1Stream(tt.reader)
 			if tt.wantErr {
 				if err == nil {
-					t.Error("SHA1() expected error, got nil")
+					t.Error("SHA1Stream() expected error, got nil")
 				}
 				return
 			}
 			if err != nil {
-				t.Fatalf("SHA1() unexpected error: %v", err)
+				t.Fatalf("SHA1Stream() unexpected error: %v", err)
 			}
 			if result != tt.expected {
-				t.Errorf("SHA1() = %q; want %q", result, tt.expected)
+				t.Errorf("SHA1Stream() = %q; want %q", result, tt.expected)
 			}
 		})
-	}
-}
-
-func TestSHA1_InvalidType(t *testing.T) {
-	_, err := lxcrypto.SHA1(12345)
-	if err == nil {
-		t.Error("SHA1() expected error for unsupported type, got nil")
 	}
 }
 
@@ -229,10 +200,7 @@ func TestSHA256_Bytes(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := lxcrypto.SHA256(tt.input)
-			if err != nil {
-				t.Fatalf("SHA256() unexpected error: %v", err)
-			}
+			result := lxcrypto.SHA256(tt.input)
 			if result != tt.expected {
 				t.Errorf("SHA256() = %q; want %q", result, tt.expected)
 			}
@@ -243,7 +211,7 @@ func TestSHA256_Bytes(t *testing.T) {
 	}
 }
 
-func TestSHA256_String(t *testing.T) {
+func TestSHA256String(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
@@ -256,22 +224,18 @@ func TestSHA256_String(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := lxcrypto.SHA256(tt.input)
-			if err != nil {
-				t.Fatalf("SHA256() unexpected error: %v", err)
-			}
+			result := lxcrypto.SHA256String(tt.input)
 			if result != tt.expected {
-				t.Errorf("SHA256() = %q; want %q", result, tt.expected)
+				t.Errorf("SHA256String() = %q; want %q", result, tt.expected)
 			}
-			byteResult, _ := lxcrypto.SHA256([]byte(tt.input))
-			if result != byteResult {
-				t.Errorf("SHA256(string) != SHA256([]byte) for input %q", tt.input)
+			if result != lxcrypto.SHA256([]byte(tt.input)) {
+				t.Errorf("SHA256String() != SHA256([]byte) for input %q", tt.input)
 			}
 		})
 	}
 }
 
-func TestSHA256_Reader(t *testing.T) {
+func TestSHA256Stream(t *testing.T) {
 	tests := []struct {
 		name     string
 		reader   io.Reader
@@ -287,27 +251,20 @@ func TestSHA256_Reader(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := lxcrypto.SHA256(tt.reader)
+			result, err := lxcrypto.SHA256Stream(tt.reader)
 			if tt.wantErr {
 				if err == nil {
-					t.Error("SHA256() expected error, got nil")
+					t.Error("SHA256Stream() expected error, got nil")
 				}
 				return
 			}
 			if err != nil {
-				t.Fatalf("SHA256() unexpected error: %v", err)
+				t.Fatalf("SHA256Stream() unexpected error: %v", err)
 			}
 			if result != tt.expected {
-				t.Errorf("SHA256() = %q; want %q", result, tt.expected)
+				t.Errorf("SHA256Stream() = %q; want %q", result, tt.expected)
 			}
 		})
-	}
-}
-
-func TestSHA256_InvalidType(t *testing.T) {
-	_, err := lxcrypto.SHA256(12345)
-	if err == nil {
-		t.Error("SHA256() expected error for unsupported type, got nil")
 	}
 }
 
@@ -327,10 +284,7 @@ func TestSHA512_Bytes(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := lxcrypto.SHA512(tt.input)
-			if err != nil {
-				t.Fatalf("SHA512() unexpected error: %v", err)
-			}
+			result := lxcrypto.SHA512(tt.input)
 			if result != tt.expected {
 				t.Errorf("SHA512() = %q; want %q", result, tt.expected)
 			}
@@ -341,7 +295,7 @@ func TestSHA512_Bytes(t *testing.T) {
 	}
 }
 
-func TestSHA512_String(t *testing.T) {
+func TestSHA512String(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
@@ -354,22 +308,18 @@ func TestSHA512_String(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := lxcrypto.SHA512(tt.input)
-			if err != nil {
-				t.Fatalf("SHA512() unexpected error: %v", err)
-			}
+			result := lxcrypto.SHA512String(tt.input)
 			if result != tt.expected {
-				t.Errorf("SHA512() = %q; want %q", result, tt.expected)
+				t.Errorf("SHA512String() = %q; want %q", result, tt.expected)
 			}
-			byteResult, _ := lxcrypto.SHA512([]byte(tt.input))
-			if result != byteResult {
-				t.Errorf("SHA512(string) != SHA512([]byte) for input %q", tt.input)
+			if result != lxcrypto.SHA512([]byte(tt.input)) {
+				t.Errorf("SHA512String() != SHA512([]byte) for input %q", tt.input)
 			}
 		})
 	}
 }
 
-func TestSHA512_Reader(t *testing.T) {
+func TestSHA512Stream(t *testing.T) {
 	tests := []struct {
 		name     string
 		reader   io.Reader
@@ -385,26 +335,19 @@ func TestSHA512_Reader(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := lxcrypto.SHA512(tt.reader)
+			result, err := lxcrypto.SHA512Stream(tt.reader)
 			if tt.wantErr {
 				if err == nil {
-					t.Error("SHA512() expected error, got nil")
+					t.Error("SHA512Stream() expected error, got nil")
 				}
 				return
 			}
 			if err != nil {
-				t.Fatalf("SHA512() unexpected error: %v", err)
+				t.Fatalf("SHA512Stream() unexpected error: %v", err)
 			}
 			if result != tt.expected {
-				t.Errorf("SHA512() = %q; want %q", result, tt.expected)
+				t.Errorf("SHA512Stream() = %q; want %q", result, tt.expected)
 			}
 		})
-	}
-}
-
-func TestSHA512_InvalidType(t *testing.T) {
-	_, err := lxcrypto.SHA512(12345)
-	if err == nil {
-		t.Error("SHA512() expected error for unsupported type, got nil")
 	}
 }

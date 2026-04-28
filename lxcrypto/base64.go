@@ -2,6 +2,7 @@ package lxcrypto
 
 import (
 	"encoding/base64"
+	"io"
 )
 
 // Base64Encode returns the standard base64 encoding of data.
@@ -90,4 +91,56 @@ func Base64URLDecodeString(s string) (string, error) {
 		return "", err
 	}
 	return string(b), nil
+}
+
+// Base64EncodeStream reads bytes from src and writes standard base64-encoded
+// data to dst. Returns an error if reading from src or writing to dst fails.
+//
+// Example:
+//
+//	err := lxcrypto.Base64EncodeStream(file, os.Stdout)
+func Base64EncodeStream(src io.Reader, dst io.Writer) error {
+	enc := base64.NewEncoder(base64.StdEncoding, dst)
+	if _, err := io.Copy(enc, src); err != nil {
+		return err
+	}
+	return enc.Close()
+}
+
+// Base64DecodeStream reads standard base64-encoded data from src and writes
+// the decoded bytes to dst. Returns an error if the input is invalid base64
+// or if reading/writing fails.
+//
+// Example:
+//
+//	err := lxcrypto.Base64DecodeStream(encoded, file)
+func Base64DecodeStream(src io.Reader, dst io.Writer) error {
+	_, err := io.Copy(dst, base64.NewDecoder(base64.StdEncoding, src))
+	return err
+}
+
+// Base64URLEncodeStream reads bytes from src and writes URL-safe base64-encoded
+// data to dst (RFC 4648 §5). Returns an error if reading from src or writing to dst fails.
+//
+// Example:
+//
+//	err := lxcrypto.Base64URLEncodeStream(file, os.Stdout)
+func Base64URLEncodeStream(src io.Reader, dst io.Writer) error {
+	enc := base64.NewEncoder(base64.URLEncoding, dst)
+	if _, err := io.Copy(enc, src); err != nil {
+		return err
+	}
+	return enc.Close()
+}
+
+// Base64URLDecodeStream reads URL-safe base64-encoded data from src and writes
+// the decoded bytes to dst (RFC 4648 §5). Returns an error if the input is
+// invalid base64 or if reading/writing fails.
+//
+// Example:
+//
+//	err := lxcrypto.Base64URLDecodeStream(encoded, file)
+func Base64URLDecodeStream(src io.Reader, dst io.Writer) error {
+	_, err := io.Copy(dst, base64.NewDecoder(base64.URLEncoding, src))
+	return err
 }

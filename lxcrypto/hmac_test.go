@@ -1,6 +1,8 @@
 package lxcrypto_test
 
 import (
+	"errors"
+	"strings"
 	"testing"
 
 	"github.com/hgapdvn/lx/lxcrypto"
@@ -61,12 +63,12 @@ func TestHMAC256_Bytes(t *testing.T) {
 		})
 	}
 	// different keys must not produce the same tag
-	if lxcrypto.HMAC256("data", "key1") == lxcrypto.HMAC256("data", "key2") {
+	if lxcrypto.HMAC256([]byte("data"), []byte("key1")) == lxcrypto.HMAC256([]byte("data"), []byte("key2")) {
 		t.Error("HMAC256() produced same tag for different keys")
 	}
 }
 
-func TestHMAC256_String(t *testing.T) {
+func TestHMAC256String(t *testing.T) {
 	tests := []struct {
 		name     string
 		data     string
@@ -94,13 +96,75 @@ func TestHMAC256_String(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := lxcrypto.HMAC256(tt.data, tt.key)
+			result := lxcrypto.HMAC256String(tt.data, tt.key)
 			if result != tt.expected {
-				t.Errorf("HMAC256() = %q; want %q", result, tt.expected)
+				t.Errorf("HMAC256String() = %q; want %q", result, tt.expected)
 			}
 			// string and []byte inputs must produce the same tag
 			if result != lxcrypto.HMAC256([]byte(tt.data), []byte(tt.key)) {
-				t.Errorf("HMAC256(string) != HMAC256([]byte) for data=%q key=%q", tt.data, tt.key)
+				t.Errorf("HMAC256String() != HMAC256([]byte) for data=%q key=%q", tt.data, tt.key)
+			}
+		})
+	}
+}
+
+func TestHMAC256Stream(t *testing.T) {
+	tests := []struct {
+		name     string
+		data     string
+		key      []byte
+		expected string
+		wantErr  bool
+	}{
+		{
+			name:     "empty data empty key",
+			data:     "",
+			key:      []byte{},
+			expected: "b613679a0814d9ec772f95d778c35fc5ff1697c493715653c6c712144292c5ad",
+		},
+		{
+			name:     "hello / secret",
+			data:     "hello",
+			key:      []byte("secret"),
+			expected: "88aab3ede8d3adf94d26ab90d3bafd4a2083070c3bcce9c014ee04a443847c0b",
+		},
+		{
+			name:     "message / key",
+			data:     "message",
+			key:      []byte("key"),
+			expected: "6e9ef29b75fffc5b7abae527d58fdadb2fe42e7219011976917343065f58ed4a",
+		},
+		{
+			name:    "reader error",
+			data:    "",
+			key:     []byte("key"),
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var r interface{ Read([]byte) (int, error) }
+			if tt.wantErr {
+				r = errReader{err: errors.New("read error")}
+			} else {
+				r = strings.NewReader(tt.data)
+			}
+			result, err := lxcrypto.HMAC256Stream(r, tt.key)
+			if tt.wantErr {
+				if err == nil {
+					t.Error("HMAC256Stream() expected error, got nil")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("HMAC256Stream() unexpected error: %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("HMAC256Stream() = %q; want %q", result, tt.expected)
+			}
+			// must match bytes variant
+			if result != lxcrypto.HMAC256([]byte(tt.data), tt.key) {
+				t.Errorf("HMAC256Stream() != HMAC256([]byte) for data=%q", tt.data)
 			}
 		})
 	}
@@ -160,12 +224,12 @@ func TestHMAC512_Bytes(t *testing.T) {
 			}
 		})
 	}
-	if lxcrypto.HMAC512("data", "key1") == lxcrypto.HMAC512("data", "key2") {
+	if lxcrypto.HMAC512([]byte("data"), []byte("key1")) == lxcrypto.HMAC512([]byte("data"), []byte("key2")) {
 		t.Error("HMAC512() produced same tag for different keys")
 	}
 }
 
-func TestHMAC512_String(t *testing.T) {
+func TestHMAC512String(t *testing.T) {
 	tests := []struct {
 		name     string
 		data     string
@@ -193,12 +257,73 @@ func TestHMAC512_String(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := lxcrypto.HMAC512(tt.data, tt.key)
+			result := lxcrypto.HMAC512String(tt.data, tt.key)
 			if result != tt.expected {
-				t.Errorf("HMAC512() = %q; want %q", result, tt.expected)
+				t.Errorf("HMAC512String() = %q; want %q", result, tt.expected)
 			}
 			if result != lxcrypto.HMAC512([]byte(tt.data), []byte(tt.key)) {
-				t.Errorf("HMAC512(string) != HMAC512([]byte) for data=%q key=%q", tt.data, tt.key)
+				t.Errorf("HMAC512String() != HMAC512([]byte) for data=%q key=%q", tt.data, tt.key)
+			}
+		})
+	}
+}
+
+func TestHMAC512Stream(t *testing.T) {
+	tests := []struct {
+		name     string
+		data     string
+		key      []byte
+		expected string
+		wantErr  bool
+	}{
+		{
+			name:     "empty data empty key",
+			data:     "",
+			key:      []byte{},
+			expected: "b936cee86c9f87aa5d3c6f2e84cb5a4239a5fe50480a6ec66b70ab5b1f4ac6730c6c515421b327ec1d69402e53dfb49ad7381eb067b338fd7b0cb22247225d47",
+		},
+		{
+			name:     "hello / secret",
+			data:     "hello",
+			key:      []byte("secret"),
+			expected: "db1595ae88a62fd151ec1cba81b98c39df82daae7b4cb9820f446d5bf02f1dcfca6683d88cab3e273f5963ab8ec469a746b5b19086371239f67d1e5f99a79440",
+		},
+		{
+			name:     "message / key",
+			data:     "message",
+			key:      []byte("key"),
+			expected: "e477384d7ca229dd1426e64b63ebf2d36ebd6d7e669a6735424e72ea6c01d3f8b56eb39c36d8232f5427999b8d1a3f9cd1128fc69f4d75b434216810fa367e98",
+		},
+		{
+			name:    "reader error",
+			data:    "",
+			key:     []byte("key"),
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var r interface{ Read([]byte) (int, error) }
+			if tt.wantErr {
+				r = errReader{err: errors.New("read error")}
+			} else {
+				r = strings.NewReader(tt.data)
+			}
+			result, err := lxcrypto.HMAC512Stream(r, tt.key)
+			if tt.wantErr {
+				if err == nil {
+					t.Error("HMAC512Stream() expected error, got nil")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("HMAC512Stream() unexpected error: %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("HMAC512Stream() = %q; want %q", result, tt.expected)
+			}
+			if result != lxcrypto.HMAC512([]byte(tt.data), tt.key) {
+				t.Errorf("HMAC512Stream() != HMAC512([]byte) for data=%q", tt.data)
 			}
 		})
 	}

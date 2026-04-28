@@ -12,14 +12,14 @@ const randomCharset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01234
 
 var errNonPositiveLength = errors.New("lxcrypto: n must be greater than zero")
 
-// RandomBytes returns a slice of n cryptographically secure random bytes.
+// Random returns a slice of n cryptographically secure random bytes.
 // Returns an error if n is less than 1 or if the underlying random source fails.
 //
 // Example:
 //
 //	b, err := lxcrypto.RandomBytes(16)
 //	// b: []byte{...} (16 random bytes), err: nil
-func RandomBytes(n int) ([]byte, error) {
+func Random(n int) ([]byte, error) {
 	if n <= 0 {
 		return nil, errNonPositiveLength
 	}
@@ -80,7 +80,7 @@ func RandomString(n int) (string, error) {
 //	token, err := lxcrypto.SecureToken(32)
 //	// token: "3q2-7w==" (URL-safe base64-encoded 32 random bytes), err: nil
 func SecureToken(n int) (string, error) {
-	b, err := RandomBytes(n)
+	b, err := Random(n)
 	if err != nil {
 		return "", err
 	}
