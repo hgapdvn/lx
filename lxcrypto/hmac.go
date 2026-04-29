@@ -43,6 +43,17 @@ func HMAC256Stream(src io.Reader, key []byte) (string, error) {
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
+// VerifyHMAC256 reports whether tag equals the HMAC-SHA-256 of data under key.
+// The comparison is performed in constant time to prevent timing side-channel attacks.
+//
+// Example:
+//
+//	ok := lxcrypto.VerifyHMAC256([]byte("message"), []byte("secret"), tag)
+func VerifyHMAC256(data, key []byte, tag string) bool {
+	expected := HMAC256(data, key)
+	return hmac.Equal([]byte(expected), []byte(tag))
+}
+
 // HMAC512 returns the HMAC-SHA-512 of data using key as a lowercase hexadecimal string.
 //
 // Example:
@@ -76,4 +87,15 @@ func HMAC512Stream(src io.Reader, key []byte) (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(h.Sum(nil)), nil
+}
+
+// VerifyHMAC512 reports whether tag equals the HMAC-SHA-512 of data under key.
+// The comparison is performed in constant time to prevent timing side-channel attacks.
+//
+// Example:
+//
+//	ok := lxcrypto.VerifyHMAC512([]byte("message"), []byte("secret"), tag)
+func VerifyHMAC512(data, key []byte, tag string) bool {
+	expected := HMAC512(data, key)
+	return hmac.Equal([]byte(expected), []byte(tag))
 }

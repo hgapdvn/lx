@@ -328,3 +328,115 @@ func TestHMAC512Stream(t *testing.T) {
 		})
 	}
 }
+
+// ── VerifyHMAC256 ─────────────────────────────────────────────────────────────
+
+func TestVerifyHMAC256(t *testing.T) {
+	tests := []struct {
+		name string
+		data []byte
+		key  []byte
+		tag  string
+		want bool
+	}{
+		{
+			name: "valid tag",
+			data: []byte("message"),
+			key:  []byte("key"),
+			tag:  lxcrypto.HMAC256([]byte("message"), []byte("key")),
+			want: true,
+		},
+		{
+			name: "wrong tag",
+			data: []byte("message"),
+			key:  []byte("key"),
+			tag:  "deadbeef",
+			want: false,
+		},
+		{
+			name: "wrong key",
+			data: []byte("message"),
+			key:  []byte("otherkey"),
+			tag:  lxcrypto.HMAC256([]byte("message"), []byte("key")),
+			want: false,
+		},
+		{
+			name: "empty tag",
+			data: []byte("message"),
+			key:  []byte("key"),
+			tag:  "",
+			want: false,
+		},
+		{
+			name: "nil data",
+			data: nil,
+			key:  []byte("key"),
+			tag:  lxcrypto.HMAC256(nil, []byte("key")),
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := lxcrypto.VerifyHMAC256(tt.data, tt.key, tt.tag)
+			if got != tt.want {
+				t.Errorf("VerifyHMAC256() = %v; want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// ── VerifyHMAC512 ─────────────────────────────────────────────────────────────
+
+func TestVerifyHMAC512(t *testing.T) {
+	tests := []struct {
+		name string
+		data []byte
+		key  []byte
+		tag  string
+		want bool
+	}{
+		{
+			name: "valid tag",
+			data: []byte("message"),
+			key:  []byte("key"),
+			tag:  lxcrypto.HMAC512([]byte("message"), []byte("key")),
+			want: true,
+		},
+		{
+			name: "wrong tag",
+			data: []byte("message"),
+			key:  []byte("key"),
+			tag:  "deadbeef",
+			want: false,
+		},
+		{
+			name: "wrong key",
+			data: []byte("message"),
+			key:  []byte("otherkey"),
+			tag:  lxcrypto.HMAC512([]byte("message"), []byte("key")),
+			want: false,
+		},
+		{
+			name: "empty tag",
+			data: []byte("message"),
+			key:  []byte("key"),
+			tag:  "",
+			want: false,
+		},
+		{
+			name: "nil data",
+			data: nil,
+			key:  []byte("key"),
+			tag:  lxcrypto.HMAC512(nil, []byte("key")),
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := lxcrypto.VerifyHMAC512(tt.data, tt.key, tt.tag)
+			if got != tt.want {
+				t.Errorf("VerifyHMAC512() = %v; want %v", got, tt.want)
+			}
+		})
+	}
+}

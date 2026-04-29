@@ -34,7 +34,7 @@ func EncryptGCM(plaintext, key []byte) ([]byte, error) {
 	}
 	nonce := make([]byte, aead.NonceSize())
 	if _, err = rand.Read(nonce); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("lxcrypto: %w", err)
 	}
 	return aead.Seal(nonce, nonce, plaintext, nil), nil
 }
@@ -120,7 +120,7 @@ func EncryptCBC(plaintext, key []byte) ([]byte, error) {
 	out := make([]byte, aes.BlockSize+len(padded))
 	iv := out[:aes.BlockSize]
 	if _, err = rand.Read(iv); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("lxcrypto: %w", err)
 	}
 	cipher.NewCBCEncrypter(block, iv).CryptBlocks(out[aes.BlockSize:], padded)
 	return out, nil
@@ -197,6 +197,7 @@ func pkcs7Pad(src []byte, blockSize int) []byte {
 }
 
 // pkcs7Unpad removes PKCS7 padding and returns the unpadded slice.
+// The padding check is performed in constant time to avoid timing side channels.
 func pkcs7Unpad(src []byte) ([]byte, error) {
 	if len(src) == 0 {
 		return nil, errInvalidPadding
@@ -205,10 +206,14 @@ func pkcs7Unpad(src []byte) ([]byte, error) {
 	if padding == 0 || padding > aes.BlockSize || padding > len(src) {
 		return nil, errInvalidPadding
 	}
+	// Constant-time check: accumulate XOR differences so the loop runs
+	// to completion regardless of where (or whether) a mismatch occurs.
+	var invalid byte
 	for _, b := range src[len(src)-padding:] {
-		if int(b) != padding {
-			return nil, errInvalidPadding
-		}
+		invalid |= b ^ byte(padding)
+	}
+	if invalid != 0 {
+		return nil, errInvalidPadding
 	}
 	return src[:len(src)-padding], nil
 }
