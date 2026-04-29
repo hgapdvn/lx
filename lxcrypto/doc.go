@@ -42,20 +42,23 @@
 //
 // # HMAC (hmac.go)
 //
-// Two algorithms, each in three variants:
+// Two algorithms, each in three variants plus a timing-safe verifier:
 //
 //	HMAC256(data, key []byte) string
 //	HMAC256String(data, key string) string
 //	HMAC256Stream(src io.Reader, key []byte) (string, error)
+//	VerifyHMAC256(data, key []byte, tag string) bool
 //
 //	HMAC512(data, key []byte) string
 //	HMAC512String(data, key string) string
 //	HMAC512Stream(src io.Reader, key []byte) (string, error)
+//	VerifyHMAC512(data, key []byte, tag string) bool
 //
 // Example:
 //
 //	tag := lxcrypto.HMAC256([]byte("message"), []byte("secret"))
 //	tag := lxcrypto.HMAC256String("message", "secret")
+//	ok  := lxcrypto.VerifyHMAC256([]byte("message"), []byte("secret"), tag)
 //
 //	f, _ := os.Open("large.bin")
 //	tag, err := lxcrypto.HMAC256Stream(f, []byte("secret"))
@@ -120,7 +123,7 @@
 // Three functions generate cryptographically secure random values using
 // crypto/rand as the underlying source:
 //
-//	RandomBytes(n int) ([]byte, error)   – n raw random bytes
+//	Random(n int) ([]byte, error)        – n raw random bytes
 //	RandomString(n int) (string, error)  – n-char alphanumeric string (A-Z a-z 0-9)
 //	SecureToken(n int) (string, error)   – URL-safe base64 token from n random bytes
 //
@@ -129,7 +132,7 @@
 //
 // Example:
 //
-//	b, _     := lxcrypto.RandomBytes(16)   // 16 raw bytes
-//	s, _     := lxcrypto.RandomString(24)  // "aB3kLmN9pQrS2tUvXyZ01234"
-//	token, _ := lxcrypto.SecureToken(32)   // URL-safe base64-encoded string
+//	b, _     := lxcrypto.Random(16)       // 16 raw bytes
+//	s, _     := lxcrypto.RandomString(24) // "aB3kLmN9pQrS2tUvXyZ01234"
+//	token, _ := lxcrypto.SecureToken(32)  // URL-safe base64-encoded string
 package lxcrypto

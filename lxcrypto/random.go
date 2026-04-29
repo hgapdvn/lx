@@ -17,7 +17,7 @@ var errNonPositiveLength = errors.New("lxcrypto: n must be greater than zero")
 //
 // Example:
 //
-//	b, err := lxcrypto.RandomBytes(16)
+//	b, err := lxcrypto.Random(16)
 //	// b: []byte{...} (16 random bytes), err: nil
 func Random(n int) ([]byte, error) {
 	if n <= 0 {
@@ -49,22 +49,25 @@ func RandomString(n int) (string, error) {
 	result := make([]byte, n)
 	generated := 0
 
-	// Use a buffer to batch random reads.
+	// Use a buffer to batch random reads. Track position so we only
+	// refill when the current buffer is exhausted, avoiding a full
+	// rand.Read on every outer-loop iteration.
 	buf := make([]byte, n+n/2+8)
+	pos := len(buf) // start past end to trigger the first read
 	for generated < n {
-		if _, err := rand.Read(buf); err != nil {
-			return "", err
-		}
-		for _, b := range buf {
-			if int(b) > maxByte {
-				continue // discard biased value
+		if pos >= len(buf) {
+			if _, err := rand.Read(buf); err != nil {
+				return "", err
 			}
-			result[generated] = randomCharset[int(b)%int(charsetLen)]
-			generated++
-			if generated == n {
-				break
-			}
+			pos = 0
 		}
+		b := buf[pos]
+		pos++
+		if int(b) > maxByte {
+			continue // discard biased value
+		}
+		result[generated] = randomCharset[int(b)%int(charsetLen)]
+		generated++
 	}
 
 	return string(result), nil
@@ -78,7 +81,7 @@ func RandomString(n int) (string, error) {
 // Example:
 //
 //	token, err := lxcrypto.SecureToken(32)
-//	// token: "3q2-7w==" (URL-safe base64-encoded 32 random bytes), err: nil
+//	// token: "VGhlIHF1aWNrIGJyb3duIGZveA==" (URL-safe base64-encoded 32 random bytes), err: nil
 func SecureToken(n int) (string, error) {
 	b, err := Random(n)
 	if err != nil {

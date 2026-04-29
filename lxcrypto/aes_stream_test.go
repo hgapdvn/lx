@@ -154,6 +154,19 @@ func TestGCMStream(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "decrypt: chunk length exceeds maximum",
+			run: func(t *testing.T) {
+				// Craft a stream with a chunk-length header of 0xFFFFFFFF (4 GiB).
+				// DecryptGCMStream must reject this before allocating any memory.
+				var buf bytes.Buffer
+				// Write uint32 big-endian 0xFFFFFFFF
+				buf.Write([]byte{0xFF, 0xFF, 0xFF, 0xFF})
+				if err := lxcrypto.DecryptGCMStream(&buf, &bytes.Buffer{}, aesKey256); err == nil {
+					t.Error("expected error for oversized chunk, got nil")
+				}
+			},
+		},
 	}
 
 	for _, tt := range tests {

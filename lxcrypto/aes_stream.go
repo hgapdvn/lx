@@ -13,6 +13,16 @@ import (
 // gcmStreamChunkSize is the plaintext size of each chunk in EncryptGCMStream.
 const gcmStreamChunkSize = 64 * 1024 // 64 KB
 
+// maxGCMStreamChunkLen is the maximum allowed encrypted chunk length on the
+// wire: nonce (12 B) + gcmStreamChunkSize plaintext bytes + GCM tag (16 B).
+// Any chunk header claiming a larger size is treated as a malformed stream to
+// prevent memory exhaustion via a crafted input.
+const maxGCMStreamChunkLen = gcmStreamChunkSize + 12 + 16 // 65,564 bytes
+
+// errChunkTooLarge is returned by DecryptGCMStream when a chunk length header
+// exceeds maxGCMStreamChunkLen.
+var errChunkTooLarge = errors.New("lxcrypto: chunk length exceeds maximum allowed size")
+
 // EncryptGCMStream encrypts data from src and writes it to dst using AES-GCM
 // in chunks of 64 KB. Each chunk is independently authenticated.
 // key must be 16, 24, or 32 bytes (AES-128, AES-192, or AES-256).
@@ -45,14 +55,14 @@ func EncryptGCMStream(src io.Reader, dst io.Writer, key []byte) error {
 			break
 		}
 		if _, err = rand.Read(nonce); err != nil {
-			return err
+			return fmt.Errorf("lxcrypto: %w", err)
 		}
 		sealed := aead.Seal(nonce, nonce, buf[:n], nil)
 		if err = binary.Write(dst, binary.BigEndian, uint32(len(sealed))); err != nil {
-			return err
+			return fmt.Errorf("lxcrypto: %w", err)
 		}
 		if _, err = dst.Write(sealed); err != nil {
-			return err
+			return fmt.Errorf("lxcrypto: %w", err)
 		}
 		if errors.Is(readErr, io.ErrUnexpectedEOF) || readErr == io.EOF {
 			break
@@ -89,6 +99,9 @@ func DecryptGCMStream(src io.Reader, dst io.Writer, key []byte) error {
 			}
 			return fmt.Errorf("lxcrypto: %w", err)
 		}
+		if chunkLen > maxGCMStreamChunkLen {
+			return errChunkTooLarge
+		}
 		chunk := make([]byte, chunkLen)
 		if _, err = io.ReadFull(src, chunk); err != nil {
 			return fmt.Errorf("lxcrypto: %w", err)
@@ -102,7 +115,7 @@ func DecryptGCMStream(src io.Reader, dst io.Writer, key []byte) error {
 			return fmt.Errorf("lxcrypto: %w", err)
 		}
 		if _, err = dst.Write(plaintext); err != nil {
-			return err
+			return fmt.Errorf("lxcrypto: %w", err)
 		}
 	}
 	return nil
