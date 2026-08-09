@@ -46,14 +46,16 @@ func TestMapKeys_IntString(t *testing.T) {
 			name:  "multiple entries",
 			input: map[int]string{1: "a", 2: "b", 3: "c"},
 			fn: func(k int) string {
-				if k == 1 {
+				switch k {
+				case 1:
 					return "one"
-				} else if k == 2 {
+				case 2:
 					return "two"
-				} else if k == 3 {
+				case 3:
 					return "three"
+				default:
+					return "other"
 				}
-				return "other"
 			},
 			check: func(result map[string]string) bool {
 				return len(result) == 3 &&
@@ -211,12 +213,14 @@ func TestMapKeys_StringString(t *testing.T) {
 				"foo":   "bar",
 			},
 			fn: func(k string) string {
-				if k == "hello" {
+				switch k {
+				case "hello":
 					return "HELLO"
-				} else if k == "foo" {
+				case "foo":
 					return "FOO"
+				default:
+					return k
 				}
-				return k
 			},
 			check: func(result map[string]string) bool {
 				return len(result) == 2 &&

@@ -704,9 +704,9 @@ func BenchmarkLazyDeferred_ConcurrentAccess(b *testing.B) {
 
 func TestLazy_InterfaceImplementation(t *testing.T) {
 	// Ensure both types implement Lazy interface
-	var _ Lazy[int] = LazyEager(42)
-	var _ Lazy[int] = LazyDeferred(func() (int, error) { return 42, nil })
-	var _ Lazy[int] = LazyEagerOrError(42, nil)
+	var _ = LazyEager(42)
+	var _ = LazyDeferred(func() (int, error) { return 42, nil })
+	var _ = LazyEagerOrError(42, nil)
 }
 
 // ========================================

@@ -182,13 +182,15 @@ func (yfp *yamlFileParser) parse(r io.Reader) (map[string]string, error) {
 
 		// measure indent (tab counts as 2 spaces)
 		indent := 0
+	indentLoop:
 		for _, ch := range line {
-			if ch == ' ' {
+			switch ch {
+			case ' ':
 				indent++
-			} else if ch == '\t' {
+			case '\t':
 				indent += 2
-			} else {
-				break
+			default:
+				break indentLoop
 			}
 		}
 

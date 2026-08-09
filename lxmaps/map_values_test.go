@@ -225,12 +225,14 @@ func TestMapValues_StringString(t *testing.T) {
 				"name":     "world",
 			},
 			fn: func(v string) string {
-				if v == "hello" {
+				switch v {
+				case "hello":
 					return "HELLO"
-				} else if v == "world" {
+				case "world":
 					return "WORLD"
+				default:
+					return v
 				}
-				return v
 			},
 			check: func(result map[string]string) bool {
 				return len(result) == 2 &&

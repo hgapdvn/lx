@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
-	"time"
 
 	"github.com/hgapdvn/lx/lxio"
 )
@@ -1690,10 +1689,10 @@ func TestModTime(t *testing.T) {
 			}
 
 			if !hasErr {
-				if tt.shouldBeNonZero && modTime == (time.Time{}) {
+				if tt.shouldBeNonZero && modTime.IsZero() {
 					t.Errorf("ModTime(%q) expected non-zero time, got zero time", path)
 				}
-				if !tt.shouldBeNonZero && modTime != (time.Time{}) {
+				if !tt.shouldBeNonZero && !modTime.IsZero() {
 					t.Errorf("ModTime(%q) expected zero time, got %v", path, modTime)
 				}
 			}
