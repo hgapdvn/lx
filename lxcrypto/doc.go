@@ -90,7 +90,11 @@
 //	EncryptGCMStream(src io.Reader, dst io.Writer, key []byte) error
 //	DecryptGCMStream(src io.Reader, dst io.Writer, key []byte) error
 //
-// Data is processed in 64 KB chunks; each chunk is independently authenticated.
+// Data is processed in 64 KB chunks. The stream authenticates each chunk's
+// order and requires an authenticated final record, so reordered, inserted,
+// or cleanly truncated chunks are rejected.
+// Streams produced by earlier versions of these functions use a different
+// format and cannot be decrypted with the current implementation.
 //
 // Example:
 //
