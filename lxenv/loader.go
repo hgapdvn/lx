@@ -81,7 +81,7 @@ func (ep *envLoader) load(paths ...string) error {
 			if err != nil {
 				return err
 			}
-			defer f.Close()
+			defer func() { _ = f.Close() }()
 
 			pairs, err := ep.parser.parse(f)
 			if err != nil {

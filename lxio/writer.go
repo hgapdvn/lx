@@ -75,7 +75,7 @@ func WriteLinesString(path string, lines []string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	for i, line := range lines {
 		if _, err := f.WriteString(line); err != nil {
@@ -100,7 +100,7 @@ func Append(path string, data []byte) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	_, err = f.Write(data)
 	return err
@@ -113,7 +113,7 @@ func AppendString(path string, data string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	_, err = f.WriteString(data)
 	return err
@@ -143,7 +143,7 @@ func AppendLines(path string, lines []string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	for _, line := range lines {
 		data := append([]byte(line), Newline...)

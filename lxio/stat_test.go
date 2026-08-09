@@ -49,7 +49,7 @@ func setupTestEnvironment(t *testing.T) (testDir, testFile, testSymlink, testMis
 
 func TestExists(t *testing.T) {
 	testDir, testFile, testSymlink, missingPath := setupTestEnvironment(t)
-	defer os.RemoveAll(testDir)
+	defer func() { _ = os.RemoveAll(testDir) }()
 
 	tests := []struct {
 		name              string
@@ -139,7 +139,7 @@ func TestExists(t *testing.T) {
 
 func TestExistsOK(t *testing.T) {
 	testDir, testFile, _, missingPath := setupTestEnvironment(t)
-	defer os.RemoveAll(testDir)
+	defer func() { _ = os.RemoveAll(testDir) }()
 
 	tests := []struct {
 		name          string
@@ -195,7 +195,7 @@ func TestExistsOK(t *testing.T) {
 
 func TestMustExist(t *testing.T) {
 	testDir, testFile, _, _ := setupTestEnvironment(t)
-	defer os.RemoveAll(testDir)
+	defer func() { _ = os.RemoveAll(testDir) }()
 
 	tests := []struct {
 		name          string
@@ -263,7 +263,7 @@ func TestMustExist(t *testing.T) {
 
 func TestNotExists(t *testing.T) {
 	testDir, testFile, _, missingPath := setupTestEnvironment(t)
-	defer os.RemoveAll(testDir)
+	defer func() { _ = os.RemoveAll(testDir) }()
 
 	tests := []struct {
 		name              string
@@ -335,7 +335,7 @@ func TestNotExists(t *testing.T) {
 
 func TestNotExistsOK(t *testing.T) {
 	testDir, testFile, _, missingPath := setupTestEnvironment(t)
-	defer os.RemoveAll(testDir)
+	defer func() { _ = os.RemoveAll(testDir) }()
 
 	tests := []struct {
 		name          string
@@ -391,7 +391,7 @@ func TestNotExistsOK(t *testing.T) {
 
 func TestMustNotExist(t *testing.T) {
 	testDir, testFile, _, missingPath := setupTestEnvironment(t)
-	defer os.RemoveAll(testDir)
+	defer func() { _ = os.RemoveAll(testDir) }()
 
 	tests := []struct {
 		name          string
@@ -467,7 +467,7 @@ func TestMustNotExist(t *testing.T) {
 
 func TestIsDir(t *testing.T) {
 	testDir, testFile, _, missingPath := setupTestEnvironment(t)
-	defer os.RemoveAll(testDir)
+	defer func() { _ = os.RemoveAll(testDir) }()
 
 	tests := []struct {
 		name              string
@@ -545,7 +545,7 @@ func TestIsDir(t *testing.T) {
 
 func TestIsDirOK(t *testing.T) {
 	testDir, testFile, _, _ := setupTestEnvironment(t)
-	defer os.RemoveAll(testDir)
+	defer func() { _ = os.RemoveAll(testDir) }()
 
 	tests := []struct {
 		name          string
@@ -601,7 +601,7 @@ func TestIsDirOK(t *testing.T) {
 
 func TestMustBeDir(t *testing.T) {
 	testDir, testFile, _, missingPath := setupTestEnvironment(t)
-	defer os.RemoveAll(testDir)
+	defer func() { _ = os.RemoveAll(testDir) }()
 
 	tests := []struct {
 		name          string
@@ -677,7 +677,7 @@ func TestMustBeDir(t *testing.T) {
 
 func TestIsFile(t *testing.T) {
 	testDir, testFile, testSymlink, missingPath := setupTestEnvironment(t)
-	defer os.RemoveAll(testDir)
+	defer func() { _ = os.RemoveAll(testDir) }()
 
 	tests := []struct {
 		name              string
@@ -767,7 +767,7 @@ func TestIsFile(t *testing.T) {
 
 func TestIsFileOK(t *testing.T) {
 	testDir, testFile, _, _ := setupTestEnvironment(t)
-	defer os.RemoveAll(testDir)
+	defer func() { _ = os.RemoveAll(testDir) }()
 
 	tests := []struct {
 		name          string
@@ -823,7 +823,7 @@ func TestIsFileOK(t *testing.T) {
 
 func TestMustBeFile(t *testing.T) {
 	testDir, testFile, _, missingPath := setupTestEnvironment(t)
-	defer os.RemoveAll(testDir)
+	defer func() { _ = os.RemoveAll(testDir) }()
 
 	tests := []struct {
 		name          string
@@ -899,7 +899,7 @@ func TestMustBeFile(t *testing.T) {
 
 func TestIsSymlink(t *testing.T) {
 	testDir, testFile, testSymlink, missingPath := setupTestEnvironment(t)
-	defer os.RemoveAll(testDir)
+	defer func() { _ = os.RemoveAll(testDir) }()
 
 	tests := []struct {
 		name              string
@@ -989,7 +989,7 @@ func TestIsSymlink(t *testing.T) {
 
 func TestIsSymlinkOK(t *testing.T) {
 	testDir, testFile, testSymlink, _ := setupTestEnvironment(t)
-	defer os.RemoveAll(testDir)
+	defer func() { _ = os.RemoveAll(testDir) }()
 
 	tests := []struct {
 		name          string
@@ -1051,7 +1051,7 @@ func TestIsSymlinkOK(t *testing.T) {
 
 func TestMustBeSymlink(t *testing.T) {
 	testDir, testFile, testSymlink, missingPath := setupTestEnvironment(t)
-	defer os.RemoveAll(testDir)
+	defer func() { _ = os.RemoveAll(testDir) }()
 
 	tests := []struct {
 		name          string

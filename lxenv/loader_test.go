@@ -63,7 +63,9 @@ func cleanupKeys(t *testing.T, keys []string) {
 	t.Helper()
 	t.Cleanup(func() {
 		for _, k := range keys {
-			os.Unsetenv(k)
+			if err := os.Unsetenv(k); err != nil {
+				t.Errorf("could not unset %q: %v", k, err)
+			}
 		}
 	})
 }

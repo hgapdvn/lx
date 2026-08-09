@@ -279,7 +279,9 @@ func IsReadable(path string) bool {
 	if err != nil {
 		return false
 	}
-	f.Close()
+	if err := f.Close(); err != nil {
+		return false
+	}
 	return true
 }
 
@@ -305,7 +307,9 @@ func IsWritable(path string) bool {
 		if err != nil {
 			return false
 		}
-		tempFile.Close()
+		if err := tempFile.Close(); err != nil {
+			return false
+		}
 		_ = os.Remove(tempFile.Name())
 		return true
 	}
@@ -315,7 +319,9 @@ func IsWritable(path string) bool {
 	if err != nil {
 		return false
 	}
-	f.Close()
+	if err := f.Close(); err != nil {
+		return false
+	}
 	return true
 }
 

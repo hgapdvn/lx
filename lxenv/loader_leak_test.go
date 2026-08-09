@@ -49,9 +49,11 @@ func TestLoadEnv_NormalizeWhitespace(t *testing.T) {
 	}
 
 	t.Cleanup(func() {
-		os.Unsetenv("KEY1")
-		os.Unsetenv("KEY2")
-		os.Unsetenv("KEY3")
+		for _, key := range []string{"KEY1", "KEY2", "KEY3"} {
+			if err := os.Unsetenv(key); err != nil {
+				t.Errorf("could not unset %q: %v", key, err)
+			}
+		}
 	})
 
 	if err := lxenv.LoadEnv(p); err != nil {

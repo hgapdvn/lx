@@ -932,7 +932,11 @@ func TestWriteWithPerm(t *testing.T) {
 			t.Errorf("expected 'content', got %v", got)
 		}
 
-		// Verify permissions
+		if runtime.GOOS == "windows" {
+			return // Windows does not preserve Unix execute permissions.
+		}
+
+		// Verify permissions on platforms that support Unix permission bits.
 		info, err := os.Stat(path)
 		if err != nil {
 			t.Fatalf("failed to stat file: %v", err)
@@ -976,6 +980,10 @@ func TestWriteWithPerm(t *testing.T) {
 		err := lxio.WriteWithPerm(path, []byte("#!/bin/bash"), 0755)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if runtime.GOOS == "windows" {
+			return // Windows does not use Unix execute permissions.
 		}
 
 		info, err := os.Stat(path)

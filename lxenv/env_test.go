@@ -10,6 +10,13 @@ import (
 	"github.com/hgapdvn/lx/lxenv"
 )
 
+func unsetEnv(t *testing.T, key string) {
+	t.Helper()
+	if err := os.Unsetenv(key); err != nil {
+		t.Fatalf("could not unset %q: %v", key, err)
+	}
+}
+
 func TestGet(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -538,7 +545,7 @@ func TestNotHas(t *testing.T) {
 			if tt.setVar {
 				t.Setenv(tt.key, tt.preset)
 			} else {
-				os.Unsetenv(tt.key)
+				unsetEnv(t, tt.key)
 			}
 
 			result := lxenv.NotHas(tt.key)
@@ -663,7 +670,7 @@ func TestNotExists(t *testing.T) {
 			if tt.setVar {
 				t.Setenv(tt.key, tt.preset)
 			} else {
-				os.Unsetenv(tt.key)
+				unsetEnv(t, tt.key)
 			}
 
 			result := lxenv.NotExists(tt.key)
@@ -999,7 +1006,7 @@ func TestMustGetInt(t *testing.T) {
 			if tt.setEnv {
 				t.Setenv(tt.key, tt.value)
 			} else {
-				os.Unsetenv(tt.key)
+				unsetEnv(t, tt.key)
 			}
 
 			var (
@@ -1327,7 +1334,7 @@ func TestMustGetBool(t *testing.T) {
 			if tt.setEnv {
 				t.Setenv(tt.key, tt.value)
 			} else {
-				os.Unsetenv(tt.key)
+				unsetEnv(t, tt.key)
 			}
 
 			var (
@@ -1389,7 +1396,7 @@ func TestGetFloat(t *testing.T) {
 			if tt.setVar {
 				t.Setenv(tt.key, tt.preset)
 			} else {
-				os.Unsetenv(tt.key)
+				unsetEnv(t, tt.key)
 			}
 
 			v, ok := lxenv.GetFloat(tt.key)
@@ -1441,7 +1448,7 @@ func TestGetFloatOr(t *testing.T) {
 			if tt.setVar {
 				t.Setenv(tt.key, tt.preset)
 			} else {
-				os.Unsetenv(tt.key)
+				unsetEnv(t, tt.key)
 			}
 
 			res := lxenv.GetFloatOr(tt.key, tt.defaultValue)
@@ -1490,7 +1497,7 @@ func TestMustGetFloat(t *testing.T) {
 			if tt.setVar {
 				t.Setenv(tt.key, tt.preset)
 			} else {
-				os.Unsetenv(tt.key)
+				unsetEnv(t, tt.key)
 			}
 
 			var (
@@ -1579,7 +1586,7 @@ func TestRequire(t *testing.T) {
 			for k := range tt.keys {
 				// Assure clean slate for keys that aren't preset
 				if _, ok := tt.preset[tt.keys[k]]; !ok {
-					os.Unsetenv(tt.keys[k])
+					unsetEnv(t, tt.keys[k])
 				}
 			}
 

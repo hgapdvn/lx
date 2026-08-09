@@ -162,7 +162,7 @@ func ReadFirstN(path string, n int) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	scanner := bufio.NewScanner(file)
 	buf := make([]byte, 0, 64*1024)
@@ -204,7 +204,7 @@ func ReadLastN(path string, n int) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	scanner := bufio.NewScanner(file)
 	buf := make([]byte, 0, 64*1024)
@@ -262,7 +262,7 @@ func CountLines(path string) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	buf := make([]byte, 32*1024)
 	count := 0
