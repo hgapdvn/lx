@@ -75,6 +75,20 @@ func TestFutureDo_Error(t *testing.T) {
 	if result != 0 {
 		t.Errorf("Get() result = %v, want 0", result)
 	}
+
+	t.Run("panic is returned as an error", func(t *testing.T) {
+		future := FutureDo(func() (int, error) {
+			panic("boom")
+		})
+
+		result, err := future.Get(context.Background())
+		if err == nil || err.Error() != "lxtypes: future computation panicked: boom" {
+			t.Errorf("Get() error = %v, want panic error", err)
+		}
+		if result != 0 {
+			t.Errorf("Get() result = %v, want 0", result)
+		}
+	})
 }
 
 func TestFutureDo_ContextCancellation(t *testing.T) {

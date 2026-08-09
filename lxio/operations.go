@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -19,6 +20,9 @@ var (
 	ErrSourceNotDirectory = errors.New("lxio: source path is not a directory")
 	// ErrDestinationExists is returned when the destination path already exists.
 	ErrDestinationExists = errors.New("lxio: destination already exists")
+	// ErrDestinationWithinSource is returned when CopyDir receives a destination
+	// inside the source directory.
+	ErrDestinationWithinSource = errors.New("lxio: destination is within source directory")
 )
 
 // CopyFile copies the file from src to dst.
@@ -180,6 +184,7 @@ func RemoveIfExists(path string) error {
 // CopyDir recursively copies the directory from src to dst.
 // If dst already exists, it is not overwritten (error is returned).
 // The directory structure and file permissions are preserved.
+// Returns ErrDestinationWithinSource if dst is inside src.
 // Returns an error if src doesn't exist or if the copy fails.
 //
 // Example:
@@ -200,6 +205,28 @@ func CopyDir(src, dst string) error {
 	// Check if destination already exists
 	if _, err := os.Stat(dst); err == nil {
 		return fmt.Errorf("%w: %q", ErrDestinationExists, dst)
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+
+	srcAbsPath, err := filepath.Abs(src)
+	if err != nil {
+		return err
+	}
+	srcPath, err := filepath.EvalSymlinks(srcAbsPath)
+	if err != nil {
+		return err
+	}
+	dstPath, err := resolveDestinationPath(dst)
+	if err != nil {
+		return err
+	}
+	inside, err := isWithinDirectory(srcPath, dstPath)
+	if err != nil {
+		return err
+	}
+	if inside {
+		return fmt.Errorf("%w: %q", ErrDestinationWithinSource, dst)
 	}
 
 	if err := os.MkdirAll(dst, srcInfo.Mode().Perm()); err != nil {
@@ -248,6 +275,42 @@ func CopyDir(src, dst string) error {
 			return nil
 		}
 	})
+}
+
+// resolveDestinationPath resolves symlinks in the closest existing ancestor of
+// path, then appends the still-missing path components.
+func resolveDestinationPath(path string) (string, error) {
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return "", err
+	}
+
+	current := absPath
+	var suffix []string
+	for {
+		resolved, err := filepath.EvalSymlinks(current)
+		if err == nil {
+			return filepath.Join(append([]string{resolved}, suffix...)...), nil
+		}
+		if !os.IsNotExist(err) {
+			return "", err
+		}
+
+		parent := filepath.Dir(current)
+		if parent == current {
+			return "", err
+		}
+		suffix = append([]string{filepath.Base(current)}, suffix...)
+		current = parent
+	}
+}
+
+func isWithinDirectory(parent, path string) (bool, error) {
+	rel, err := filepath.Rel(parent, path)
+	if err != nil {
+		return false, err
+	}
+	return rel == "." || (rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))), nil
 }
 
 // Touch creates a file at the given path if it doesn't exist.

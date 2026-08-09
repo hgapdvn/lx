@@ -1,6 +1,7 @@
 package lxtypes
 
 import (
+	"fmt"
 	"sync"
 	"sync/atomic"
 )
@@ -70,6 +71,7 @@ func LazyEagerOrError[T any](value T, err error) Lazy[T] {
 
 // LazyDeferred creates a Lazy that computes its value on first access.
 // The computation function is called at most once, even with concurrent access.
+// A panic from fn is returned by Get as an error.
 //
 // Example:
 //
@@ -115,8 +117,15 @@ type deferredLazy[T any] struct {
 
 func (d *deferredLazy[T]) Get() (T, error) {
 	d.once.Do(func() {
+		defer func() {
+			if recovered := recover(); recovered != nil {
+				var zero T
+				d.cache = zero
+				d.err = fmt.Errorf("lxtypes: lazy computation panicked: %v", recovered)
+			}
+			atomic.StoreInt32(&d.evaluated, 1)
+		}()
 		d.cache, d.err = d.fn()
-		atomic.StoreInt32(&d.evaluated, 1)
 	})
 	return d.cache, d.err
 }

@@ -601,6 +601,7 @@ func TestCopyDir(t *testing.T) {
 		name    string
 		setup   func(t *testing.T, dir string) (string, string)
 		wantErr bool
+		wantIs  error
 		checkFn func(t *testing.T, src, dst string) bool
 	}{
 		{
@@ -740,6 +741,18 @@ func TestCopyDir(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "copy fails if destination is inside source",
+			setup: func(t *testing.T, dir string) (string, string) {
+				src := filepath.Join(dir, "src")
+				if err := os.Mkdir(src, 0755); err != nil {
+					t.Fatal(err)
+				}
+				return src, filepath.Join(src, "backup")
+			},
+			wantErr: true,
+			wantIs:  lxio.ErrDestinationWithinSource,
+		},
+		{
 			name: "copy fails if source not exists",
 			setup: func(t *testing.T, dir string) (string, string) {
 				src := filepath.Join(dir, "nonexistent")
@@ -758,6 +771,10 @@ func TestCopyDir(t *testing.T) {
 			err := lxio.CopyDir(src, dst)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CopyDir() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantIs != nil && !errors.Is(err, tt.wantIs) {
+				t.Errorf("CopyDir() error = %v, want errors.Is(_, %v)", err, tt.wantIs)
 				return
 			}
 

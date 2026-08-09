@@ -543,17 +543,21 @@ func TestLazyDeferred_PanicInFunction(t *testing.T) {
 		panic("computation panic")
 	})
 
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Error("Expected panic to propagate")
-		}
-		if r != "computation panic" {
-			t.Errorf("panic value = %v, want 'computation panic'", r)
-		}
-	}()
+	value, err := lazy.Get()
+	if value != 0 {
+		t.Errorf("Get() value = %v, want 0", value)
+	}
+	if err == nil || err.Error() != "lxtypes: lazy computation panicked: computation panic" {
+		t.Errorf("Get() error = %v, want panic error", err)
+	}
+	if !lazy.IsEvaluated() {
+		t.Error("IsEvaluated() = false, want true after panic")
+	}
 
-	_, _ = lazy.Get()
+	_, cachedErr := lazy.Get()
+	if cachedErr == nil || cachedErr.Error() != err.Error() {
+		t.Errorf("second Get() error = %v, want cached panic error", cachedErr)
+	}
 }
 
 func TestLazyDeferred_LongRunningComputation(t *testing.T) {

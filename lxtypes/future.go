@@ -3,6 +3,7 @@ package lxtypes
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 )
 
@@ -79,11 +80,19 @@ func (f *future[T]) Get(ctx context.Context) (T, error) {
 }
 
 // exec executes the function and stores the result.
-// Lock-free: writes happen-before channel close.
+// Panics from the computation are converted to errors so they cannot crash the
+// process or leave callers blocked forever. Writes happen-before channel close.
 func (f *future[T]) exec() {
 	f.once.Do(func() {
+		defer func() {
+			if recovered := recover(); recovered != nil {
+				var zero T
+				f.value = zero
+				f.err = fmt.Errorf("lxtypes: future computation panicked: %v", recovered)
+			}
+			close(f.done)
+		}()
 		f.value, f.err = f.fn()
-		close(f.done) // Signals completion (happens-after guarantee)
 	})
 }
 
@@ -95,6 +104,7 @@ func (f *future[T]) exec() {
 //
 // If the parent Future completes with an error, the error is propagated and
 // the transformation function is not executed.
+// A panic in the transformation function is returned as an error.
 //
 // Context cancellation is handled by Get() - if you call Get(ctx) on the
 // chained future with a cancelled context, it will return immediately with
@@ -140,6 +150,7 @@ func FutureThen[T, U any](parent Future[T], fn func(T) (U, error)) Future[U] {
 
 // FutureDo creates a Future that executes the given function asynchronously.
 // The computation starts immediately in a background goroutine (hot start).
+// A panic from fn is returned by Get as an error.
 //
 // Example:
 //
