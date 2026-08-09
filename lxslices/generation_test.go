@@ -242,9 +242,7 @@ func TestRange(t *testing.T) {
 			}
 		})
 	}
-}
 
-func TestRange_DifferentIntegerTypes(t *testing.T) {
 	t.Run("int8 type", func(t *testing.T) {
 		result := Range(int8(1), int8(5))
 		expected := []int8{1, 2, 3, 4}
@@ -264,6 +262,17 @@ func TestRange_DifferentIntegerTypes(t *testing.T) {
 	t.Run("uint type", func(t *testing.T) {
 		result := Range(uint(0), uint(4))
 		expected := []uint{0, 1, 2, 3}
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Range() = %v, want %v", result, expected)
+		}
+	})
+
+	t.Run("full int8 span does not overflow", func(t *testing.T) {
+		expected := make([]int8, 255)
+		for i := range expected {
+			expected[i] = int8(i - 128)
+		}
+		result := Range(int8(-128), int8(127))
 		if !reflect.DeepEqual(result, expected) {
 			t.Errorf("Range() = %v, want %v", result, expected)
 		}
@@ -386,9 +395,7 @@ func TestRangeStep(t *testing.T) {
 			}
 		})
 	}
-}
 
-func TestRangeStep_DifferentIntegerTypes(t *testing.T) {
 	t.Run("int8 type", func(t *testing.T) {
 		result := RangeStep(int8(0), int8(10), int8(3))
 		expected := []int8{0, 3, 6, 9}
@@ -408,6 +415,30 @@ func TestRangeStep_DifferentIntegerTypes(t *testing.T) {
 	t.Run("int64 type", func(t *testing.T) {
 		result := RangeStep(int64(5), int64(0), int64(-1))
 		expected := []int64{5, 4, 3, 2, 1}
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("RangeStep() = %v, want %v", result, expected)
+		}
+	})
+
+	t.Run("full int8 span does not overflow", func(t *testing.T) {
+		result := RangeStep(int8(-128), int8(127), int8(127))
+		expected := []int8{-128, -1, 126}
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("RangeStep() = %v, want %v", result, expected)
+		}
+	})
+
+	t.Run("uint8 step near maximum does not wrap", func(t *testing.T) {
+		result := RangeStep(uint8(250), uint8(255), uint8(4))
+		expected := []uint8{250, 254}
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("RangeStep() = %v, want %v", result, expected)
+		}
+	})
+
+	t.Run("negative int8 step near minimum does not wrap", func(t *testing.T) {
+		result := RangeStep(int8(127), int8(-128), int8(-127))
+		expected := []int8{127, 0, -127}
 		if !reflect.DeepEqual(result, expected) {
 			t.Errorf("RangeStep() = %v, want %v", result, expected)
 		}

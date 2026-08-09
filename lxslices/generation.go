@@ -56,10 +56,14 @@ func Range[T lxconstraints.Integer](start, end T) []T {
 	if start >= end {
 		return nil
 	}
-	size := int(end - start)
-	result := make([]T, size)
-	for i := 0; i < size; i++ {
-		result[i] = start + T(i)
+
+	var result []T
+	for value := start; value < end; {
+		result = append(result, value)
+		if value == end-1 {
+			break
+		}
+		value++
 	}
 	return result
 }
@@ -89,19 +93,27 @@ func RangeStep[T lxconstraints.Integer](start, end, step T) []T {
 		return nil
 	}
 
-	// Calculate size
-	var size int
 	if step > 0 {
-		size = int((end - start + step - 1) / step)
-	} else {
-		size = int((end - start + step + 1) / step)
+		var result []T
+		for value := start; value < end; {
+			result = append(result, value)
+			next := value + step
+			if next <= value || next >= end {
+				break
+			}
+			value = next
+		}
+		return result
 	}
 
-	result := make([]T, size)
-	value := start
-	for i := 0; i < size; i++ {
-		result[i] = value
-		value += step
+	var result []T
+	for value := start; value > end; {
+		result = append(result, value)
+		next := value + step
+		if next >= value || next <= end {
+			break
+		}
+		value = next
 	}
 	return result
 }
