@@ -657,6 +657,68 @@ func TestCopyDir(t *testing.T) {
 			},
 		},
 		{
+			name: "preserves file and directory permissions",
+			setup: func(t *testing.T, dir string) (string, string) {
+				if runtime.GOOS == "windows" {
+					t.Skip("Unix permission bits are not supported on Windows")
+				}
+
+				src := filepath.Join(dir, "src_permissions")
+				dst := filepath.Join(dir, "dst_permissions")
+				nestedDir := filepath.Join(src, "private")
+				privateFile := filepath.Join(nestedDir, "secret.txt")
+				executableFile := filepath.Join(src, "run.sh")
+
+				if err := os.Mkdir(src, 0750); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.Chmod(src, 0750); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.Mkdir(nestedDir, 0710); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.Chmod(nestedDir, 0710); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(privateFile, []byte("secret"), 0600); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.Chmod(privateFile, 0600); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(executableFile, []byte("#!/bin/sh\necho ok\n"), 0755); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.Chmod(executableFile, 0755); err != nil {
+					t.Fatal(err)
+				}
+
+				return src, dst
+			},
+			wantErr: false,
+			checkFn: func(t *testing.T, src, dst string) bool {
+				paths := []struct {
+					src string
+					dst string
+				}{
+					{src, dst},
+					{filepath.Join(src, "private"), filepath.Join(dst, "private")},
+					{filepath.Join(src, "private", "secret.txt"), filepath.Join(dst, "private", "secret.txt")},
+					{filepath.Join(src, "run.sh"), filepath.Join(dst, "run.sh")},
+				}
+
+				for _, path := range paths {
+					srcInfo, srcErr := os.Stat(path.src)
+					dstInfo, dstErr := os.Stat(path.dst)
+					if srcErr != nil || dstErr != nil || srcInfo.Mode().Perm() != dstInfo.Mode().Perm() {
+						return false
+					}
+				}
+				return true
+			},
+		},
+		{
 			name: "copy fails if source not directory",
 			setup: func(t *testing.T, dir string) (string, string) {
 				src := filepath.Join(dir, "file.txt")

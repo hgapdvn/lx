@@ -225,7 +225,10 @@ func CopyDir(src, dst string) error {
 
 		switch {
 		case d.IsDir():
-			return os.MkdirAll(target, info.Mode().Perm())
+			if err := os.MkdirAll(target, info.Mode().Perm()); err != nil {
+				return err
+			}
+			return os.Chmod(target, info.Mode().Perm())
 
 		case info.Mode()&os.ModeSymlink != 0:
 			link, err := os.Readlink(path)
@@ -235,7 +238,10 @@ func CopyDir(src, dst string) error {
 			return os.Symlink(link, target)
 
 		case info.Mode().IsRegular():
-			return CopyFile(path, target)
+			if err := CopyFile(path, target); err != nil {
+				return err
+			}
+			return os.Chmod(target, info.Mode().Perm())
 
 		default:
 			// skip unsupported types
