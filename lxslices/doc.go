@@ -1,6 +1,6 @@
 // Package lxslices provides a comprehensive set of generic utility functions
 // for operating on Go slices. It aims to offer functional programming
-// paradigms and common slice manipulations in a type-safe manner using Go 1.18+ generics.
+// paradigms and common slice manipulations in a type-safe manner using Go generics.
 //
 // The package is organized into several key categories:
 //

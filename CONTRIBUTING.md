@@ -70,7 +70,7 @@ Have an idea? [Open an issue](../../issues/new?labels=enhancement) or [start a d
 
 ### Prerequisites
 
-- **Go 1.18+** installed (generics support required)
+- **Go 1.25+** installed
 - **Git** for version control
 - A **GitHub account**
 - Familiarity with Go generics
@@ -521,4 +521,3 @@ Every contribution, no matter how small, helps make `lx` better for everyone. We
 [⬆ Back to Top](#-contributing-to-lx)
 
 </div>
-

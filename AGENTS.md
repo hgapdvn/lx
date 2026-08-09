@@ -6,11 +6,11 @@
 
 ## 🎯 Project at a Glance
 
-**lx** is a Go 1.18+ utilities library providing focused, generic-first extensions to the standard library. Every package solves one problem well with zero external dependencies.
+**lx** is a Go 1.25+ utilities library providing focused, generic-first extensions to the standard library. Every package solves one problem well with zero external dependencies.
 
 - **Core Principle**: Small, focused packages (no giant "utils")
-- **Generic-First**: All functions use Go 1.18+ generics for type safety
-- **Backwards Compatible**: Targets Go 1.18+ (use `lxslices`/`lxmaps` over stdlib `slices`/`maps` packages from Go 1.21)
+- **Generic-First**: All functions use Go generics for type safety
+- **Supported Go Version**: Targets Go 1.25+; CI tests Go 1.25 and Go 1.26
 - **Production-Ready**: 90%+ test coverage, comprehensive edge case testing
 
 ---
@@ -404,10 +404,8 @@ import (
 // Package names have lx prefix when used: lxslices, lxmaps, lxtypes, etc.
 ```
 
-### Version Compatibility: Go 1.18+ Baseline
-- `slices` package uses build tags for Go 1.21+ vs older versions
-  - `sort_go121.go` (uses stdlib `slices.SortFunc`)
-  - `sort_legacy.go` (uses `sort.Slice`)
+### Version Compatibility: Go 1.25+ Baseline
+- Go 1.18–1.24 are not supported.
 - Always test with `-race` detector for concurrent safety
 
 ### Map vs Slice Operations
@@ -472,10 +470,10 @@ func FirstOr[T any](slice []T, defaultValue T) T {
 - **Contribution Guide**: `CONTRIBUTING.md`
 - **Package Planning**: `PACKAGE_ROADMAP.md`
 - **Module**: `github.com/hgapdvn/lx`
-- **Go Version**: 1.18+
+- **Go Version**: 1.25+
 - **License**: Apache 2.0
 
 ---
 
-**Last Updated**: April 4, 2026  
+**Last Updated**: August 9, 2026
 **For**: AI Coding Agents (Copilot, Cursor, Claude, etc.)
