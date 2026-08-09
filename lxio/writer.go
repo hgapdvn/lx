@@ -33,9 +33,8 @@ func Write(path string, data []byte) error {
 //
 // Example:
 //
-//     err := lxio.WriteWithPerm("/path/to/file", []byte("content"), 0755)
-//     // Creates file with rwxr-xr-x permissions
-//
+//	err := lxio.WriteWithPerm("/path/to/file", []byte("content"), 0755)
+//	// Creates file with rwxr-xr-x permissions
 func WriteWithPerm(path string, data []byte, perm os.FileMode) error {
 	return os.WriteFile(path, data, perm)
 }
@@ -52,9 +51,8 @@ func WriteString(path string, data string) error {
 //
 // Example:
 //
-//     err := lxio.WriteStringf("/path/to/file", "User: %s, Age: %d", "Alice", 30)
-//     // File contents: "User: Alice, Age: 30"
-//
+//	err := lxio.WriteStringf("/path/to/file", "User: %s, Age: %d", "Alice", 30)
+//	// File contents: "User: Alice, Age: 30"
 func WriteStringf(path string, format string, args ...any) error {
 	return WriteString(path, fmt.Sprintf(format, args...))
 }
@@ -134,13 +132,12 @@ func AppendLine(path string, line string) error {
 //
 // Example:
 //
-//     lines := []string{"line1", "line2", "line3"}
-//     err := lxio.AppendLines("/path/to/file", lines)
-//     // File contents (appended):
-//     // line1
-//     // line2
-//     // line3
-//
+//	lines := []string{"line1", "line2", "line3"}
+//	err := lxio.AppendLines("/path/to/file", lines)
+//	// File contents (appended):
+//	// line1
+//	// line2
+//	// line3
 func AppendLines(path string, lines []string) error {
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, defaultFileMode)
 	if err != nil {
