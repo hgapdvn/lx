@@ -1,6 +1,7 @@
 package lxio_test
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -12,11 +13,12 @@ import (
 
 func TestCopyFile(t *testing.T) {
 	tests := []struct {
-		name     string
-		srcSetup func(t *testing.T, dir string) string
-		dstPath  func(dir string) string
-		wantErr  bool
-		checkFn  func(t *testing.T, src, dst string) bool
+		name         string
+		srcSetup     func(t *testing.T, dir string) string
+		dstPath      func(t *testing.T, dir string) string
+		wantErr      bool
+		wantSameFile bool
+		checkFn      func(t *testing.T, src, dst string) bool
 	}{
 		{
 			name: "copy simple file",
@@ -25,7 +27,7 @@ func TestCopyFile(t *testing.T) {
 				_ = os.WriteFile(path, []byte("hello world"), 0644)
 				return path
 			},
-			dstPath: func(dir string) string { return filepath.Join(dir, "dest.txt") },
+			dstPath: func(_ *testing.T, dir string) string { return filepath.Join(dir, "dest.txt") },
 			wantErr: false,
 			checkFn: func(t *testing.T, src, dst string) bool {
 				srcContent, _ := os.ReadFile(src)
@@ -40,7 +42,7 @@ func TestCopyFile(t *testing.T) {
 				_ = os.WriteFile(path, []byte("new content"), 0644)
 				return path
 			},
-			dstPath: func(dir string) string {
+			dstPath: func(_ *testing.T, dir string) string {
 				path := filepath.Join(dir, "dest.txt")
 				_ = os.WriteFile(path, []byte("old content"), 0644)
 				return path
@@ -56,7 +58,7 @@ func TestCopyFile(t *testing.T) {
 			srcSetup: func(t *testing.T, dir string) string {
 				return filepath.Join(dir, "nonexistent.txt")
 			},
-			dstPath: func(dir string) string { return filepath.Join(dir, "dest.txt") },
+			dstPath: func(_ *testing.T, dir string) string { return filepath.Join(dir, "dest.txt") },
 			wantErr: true,
 		},
 		{
@@ -66,10 +68,51 @@ func TestCopyFile(t *testing.T) {
 				_ = os.WriteFile(path, []byte("content"), 0644)
 				return path
 			},
-			dstPath: func(dir string) string {
+			dstPath: func(_ *testing.T, dir string) string {
 				return filepath.Join(dir, "nonexistent_dir", "file.txt")
 			},
 			wantErr: true,
+		},
+		{
+			name: "rejects identical paths without truncating the source",
+			srcSetup: func(t *testing.T, dir string) string {
+				path := filepath.Join(dir, "source.txt")
+				if err := os.WriteFile(path, []byte("original content"), 0644); err != nil {
+					t.Fatal(err)
+				}
+				return path
+			},
+			dstPath:      func(_ *testing.T, dir string) string { return filepath.Join(dir, "source.txt") },
+			wantErr:      true,
+			wantSameFile: true,
+			checkFn: func(t *testing.T, src, _ string) bool {
+				content, err := os.ReadFile(src)
+				return err == nil && string(content) == "original content"
+			},
+		},
+		{
+			name: "rejects hard linked paths without truncating the source",
+			srcSetup: func(t *testing.T, dir string) string {
+				path := filepath.Join(dir, "source.txt")
+				if err := os.WriteFile(path, []byte("original content"), 0644); err != nil {
+					t.Fatal(err)
+				}
+				return path
+			},
+			dstPath: func(t *testing.T, dir string) string {
+				src := filepath.Join(dir, "source.txt")
+				dst := filepath.Join(dir, "source-link.txt")
+				if err := os.Link(src, dst); err != nil {
+					t.Skipf("hard links are unavailable: %v", err)
+				}
+				return dst
+			},
+			wantErr:      true,
+			wantSameFile: true,
+			checkFn: func(t *testing.T, src, _ string) bool {
+				content, err := os.ReadFile(src)
+				return err == nil && string(content) == "original content"
+			},
 		},
 	}
 
@@ -77,15 +120,20 @@ func TestCopyFile(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			dir := t.TempDir()
 			src := tt.srcSetup(t, dir)
-			dst := tt.dstPath(dir)
+			dst := tt.dstPath(t, dir)
 
 			err := lxio.CopyFile(src, dst)
-			if (err != nil) != tt.wantErr {
+			if tt.wantSameFile {
+				if !errors.Is(err, lxio.ErrSourceAndDestinationSame) {
+					t.Errorf("CopyFile() error = %v, want ErrSourceAndDestinationSame", err)
+					return
+				}
+			} else if (err != nil) != tt.wantErr {
 				t.Errorf("CopyFile() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 
-			if !tt.wantErr && tt.checkFn != nil && !tt.checkFn(t, src, dst) {
+			if tt.checkFn != nil && !tt.checkFn(t, src, dst) {
 				t.Errorf("CopyFile() result check failed")
 			}
 		})

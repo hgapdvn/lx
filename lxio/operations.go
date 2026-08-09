@@ -10,8 +10,11 @@ import (
 	"time"
 )
 
-// Sentinel errors returned by CopyDir.
+// Sentinel errors returned by file and directory copy operations.
 var (
+	// ErrSourceAndDestinationSame is returned when CopyFile receives paths to
+	// the same underlying file.
+	ErrSourceAndDestinationSame = errors.New("lxio: source and destination are the same file")
 	// ErrSourceNotDirectory is returned when the source path is not a directory.
 	ErrSourceNotDirectory = errors.New("lxio: source path is not a directory")
 	// ErrDestinationExists is returned when the destination path already exists.
@@ -21,6 +24,7 @@ var (
 // CopyFile copies the file from src to dst.
 // If dst already exists, it is truncated.
 // The file permissions and modification time are not preserved.
+// Returns ErrSourceAndDestinationSame if src and dst refer to the same file.
 // Returns an error if src doesn't exist or if the copy fails.
 //
 // Example:
@@ -36,6 +40,18 @@ func CopyFile(src, dst string) error {
 		return err
 	}
 	defer source.Close()
+
+	sourceInfo, err := source.Stat()
+	if err != nil {
+		return err
+	}
+	destinationInfo, err := os.Stat(dst)
+	if err == nil && os.SameFile(sourceInfo, destinationInfo) {
+		return fmt.Errorf("%w: %q and %q", ErrSourceAndDestinationSame, src, dst)
+	}
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
 
 	// Create destination file
 	destination, err := os.Create(dst)
