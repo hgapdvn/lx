@@ -323,7 +323,9 @@ func TestMustGetDuration(t *testing.T) {
 			if tt.setVar {
 				t.Setenv(tt.key, tt.preset)
 			} else {
-				os.Unsetenv(tt.key)
+				if err := os.Unsetenv(tt.key); err != nil {
+					t.Fatalf("could not unset %q: %v", tt.key, err)
+				}
 			}
 
 			if tt.wantPanic {

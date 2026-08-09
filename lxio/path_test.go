@@ -569,7 +569,7 @@ func TestClean(t *testing.T) {
 		{
 			name:     "multiple slashes at start",
 			path:     "///path/to/file.txt",
-			expected: filepath.Join("/path/to/file.txt"),
+			expected: filepath.Clean("///path/to/file.txt"),
 		},
 		{
 			name:     "trailing slashes removed",

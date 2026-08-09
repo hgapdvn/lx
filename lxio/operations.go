@@ -39,7 +39,7 @@ func CopyFile(src, dst string) error {
 	if err != nil {
 		return err
 	}
-	defer source.Close()
+	defer func() { _ = source.Close() }()
 
 	sourceInfo, err := source.Stat()
 	if err != nil {
@@ -266,7 +266,7 @@ func Touch(path string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	// Update the access and modification time to current time
 	now := time.Now()

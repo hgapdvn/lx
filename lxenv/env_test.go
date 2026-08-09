@@ -261,7 +261,9 @@ func TestMustGet(t *testing.T) {
 			if tt.setEnv {
 				t.Setenv(tt.key, tt.value)
 			} else {
-				os.Unsetenv(tt.key)
+				if err := os.Unsetenv(tt.key); err != nil {
+					t.Fatalf("could not unset %q: %v", tt.key, err)
+				}
 			}
 
 			if tt.wantPanic {
@@ -334,9 +336,15 @@ func TestSet(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.name == "overwrite existing value" {
-				os.Setenv(tt.key, "old_value")
+				if err := os.Setenv(tt.key, "old_value"); err != nil {
+					t.Fatalf("could not set %q: %v", tt.key, err)
+				}
 			}
-			defer os.Unsetenv(tt.key)
+			t.Cleanup(func() {
+				if err := os.Unsetenv(tt.key); err != nil {
+					t.Errorf("could not unset %q: %v", tt.key, err)
+				}
+			})
 
 			err := lxenv.Set(tt.key, tt.value)
 			if err != nil {
@@ -398,7 +406,9 @@ func TestUnset(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.setVar {
-				os.Setenv(tt.key, tt.preset)
+				if err := os.Setenv(tt.key, tt.preset); err != nil {
+					t.Fatalf("could not set %q: %v", tt.key, err)
+				}
 			}
 
 			err := lxenv.Unset(tt.key)

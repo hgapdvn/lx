@@ -501,13 +501,21 @@ func TestLoadYML_ListItemsSkipped(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not create temp file: %v", err)
 	}
-	t.Cleanup(func() { os.Remove(f.Name()) })
+	t.Cleanup(func() {
+		if err := os.Remove(f.Name()); err != nil && !os.IsNotExist(err) {
+			t.Errorf("could not remove temp file: %v", err)
+		}
+	})
 
 	if _, err := f.Write(content); err != nil {
-		f.Close()
+		if closeErr := f.Close(); closeErr != nil {
+			t.Fatalf("could not close temp file: %v", closeErr)
+		}
 		t.Fatalf("could not write temp file: %v", err)
 	}
-	f.Close()
+	if err := f.Close(); err != nil {
+		t.Fatalf("could not close temp file: %v", err)
+	}
 
 	keysToClean := []string{"server", "server.host", "server.allowed", "server.port"}
 	cleanupKeys(t, keysToClean)

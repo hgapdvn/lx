@@ -57,7 +57,7 @@ func ReadLinesString(path string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	scanner := bufio.NewScanner(f)
 	buf := make([]byte, 0, 64*1024)
@@ -113,7 +113,7 @@ func ForEachLine(path string, fn func(line string) error) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	scanner := bufio.NewScanner(f)
 
