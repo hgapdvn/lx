@@ -151,9 +151,8 @@ func ForEachLine(path string, fn func(line string) error) error {
 //
 // Example:
 //
-//     lines, err := lxio.ReadFirstN("/path/to/file", 10)
-//     // lines: first 10 lines of file (or fewer if file is smaller)
-//
+//	lines, err := lxio.ReadFirstN("/path/to/file", 10)
+//	// lines: first 10 lines of file (or fewer if file is smaller)
 func ReadFirstN(path string, n int) ([]string, error) {
 	if n <= 0 {
 		return []string{}, nil
@@ -172,7 +171,7 @@ func ReadFirstN(path string, n int) ([]string, error) {
 	var lines []string
 	count := 0
 
-	for scanner.Scan() && count < n {
+	for count < n && scanner.Scan() {
 		lines = append(lines, scanner.Text())
 		count++
 	}
@@ -194,9 +193,8 @@ func ReadFirstN(path string, n int) ([]string, error) {
 //
 // Example:
 //
-//     lines, err := lxio.ReadLastN("/path/to/file", 10)
-//     // lines: last 10 lines of file (or fewer if file is smaller)
-//
+//	lines, err := lxio.ReadLastN("/path/to/file", 10)
+//	// lines: last 10 lines of file (or fewer if file is smaller)
 func ReadLastN(path string, n int) ([]string, error) {
 	if n <= 0 {
 		return []string{}, nil
@@ -254,12 +252,11 @@ func ReadLastN(path string, n int) ([]string, error) {
 //
 // Example:
 //
-//     count, err := lxio.CountLines("/path/to/file")
-//     if err != nil {
-//         // handle error
-//     }
-//     fmt.Printf("File has %d lines\n", count)
-//
+//	count, err := lxio.CountLines("/path/to/file")
+//	if err != nil {
+//	    // handle error
+//	}
+//	fmt.Printf("File has %d lines\n", count)
 func CountLines(path string) (int, error) {
 	file, err := os.Open(path)
 	if err != nil {

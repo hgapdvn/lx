@@ -348,6 +348,7 @@ func TestReadFirstN(t *testing.T) {
 	tests := []struct {
 		name      string
 		content   string
+		path      func(t *testing.T) string
 		n         int
 		expected  []string
 		shouldErr bool
@@ -394,11 +395,28 @@ func TestReadFirstN(t *testing.T) {
 			n:        2,
 			expected: []string{"line1", "line2"},
 		},
+		{
+			name:     "does not read an oversized line after the requested lines",
+			content:  "line1\n" + strings.Repeat("x", 1024*1024+1),
+			n:        1,
+			expected: []string{"line1"},
+		},
+		{
+			name: "nonexistent file",
+			path: func(t *testing.T) string {
+				return filepath.Join(t.TempDir(), "missing.txt")
+			},
+			n:         5,
+			shouldErr: true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			path := createTempFile(t, tt.content)
+			if tt.path != nil {
+				path = tt.path(t)
+			}
 			result, err := lxio.ReadFirstN(path, tt.n)
 
 			if tt.shouldErr && err == nil {
@@ -421,16 +439,6 @@ func TestReadFirstN(t *testing.T) {
 				}
 			}
 		})
-	}
-}
-
-func TestReadFirstN_NonExistentFile(t *testing.T) {
-	result, err := lxio.ReadFirstN("/nonexistent/path/file.txt", 5)
-	if err == nil {
-		t.Errorf("expected error for nonexistent file, got nil")
-	}
-	if result != nil {
-		t.Errorf("expected nil result for nonexistent file, got %v", result)
 	}
 }
 
