@@ -7,8 +7,12 @@ import (
 )
 
 // Map applies the given function to each element of the slice and returns a new slice with the results.
-// The original slice is not modified.
+// The original slice is not modified. It returns nil when slice is nil.
 func Map[T, U any](slice []T, fn func(T) U) []U {
+	if slice == nil {
+		return nil
+	}
+
 	result := make([]U, len(slice))
 	for i, e := range slice {
 		result[i] = fn(e)
@@ -95,7 +99,7 @@ func Chunk[T any](slice []T, size int) ([][]T, error) {
 		return [][]T{}, nil
 	}
 
-	chunks := make([][]T, 0, (len(slice)+size-1)/size)
+	chunks := make([][]T, 0, 1+(len(slice)-1)/size)
 	for i := 0; i < len(slice); i += size {
 		end := i + size
 		if end > len(slice) {

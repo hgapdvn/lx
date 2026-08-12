@@ -23,6 +23,7 @@ func TestAbbreviate(t *testing.T) {
 		{"Japanese", "こんにちは世界", 6, "こんに..."},
 		{"Empty string", "", 5, ""},
 		{"Shorter than input", "Test", 2, "Te"},
+		{"Negative width", "Test", -1, ""},
 		{"Equal to input", "Test", 4, "Test"},
 	}
 	for _, tt := range tests {
@@ -166,6 +167,7 @@ func TestContainsIgnoreCase(t *testing.T) {
 		{"Non-empty string in empty string", "", "non-empty", false},
 		{"Japanese", "こんにちは世界", "世界", true},
 		{"Emoji", "😊emoji😊", "emoji", true},
+		{"Unicode simple fold", "ς", "Σ", true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -623,6 +625,7 @@ func TestIndexIgnoreCase(t *testing.T) {
 			{"", "non-empty", -1},
 			{"こんにちは世界", "世界", 15},
 			{"😊Emoji😊", "emoji", 4},
+			{"Kx", "x", 3},
 		}
 		for _, test := range tests {
 			result := lxstrings.IndexIgnoreCase(test.s, test.substr)
@@ -672,6 +675,7 @@ func TestLastIndexIgnoreCase(t *testing.T) {
 			{"", "non-empty", -1},
 			{"こんにちは世界こんにちは", "こんにちは", 21},
 			{"😊Emoji😊emoji😊", "emoji", 13},
+			{"xKx", "x", 4},
 		}
 		for _, test := range tests {
 			result := lxstrings.LastIndexIgnoreCase(test.s, test.substr)
@@ -845,6 +849,7 @@ func TestTruncate(t *testing.T) {
 		{"Hello", 10, "Hello"},
 		{"GoLang", 3, "GoL"},
 		{"Short", 0, ""},
+		{"Short", -1, ""},
 		{"Exact", 5, "Exact"},
 		{"This is a longer string", 8, "This is "},
 	}
@@ -1197,6 +1202,7 @@ func TestRemoveIgnoreCase(t *testing.T) {
 		{"no match here", "XYZ", "no match here"},
 		{"", "ANYTHING", ""},
 		{"😊Emoji😊emoji😊", "EMOJI", "😊😊😊"},
+		{"KxKx", "x", "KK"},
 	}
 	for _, test := range tests {
 		result := lxstrings.RemoveIgnoreCase(test.s, test.substr)
@@ -1332,6 +1338,7 @@ func TestSubStringBeforeIgnoreCase(t *testing.T) {
 		{"Check uppercase", "GoLang PROGRAMMING", "programming", "GoLang "},
 		{"Check middle uppercase", "Test STRING example", "STRING", "Test "},
 		{"Check no match", "no match here", "XYZ", ""},
+		{"Unicode byte boundaries", "Kx", "X", "K"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1377,6 +1384,7 @@ func TestSubStringAfterIgnoreCase(t *testing.T) {
 			{"Check mixcase", "GoLang PROGRAMMING", "GOLANG", " PROGRAMMING"},
 			{"Check middle uppercase", "Test STRING example", "STRING", " example"},
 			{"Check no match", "no match here", "XYZ", ""},
+			{"Unicode byte boundaries", "Kx", "X", ""},
 		}
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {

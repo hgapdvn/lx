@@ -122,6 +122,18 @@ func TestDaysBetween_EdgeCases(t *testing.T) {
 				return lxtime.DaysBetween(t1, t2) == 1
 			},
 		},
+		{
+			name: "spring daylight-saving transition",
+			check: func() bool {
+				location, err := time.LoadLocation("America/New_York")
+				if err != nil {
+					return false
+				}
+				t1 := time.Date(2026, time.March, 8, 0, 0, 0, 0, location)
+				t2 := time.Date(2026, time.March, 9, 0, 0, 0, 0, location)
+				return lxtime.DaysBetween(t1, t2) == 1
+			},
+		},
 	}
 
 	for _, tt := range tests {

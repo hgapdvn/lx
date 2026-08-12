@@ -281,13 +281,17 @@ func TestMap_IntToInt(t *testing.T) {
 			name:     "nil slice",
 			slice:    nil,
 			fn:       func(v int) int { return v * 2 },
-			expected: []int{},
+			expected: nil,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := lxslices.Map(tt.slice, tt.fn)
+			if (result == nil) != (tt.expected == nil) {
+				t.Errorf("Map() nil result = %v; want %v", result == nil, tt.expected == nil)
+				return
+			}
 			if len(result) != len(tt.expected) {
 				t.Errorf("Map() length = %v; want %v", len(result), len(tt.expected))
 				return
@@ -336,13 +340,17 @@ func TestMap_IntToString(t *testing.T) {
 			name:     "nil slice",
 			slice:    nil,
 			fn:       func(v int) string { return strings.Repeat("*", v) },
-			expected: []string{},
+			expected: nil,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := lxslices.Map(tt.slice, tt.fn)
+			if (result == nil) != (tt.expected == nil) {
+				t.Errorf("Map() nil result = %v; want %v", result == nil, tt.expected == nil)
+				return
+			}
 			if len(result) != len(tt.expected) {
 				t.Errorf("Map() length = %v; want %v", len(result), len(tt.expected))
 				return
@@ -394,13 +402,17 @@ func TestMap_StringToInt(t *testing.T) {
 			name:     "nil slice",
 			slice:    nil,
 			fn:       func(s string) int { return len(s) },
-			expected: []int{},
+			expected: nil,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := lxslices.Map(tt.slice, tt.fn)
+			if (result == nil) != (tt.expected == nil) {
+				t.Errorf("Map() nil result = %v; want %v", result == nil, tt.expected == nil)
+				return
+			}
 			if len(result) != len(tt.expected) {
 				t.Errorf("Map() length = %v; want %v", len(result), len(tt.expected))
 				return
@@ -444,13 +456,17 @@ func TestMap_StringToString(t *testing.T) {
 			name:     "nil slice",
 			slice:    nil,
 			fn:       func(s string) string { return strings.ToUpper(s) },
-			expected: []string{},
+			expected: nil,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := lxslices.Map(tt.slice, tt.fn)
+			if (result == nil) != (tt.expected == nil) {
+				t.Errorf("Map() nil result = %v; want %v", result == nil, tt.expected == nil)
+				return
+			}
 			if len(result) != len(tt.expected) {
 				t.Errorf("Map() length = %v; want %v", len(result), len(tt.expected))
 				return
@@ -510,13 +526,17 @@ func TestMap_StructTransform(t *testing.T) {
 			fn: func(u User) UserDTO {
 				return UserDTO{ID: u.ID, FullName: u.Name}
 			},
-			expected: []UserDTO{},
+			expected: nil,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := lxslices.Map(tt.slice, tt.fn)
+			if (result == nil) != (tt.expected == nil) {
+				t.Errorf("Map() nil result = %v; want %v", result == nil, tt.expected == nil)
+				return
+			}
 			if len(result) != len(tt.expected) {
 				t.Errorf("Map() length = %v; want %v", len(result), len(tt.expected))
 				return
@@ -1318,6 +1338,12 @@ func TestChunk_Int(t *testing.T) {
 			slice:    []int{1, 2, 3},
 			size:     3,
 			expected: [][]int{{1, 2, 3}},
+		},
+		{
+			name:     "maximum size",
+			slice:    []int{1, 2},
+			size:     int(^uint(0) >> 1),
+			expected: [][]int{{1, 2}},
 		},
 		{
 			name:     "empty slice",

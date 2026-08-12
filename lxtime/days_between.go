@@ -5,7 +5,7 @@ import "time"
 // DaysBetween returns the number of calendar days between two times.
 // The count includes both the start and end dates (exclusive of endpoints in terms of complete days).
 // Negative values indicate t2 is before t1.
-// Timezones are taken into account - the calculation is based on the date in each time's timezone.
+// Both times are compared using t1's location, so daylight-saving transitions do not affect the result.
 //
 // Example:
 //
@@ -24,8 +24,10 @@ func DaysBetween(t1, t2 time.Time) int {
 	y1, m1, d1 := t1.In(loc).Date()
 	y2, m2, d2 := t2.In(loc).Date()
 
-	start := time.Date(y1, m1, d1, 0, 0, 0, 0, loc)
-	end := time.Date(y2, m2, d2, 0, 0, 0, 0, loc)
+	// Use UTC only as a stable calendar. Local midnights can be 23 or 25 hours
+	// apart during daylight-saving transitions.
+	start := time.Date(y1, m1, d1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(y2, m2, d2, 0, 0, 0, 0, time.UTC)
 
 	return int(end.Sub(start).Hours() / 24)
 }

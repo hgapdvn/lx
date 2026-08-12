@@ -22,8 +22,13 @@ const (
 
 // Abbreviate shortens the string to the specified maxWidth, adding "..." if truncated.
 // If the string is shorter than or equal to maxWidth, it is returned unchanged.
-// If maxWidth is less than or equal to 3, it returns the first maxWidth characters.
+// If maxWidth is less than or equal to 0, it returns an empty string.
+// If maxWidth is between 1 and 3, it returns the first maxWidth characters.
 func Abbreviate(s string, maxWidth int) string {
+	if maxWidth <= 0 {
+		return ""
+	}
+
 	runes := []rune(s)
 	if len(runes) <= maxWidth {
 		return s
@@ -59,9 +64,8 @@ func Contains(str, sub string) bool {
 
 // ContainsIgnoreCase checks if the substring is present in the string, ignoring case.
 func ContainsIgnoreCase(str, sub string) bool {
-	sLower := strings.ToLower(str)
-	subLower := strings.ToLower(sub)
-	return strings.Contains(sLower, subLower)
+	start, _ := indexFold(str, sub)
+	return start >= 0
 }
 
 // ContainsAny checks if any of the specified characters are present in the string.
@@ -187,9 +191,8 @@ func LastIndex(str, sub string) int {
 
 // LastIndexIgnoreCase returns the index of the last occurrence of substr in s, ignoring case, or -1 if not found.
 func LastIndexIgnoreCase(str, sub string) int {
-	sLower := strings.ToLower(str)
-	substrLower := strings.ToLower(sub)
-	return strings.LastIndex(sLower, substrLower)
+	start, _ := lastIndexFold(str, sub)
+	return start
 }
 
 // Length returns the length of the string.
@@ -220,9 +223,8 @@ func UpperCase(str string) string {
 
 // IndexIgnoreCase returns the index of the first occurrence of substr in s, ignoring case, or -1 if not found.
 func IndexIgnoreCase(str, substr string) int {
-	sLower := LowerCase(str)
-	substrLower := LowerCase(substr)
-	return Index(sLower, substrLower)
+	start, _ := indexFold(str, substr)
+	return start
 }
 
 // Equals checks if two strings are equal.
@@ -265,7 +267,13 @@ func TrimRight(str string, cutset string) string {
 	return strings.TrimRight(str, cutset)
 }
 
+// Truncate returns at most maxWidth runes from str.
+// It returns an empty string when maxWidth is less than or equal to 0.
 func Truncate(str string, maxWidth int) string {
+	if maxWidth <= 0 {
+		return ""
+	}
+
 	runes := []rune(str)
 	if len(runes) <= maxWidth {
 		return str
@@ -295,9 +303,8 @@ func StartBy(str, prefix string) bool {
 
 // StartByIgnoreCase checks if the string starts with the specified prefix, ignoring case.
 func StartByIgnoreCase(str, prefix string) bool {
-	sLower := LowerCase(str)
-	prefixLower := LowerCase(prefix)
-	return strings.HasPrefix(sLower, prefixLower)
+	start, _ := indexFold(str, prefix)
+	return start == 0
 }
 
 // StartByAny checks if the string starts with any of the specified prefixes.
@@ -311,10 +318,8 @@ func StartByAny(str string, prefixes ...string) bool {
 }
 
 func StartByAnyIgnoreCase(str string, prefixes ...string) bool {
-	sLower := LowerCase(str)
 	for _, prefix := range prefixes {
-		prefixLower := LowerCase(prefix)
-		if strings.HasPrefix(sLower, prefixLower) {
+		if StartByIgnoreCase(str, prefix) {
 			return true
 		}
 	}
@@ -328,9 +333,11 @@ func EndBy(str, suffix string) bool {
 
 // EndByIgnoreCase checks if the string ends with the specified suffix, ignoring case.
 func EndByIgnoreCase(str, suffix string) bool {
-	sLower := LowerCase(str)
-	suffixLower := LowerCase(suffix)
-	return strings.HasSuffix(sLower, suffixLower)
+	if suffix == "" {
+		return true
+	}
+	_, end := lastIndexFold(str, suffix)
+	return end == len(str)
 }
 
 // EndByAny checks if the string ends with any of the specified suffixes.
@@ -345,10 +352,8 @@ func EndByAny(str string, suffixes ...string) bool {
 
 // EndByAnyIgnoreCase checks if the string ends with any of the specified suffixes, ignoring case.
 func EndByAnyIgnoreCase(str string, suffixes ...string) bool {
-	sLower := LowerCase(str)
 	for _, suffix := range suffixes {
-		suffixLower := LowerCase(suffix)
-		if strings.HasSuffix(sLower, suffixLower) {
+		if EndByIgnoreCase(str, suffix) {
 			return true
 		}
 	}
@@ -377,22 +382,20 @@ func RemoveIgnoreCase(str, substr string) string {
 		return str
 	}
 
-	lowerS := LowerCase(str)
-	lowerSub := LowerCase(substr)
-
 	var b strings.Builder
 	i := 0
 
 	for {
-		j := Index(lowerS[i:], lowerSub)
-		if j < 0 {
+		start, end := indexFold(str[i:], substr)
+		if start < 0 {
 			b.WriteString(str[i:])
 			break
 		}
 
-		j += i
-		b.WriteString(str[i:j])
-		i = j + len(substr)
+		start += i
+		end += i
+		b.WriteString(str[i:start])
+		i = end
 	}
 
 	return b.String()
@@ -451,13 +454,11 @@ func SubStringBefore(str, sep string) string {
 // SubStringBeforeIgnoreCase returns the substring before the first occurrence of sep, ignoring case.
 // If sep is not found, it returns an empty string.
 func SubStringBeforeIgnoreCase(str, sep string) string {
-	sLower := LowerCase(str)
-	sepLower := LowerCase(sep)
-	index := strings.Index(sLower, sepLower)
-	if index == -1 {
+	start, _ := indexFold(str, sep)
+	if start == -1 {
 		return ""
 	}
-	return str[:index]
+	return str[:start]
 }
 
 // SubStringAfter returns the substring after the first occurrence of sep.
@@ -473,13 +474,11 @@ func SubStringAfter(str, sep string) string {
 // SubStringAfterIgnoreCase returns the substring after the first occurrence of sep, ignoring case.
 // If sep is not found, it returns an empty string.
 func SubStringAfterIgnoreCase(str, sep string) string {
-	sLower := LowerCase(str)
-	sepLower := LowerCase(sep)
-	index := strings.Index(sLower, sepLower)
-	if index == -1 {
+	_, end := indexFold(str, sep)
+	if end == -1 {
 		return ""
 	}
-	return str[index+len(sep):]
+	return str[end:]
 }
 
 // PadLeft pads the string on the left with the specified padStr until it reaches the desired length.
@@ -604,9 +603,7 @@ func StartWith(str, prefix string) bool {
 
 // StartWithIgnoreCase checks if the string starts with the specified prefix, ignoring case.
 func StartWithIgnoreCase(str, prefix string) bool {
-	sLower := LowerCase(str)
-	prefixLower := LowerCase(prefix)
-	return strings.HasPrefix(sLower, prefixLower)
+	return StartByIgnoreCase(str, prefix)
 }
 
 // StartWithAny checks if the string starts with any of the specified prefixes.
@@ -621,14 +618,7 @@ func StartWithAny(str string, prefixes ...string) bool {
 
 // StartWithAnyIgnoreCase checks if the string starts with any of the specified prefixes, ignoring case.
 func StartWithAnyIgnoreCase(str string, prefixes ...string) bool {
-	sLower := LowerCase(str)
-	for _, prefix := range prefixes {
-		prefixLower := LowerCase(prefix)
-		if strings.HasPrefix(sLower, prefixLower) {
-			return true
-		}
-	}
-	return false
+	return StartByAnyIgnoreCase(str, prefixes...)
 }
 
 // EndWith checks if the string ends with the specified suffix.
@@ -638,9 +628,7 @@ func EndWith(str, suffix string) bool {
 
 // EndWithIgnoreCase checks if the string ends with the specified suffix, ignoring case.
 func EndWithIgnoreCase(str, suffix string) bool {
-	sLower := LowerCase(str)
-	suffixLower := LowerCase(suffix)
-	return strings.HasSuffix(sLower, suffixLower)
+	return EndByIgnoreCase(str, suffix)
 }
 
 // EndWithAny checks if the string ends with any of the specified suffixes.
@@ -655,12 +643,56 @@ func EndWithAny(str string, suffixes ...string) bool {
 
 // EndWithAnyIgnoreCase checks if the string ends with any of the specified suffixes, ignoring case.
 func EndWithAnyIgnoreCase(str string, suffixes ...string) bool {
-	sLower := LowerCase(str)
-	for _, suffix := range suffixes {
-		suffixLower := LowerCase(suffix)
-		if strings.HasSuffix(sLower, suffixLower) {
-			return true
+	return EndByAnyIgnoreCase(str, suffixes...)
+}
+
+// indexFold returns the byte range of the first substring equal to substr under Unicode case folding.
+func indexFold(str, substr string) (int, int) {
+	if substr == "" {
+		return 0, 0
+	}
+
+	runeCount := utf8.RuneCountInString(substr)
+	for start := range str {
+		end, ok := advanceRunes(str, start, runeCount)
+		if !ok {
+			break
+		}
+		if strings.EqualFold(str[start:end], substr) {
+			return start, end
 		}
 	}
-	return false
+	return -1, -1
+}
+
+// lastIndexFold returns the byte range of the last substring equal to substr under Unicode case folding.
+func lastIndexFold(str, substr string) (int, int) {
+	if substr == "" {
+		return len(str), len(str)
+	}
+
+	runeCount := utf8.RuneCountInString(substr)
+	lastStart, lastEnd := -1, -1
+	for start := range str {
+		end, ok := advanceRunes(str, start, runeCount)
+		if !ok {
+			break
+		}
+		if strings.EqualFold(str[start:end], substr) {
+			lastStart, lastEnd = start, end
+		}
+	}
+	return lastStart, lastEnd
+}
+
+func advanceRunes(str string, start, count int) (int, bool) {
+	end := start
+	for range count {
+		if end == len(str) {
+			return 0, false
+		}
+		_, size := utf8.DecodeRuneInString(str[end:])
+		end += size
+	}
+	return end, true
 }
