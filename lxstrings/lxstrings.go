@@ -84,6 +84,10 @@ func ContainsAny(str string, chars ...rune) bool {
 // It returns an integer comparing two strings lexicographically, ignoring case.
 // The result will be 0 if str1 == str2, -1 if str1 < str2, and +1 if str1 > str2.
 func CompareIgnoreCase(str1, str2 string) int {
+	if strings.EqualFold(str1, str2) {
+		return 0
+	}
+
 	s1Lower := strings.ToLower(str1)
 	s2Lower := strings.ToLower(str2)
 	return strings.Compare(s1Lower, s2Lower)
@@ -102,7 +106,7 @@ func IsNotEmpty(str string) bool {
 // IsBlank checks if the given string is blank (empty or only whitespace).
 func IsBlank(str string) bool {
 	for _, r := range str {
-		if r != ' ' && r != '\n' && r != '\t' && r != '\r' {
+		if !unicode.IsSpace(r) {
 			return false
 		}
 	}
@@ -292,7 +296,12 @@ func Join(elems []string, sep string) string {
 }
 
 // Repeat returns a new string consisting of count copies of the string s.
+// It returns an empty string when count is less than or equal to 0.
 func Repeat(str string, count int) string {
+	if count <= 0 {
+		return ""
+	}
+
 	return strings.Repeat(str, count)
 }
 
@@ -432,6 +441,9 @@ func Reverse(str string) string {
 // If end is -1, it returns the substring from start to the end of the string.
 func SubString(str string, start, end int) string {
 	runes := []rune(str)
+	if end < -1 {
+		return ""
+	}
 	if end == -1 || end > len(runes) {
 		end = len(runes)
 	}
@@ -481,49 +493,31 @@ func SubStringAfterIgnoreCase(str, sep string) string {
 	return str[end:]
 }
 
-// PadLeft pads the string on the left with the specified padStr until it reaches the desired length.
+// PadLeft pads the string on the left with the specified padStr until it reaches the desired rune length.
 func PadLeft(str string, length int, padStr string) string {
-	if IsEmpty(str) || IsEmpty(padStr) || Length(str) >= length {
+	if IsEmpty(str) || IsEmpty(padStr) || RuneCount(str) >= length {
 		return str
 	}
 
-	padLen := length - Length(str)
-	var b strings.Builder
-	b.Grow(length)
-
-	for b.Len() < padLen {
-		b.WriteString(padStr)
-	}
-
-	padded := b.String()
-	return padded[len(padded)-padLen:] + str
+	return padding(padStr, length-RuneCount(str)) + str
 }
 
-// PadRight pads the string on the right with the specified padStr until it reaches the desired length.
+// PadRight pads the string on the right with the specified padStr until it reaches the desired rune length.
 func PadRight(str string, length int, padStr string) string {
-	if IsEmpty(str) || IsEmpty(padStr) || Length(str) >= length {
+	if IsEmpty(str) || IsEmpty(padStr) || RuneCount(str) >= length {
 		return str
 	}
 
-	var b strings.Builder
-	b.Grow(length)
-	b.WriteString(str)
-
-	for b.Len() < length {
-		b.WriteString(padStr)
-	}
-
-	result := b.String()
-	return result[:length]
+	return str + padding(padStr, length-RuneCount(str))
 }
 
-// PadCenter pads the string on both sides with the specified padStr until it reaches the desired length.
+// PadCenter pads the string on both sides with the specified padStr until it reaches the desired rune length.
 func PadCenter(str string, length int, padStr string) string {
 	if IsEmpty(str) || IsEmpty(padStr) {
 		return str
 	}
 
-	sLen := len(str)
+	sLen := RuneCount(str)
 	if sLen >= length {
 		return str
 	}
@@ -532,32 +526,21 @@ func PadCenter(str string, length int, padStr string) string {
 	left := totalPad / 2
 	right := totalPad - left
 
-	var b strings.Builder
-	b.Grow(length)
+	return padding(padStr, left) + str + padding(padStr, right)
+}
 
-	for n := left; n > 0; {
-		if len(padStr) <= n {
-			b.WriteString(padStr)
-			n -= len(padStr)
-		} else {
-			b.WriteString(padStr[:n])
-			n = 0
+func padding(padStr string, length int) string {
+	padRunes := []rune(padStr)
+	result := make([]rune, 0, length)
+	for len(result) < length {
+		remaining := length - len(result)
+		if remaining >= len(padRunes) {
+			result = append(result, padRunes...)
+			continue
 		}
+		result = append(result, padRunes[:remaining]...)
 	}
-
-	b.WriteString(str)
-
-	for n := right; n > 0; {
-		if len(padStr) <= n {
-			b.WriteString(padStr)
-			n -= len(padStr)
-		} else {
-			b.WriteString(padStr[:n])
-			n = 0
-		}
-	}
-
-	return b.String()
+	return string(result)
 }
 
 // CountMatches counts non-overlapping occurrences of sub in str.

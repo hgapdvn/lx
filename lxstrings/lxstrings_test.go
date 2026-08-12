@@ -115,6 +115,7 @@ func TestCompareIgnoreCase(t *testing.T) {
 		{"Less than number of characters", "abc", "ABCD", -1},
 		{"Greater than number of characters", "ABCD", "abc", 1},
 		{"Japanese equal", "こんにちは", "こんにちは", 0},
+		{"Unicode simple fold", "ς", "Σ", 0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -268,6 +269,7 @@ func TestIsBlank(t *testing.T) {
 		{"Empty string", "", true},
 		{"Only spaces", "   ", true},
 		{"Only whitespace", "\n\t\r", true},
+		{"Unicode whitespace", "\u00A0\u2003", true},
 		{"Not blank", " not blank ", false},
 		{"Not blank - lowercase", "hello", false},
 		{"Not blank - Japanese", "こんにちは", false},
@@ -923,6 +925,7 @@ func TestRepeat(t *testing.T) {
 		{"😊", 4, "😊😊😊😊"},
 		{"abc", 1, "abc"},
 		{"", 10, ""},
+		{"go", -1, ""},
 	}
 	for _, test := range tests {
 		result := lxstrings.Repeat(test.input, test.count)
@@ -1295,6 +1298,7 @@ func TestSubString(t *testing.T) {
 		{"Check test string", "test string", 5, 11, "string"},
 		{"Check emoji", "😊emoji😊", 1, 6, "emoji"},
 		{"Check short", "short", 2, 10, "ort"},
+		{"Invalid negative end", "short", 0, -2, ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1410,6 +1414,7 @@ func TestPadLeft(t *testing.T) {
 			{"Test with char 0", "golang", 8, "0", "00golang"},
 			{"Test with char -", "test", 6, "-", "--test"},
 			{"Test with char x, but not enough padding", "short", 3, "x", "short"},
+			{"Unicode padding", "a", 3, "界", "界界a"},
 		}
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
@@ -1434,6 +1439,7 @@ func TestPadRight(t *testing.T) {
 		{"Test with char 0", "golang", 8, "0", "golang00"},
 		{"Test with char -", "test", 6, "-", "test--"},
 		{"Test with char x, but not enough padding", "short", 3, "x", "short"},
+		{"Unicode padding", "a", 3, "界", "a界界"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1457,6 +1463,7 @@ func TestPadCenter(t *testing.T) {
 		{"Test with char 0", "golang", 10, "0", "00golang00"},
 		{"Test with char -", "test", 8, "-", "--test--"},
 		{"Test with char x, but not enough padding", "short", 3, "x", "short"},
+		{"Unicode padding", "a", 4, "界", "界a界界"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
